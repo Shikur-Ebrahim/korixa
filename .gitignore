@@ -38,9 +38,8 @@ yarn-error.log*
 Service Accounts.json
 **/*service*account*.json
 
-# cursor / local assets
-.cursor/
-assets/
+# cursor / local image assets (root only — do not ignore components/assets or lib/assets)
+/assets/
 .vercel
 
 # typescript
