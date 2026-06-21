@@ -9,9 +9,21 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@types/qrcode": "^1.5.6",
+    "@vladmandic/face-api": "^1.7.15",
+    "cloudinary": "^2.10.0",
+    "firebase": "^12.15.0",
+    "firebase-admin": "^14.0.0",
+    "framer-motion": "^12.40.0",
     "next": "16.2.7",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-icons": "^5.6.0",
+    "resend": "^6.14.0",
+    "tesseract.js": "^7.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

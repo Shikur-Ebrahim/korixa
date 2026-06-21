@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Korixa
 
-## Getting Started
+Mobile-first crypto trading web app built with **Next.js 16**, **Firebase Auth**, **Firestore KYC**, **Binance market data**, and **Tatum blockchain deposits**.
 
-First, run the development server:
+## Features
+
+- Email OTP + Google/Facebook sign-in
+- KYC verification with ID upload and liveness check
+- Home dashboard with live portfolio and watchlist
+- Market page (CoinGecko)
+- Trade terminal (Binance data)
+- Assets portfolio page
+- Crypto deposits (BSC + Polygon USDT via Tatum)
+
+## Local development
 
 ```bash
+npm install
+cp .env.example .env
+# Fill in .env values (see below)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://localhost:3000](http://localhost:3000).
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Push this repo to GitHub.
+2. Import the repo in [Vercel](https://vercel.com/new).
+3. Framework preset: **Next.js** (auto-detected).
+4. Add all environment variables from `.env.example` (see **Vercel environment variables** below).
+5. Set `NEXT_PUBLIC_APP_URL` to your production URL (e.g. `https://korixa.vercel.app`).
+6. Deploy.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### After deploy
+
+- Add your Vercel domain to **Firebase Auth → Authorized domains**.
+- For Tatum deposit webhooks, set `NEXT_PUBLIC_APP_URL` to the live URL so webhooks hit `/api/webhook/tatum`.
+- Use `TATUM_NETWORK=testnet` for testing; switch to `mainnet` only when ready for real USDT.
+
+## Vercel environment variables
+
+Copy these into **Vercel → Project → Settings → Environment Variables** (Production, Preview, and Development):
+
+| Variable | Required | Notes |
+|----------|----------|--------|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Yes | Firebase client |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Yes | e.g. `your-project.firebaseapp.com` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Yes | Firebase project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Yes | e.g. `your-project.appspot.com` |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Yes | Firebase console |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Yes | Firebase console |
+| `FIREBASE_PROJECT_ID` | Yes | Same as project ID |
+| `FIREBASE_CLIENT_EMAIL` | Yes | Service account email only (no markdown links) |
+| `FIREBASE_PRIVATE_KEY` | Yes | Full private key; use `\n` for line breaks in Vercel |
+| `RESEND_API_KEY` | Yes | Email OTP |
+| `RESEND_FROM_EMAIL` | Yes | Verified sender, e.g. `Korixa <noreply@yourdomain.com>` |
+| `RESEND_REPLY_TO` | Optional | Support email |
+| `BIMI_LOGO_URL` | Optional | Email logo URL |
+| `CLOUDINARY_CLOUD_NAME` | Yes | KYC uploads |
+| `CLOUDINARY_API_KEY` | Yes | KYC uploads |
+| `CLOUDINARY_API_SECRET` | Yes | KYC uploads |
+| `CLOUDINARY_UPLOAD_PRESET` | Yes | KYC uploads |
+| `NEXT_PUBLIC_APP_NAME` | Yes | `Korixa` |
+| `NEXT_PUBLIC_APP_URL` | Yes | **Production URL** (critical for OTP links & Tatum webhooks) |
+| `COINGECKO_API_KEY` | Yes | Market page |
+| `TATUM_NETWORK` | Yes | `testnet` or `mainnet` |
+| `TATUM_API_KEY_TESTNET` | Yes | Tatum testnet key |
+| `TATUM_API_KEY_MAINNET` | Yes | Tatum mainnet key |
+| `TATUM_DEPOSIT_MNEMONIC` | Optional | Reuse same HD wallet across redeploys |
+
+**Do not commit `.env` or `Service Accounts.json` to GitHub.**
+
+## Scripts
+
+```bash
+npm run dev      # Development server
+npm run build    # Production build
+npm run start    # Start production server
+npm run lint     # ESLint
+```
+
+## Tech stack
+
+- Next.js 16 App Router, React 19, Tailwind CSS 4
+- Firebase Auth + Firestore (Admin SDK)
+- Resend (OTP email), Cloudinary (KYC images)
+- Binance public API (proxied), CoinGecko (market)
+- Tatum (BSC/Polygon USDT deposits + webhooks)

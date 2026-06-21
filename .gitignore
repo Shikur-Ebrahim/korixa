@@ -32,8 +32,15 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
-# vercel
+# secrets / local credentials — never commit
+Service Accounts.json
+**/*service*account*.json
+
+# cursor / local assets
+.cursor/
+assets/
 .vercel
 
 # typescript
