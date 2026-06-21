@@ -156,9 +156,19 @@ async function sendBrandedEmail(options: {
   const resend = getResend();
   const logoAttachment = getEmailLogoAttachment();
   const replyTo = getReplyToEmail();
+  const from = getFromEmail();
 
-  await resend.emails.send({
-    from: getFromEmail(),
+  if (
+    process.env.VERCEL === "1" &&
+    from.includes("resend.dev")
+  ) {
+    throw new Error(
+      "RESEND_FROM_EMAIL must use your verified domain (e.g. Korixa <noreply@korixapay.com>). The default resend.dev sender only delivers to your Resend account email."
+    );
+  }
+
+  const { error } = await resend.emails.send({
+    from,
     to: options.to,
     replyTo: replyTo,
     subject: options.subject,
@@ -167,6 +177,10 @@ async function sendBrandedEmail(options: {
     attachments: [logoAttachment],
     headers: getEmailHeaders(),
   });
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 async function saveOtp(email: string, purpose: OtpPurpose, code: string): Promise<void> {

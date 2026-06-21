@@ -19,10 +19,10 @@ import { loadBalances, loadFavorites } from "@/lib/trade/storage";
 export function HomeScreen() {
   const { kycStatus } = useAuth();
   const { openDeposit, notice, dismissNotice } = useDepositGate();
-  const { data, isLoading, error } = useHomeMarketData();
   const [hideBalance, setHideBalance] = useState(false);
   const [balances, setBalances] = useState<Record<string, number>>({});
   const [favorites, setFavorites] = useState<string[]>([]);
+  const { data, isLoading, error } = useHomeMarketData(balances);
 
   useEffect(() => {
     setBalances(loadBalances());

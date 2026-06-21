@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { BinanceTicker } from "@/lib/binance/types";
 import { loadAssetTransactions } from "@/lib/assets/transactions";
 import {
   buildAllocation,
@@ -9,14 +8,22 @@ import {
   computePortfolioSummary,
   isPortfolioEmpty,
 } from "@/lib/assets/utils";
+import { mergeTickerSymbols } from "@/lib/binance/symbols";
+import type { BinanceTicker } from "@/lib/binance/types";
 import { loadBalances } from "@/lib/trade/storage";
 import { useBinanceTickers } from "@/hooks/useBinanceMarket";
 
 export function useAssetsData() {
-  const { data: tickers, isLoading, error, mutate } = useBinanceTickers();
   const [balances, setBalances] = useState<Record<string, number>>({});
   const [transactions, setTransactions] = useState(loadAssetTransactions());
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const symbols = useMemo(
+    () => mergeTickerSymbols(Object.keys(balances)),
+    [balances]
+  );
+
+  const { data: tickers, isLoading, error, mutate } = useBinanceTickers(symbols);
 
   useEffect(() => {
     setBalances(loadBalances());

@@ -1,8 +1,17 @@
-# Vercel environment variables
+# Vercel environment variables — korixapay.com
 
-Add these in **Vercel → Project → Settings → Environment Variables** for **Production**, **Preview**, and **Development**.
+Add these in **Vercel → Project → Settings → Environment Variables** (Production + Preview).
 
-## Required
+## Critical for production
+
+```
+NEXT_PUBLIC_APP_URL=https://www.korixapay.com
+RESEND_FROM_EMAIL=Korixa <noreply@korixapay.com>
+```
+
+Without a **verified domain** in Resend, OTP emails only work for your Resend account email (`onboarding@resend.dev` limitation).
+
+## Full list
 
 ```
 NEXT_PUBLIC_FIREBASE_API_KEY=
@@ -17,14 +26,16 @@ FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
 
 RESEND_API_KEY=
-RESEND_FROM_EMAIL=
+RESEND_FROM_EMAIL=Korixa <noreply@korixapay.com>
+RESEND_REPLY_TO=support@korixapay.com
+
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 CLOUDINARY_UPLOAD_PRESET=
 
 NEXT_PUBLIC_APP_NAME=Korixa
-NEXT_PUBLIC_APP_URL=https://YOUR-PROJECT.vercel.app
+NEXT_PUBLIC_APP_URL=https://www.korixapay.com
 
 COINGECKO_API_KEY=
 
@@ -33,26 +44,40 @@ TATUM_API_KEY_TESTNET=
 TATUM_API_KEY_MAINNET=
 ```
 
-## Optional
+## Resend domain setup (required for all signup emails)
+
+1. [resend.com/domains](https://resend.com/domains) → Add **korixapay.com**
+2. Add the DNS records Resend provides (SPF, DKIM, etc.) at your domain registrar
+3. Wait until status is **Verified**
+4. Set `RESEND_FROM_EMAIL=Korixa <noreply@korixapay.com>` in Vercel
+5. Redeploy
+
+## Firebase Auth (required for login on live domain)
+
+Firebase Console → Authentication → Settings → **Authorized domains** → add:
+
+- `www.korixapay.com`
+- `korixapay.com`
+- `korixa.vercel.app` (if using Vercel preview URL)
+
+## After deploy checklist
+
+1. `NEXT_PUBLIC_APP_URL` = `https://www.korixapay.com`
+2. Resend domain verified + `RESEND_FROM_EMAIL` updated
+3. Firebase authorized domains added
+4. Redeploy on Vercel
+5. Test signup with a **new email** (not just your Resend account email)
+
+## Live prices (Binance)
+
+Binance API is blocked from US servers. This project uses:
+
+- `data-api.binance.vision` (primary)
+- Vercel functions in **EU/Asia regions** (`vercel.json`)
+- Lightweight symbol batches instead of full 2MB ticker dump
+
+Optional override:
 
 ```
-RESEND_REPLY_TO=
-BIMI_LOGO_URL=
-TATUM_DEPOSIT_MNEMONIC=
+BINANCE_API_URL=https://data-api.binance.vision/api/v3
 ```
-
-## Important notes
-
-1. **FIREBASE_PRIVATE_KEY** — Paste the full key from Firebase service account JSON. In Vercel, keep `\n` for line breaks (do not use real newlines unless Vercel multiline field).
-2. **FIREBASE_CLIENT_EMAIL** — Plain email only, e.g. `firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com` (no markdown links).
-3. **NEXT_PUBLIC_APP_URL** — Must be your live Vercel URL after first deploy, e.g. `https://korixa.vercel.app`. Required for OTP emails and Tatum deposit webhooks.
-4. **Firebase Auth** — After deploy, add your Vercel domain under Firebase Console → Authentication → Settings → Authorized domains.
-5. **Tatum webhooks** — Regenerate deposit addresses after setting production `NEXT_PUBLIC_APP_URL` so subscriptions point to `https://YOUR-PROJECT.vercel.app/api/webhook/tatum`.
-
-## Deploy steps
-
-1. Import https://github.com/Shikur-Ebrahim/korixa in Vercel.
-2. Framework: **Next.js** (auto-detected).
-3. Add all variables above.
-4. Deploy.
-5. Update `NEXT_PUBLIC_APP_URL` to the final production URL and redeploy if needed.

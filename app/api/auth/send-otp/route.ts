@@ -22,9 +22,23 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("send-otp error:", error);
+
+    const message =
+      error instanceof Error ? error.message : "Failed to send verification code.";
+
+    const isDomainIssue =
+      message.includes("resend.dev") ||
+      message.includes("verify") ||
+      message.includes("domain") ||
+      message.includes("only send");
+
     return NextResponse.json(
-      { error: "Failed to send verification code. Please try again." },
-      { status: 500 }
+      {
+        error: isDomainIssue
+          ? "Email could not be sent. Set RESEND_FROM_EMAIL to your verified domain (e.g. Korixa <noreply@korixapay.com>) in Vercel."
+          : "Failed to send verification code. Please try again.",
+      },
+      { status: isDomainIssue ? 503 : 500 }
     );
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { mergeTickerSymbols } from "@/lib/binance/symbols";
 import type { BinanceDepth, BinanceTicker, BinanceTrade } from "@/lib/binance/types";
 
 function usePollingJson<T>(url: string | null, intervalMs: number) {
@@ -13,8 +14,10 @@ function usePollingJson<T>(url: string | null, intervalMs: number) {
 
     try {
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Request failed");
-      const json = (await res.json()) as T;
+      const json = (await res.json()) as T & { error?: string };
+      if (!res.ok) {
+        throw new Error(json.error ?? "Request failed");
+      }
       setData(json);
       setError(undefined);
     } catch (err) {
@@ -38,8 +41,14 @@ export function useBinanceTicker(symbol: string) {
   return usePollingJson<BinanceTicker>(`/api/binance/ticker?symbol=${symbol}`, 5000);
 }
 
-export function useBinanceTickers() {
-  return usePollingJson<BinanceTicker[]>("/api/binance/ticker", 10000);
+export function useBinanceTickers(symbols?: string[], all = false) {
+  const url = all
+    ? "/api/binance/ticker?all=1"
+    : symbols?.length
+      ? `/api/binance/ticker?symbols=${symbols.join(",")}`
+      : "/api/binance/ticker";
+
+  return usePollingJson<BinanceTicker[]>(url, 10000);
 }
 
 export function useBinanceDepth(symbol: string) {
@@ -57,7 +66,7 @@ export function useBinanceTrades(symbol: string) {
 }
 
 export function useMarketHighlights() {
-  const { data, error, isLoading } = useBinanceTickers();
+  const { data, error, isLoading } = useBinanceTickers(undefined, true);
 
   const highlights = data
     ? (() => {
@@ -131,8 +140,12 @@ export function computeUserBalance(
   };
 }
 
-export function useHomeMarketData() {
-  const { data: tickers, isLoading, error } = useBinanceTickers();
+export function useHomeMarketData(balances?: Record<string, number>) {
+  const symbols = useMemo(
+    () => (balances ? mergeTickerSymbols(Object.keys(balances)) : undefined),
+    [balances]
+  );
+  const { data: tickers, isLoading, error } = useBinanceTickers(symbols);
   const { data: klines, isLoading: klinesLoading } = useBinanceKlines("BTCUSDT", "1h", 24);
 
   const parsed = tickers
