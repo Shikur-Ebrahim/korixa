@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchBinance } from "@/lib/binance/client";
 import type { BinanceTrade } from "@/lib/binance/types";
 
-export const revalidate = 2;
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
