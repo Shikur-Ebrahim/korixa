@@ -20,8 +20,14 @@ export default function P2POrderRoomPage() {
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const [timeLeft, setTimeLeft] = useState("");
+
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     // Real-time order listener
@@ -68,13 +74,13 @@ export default function P2POrderRoomPage() {
   }, [order, orderId]);
 
   const handleMarkPaid = async () => {
-    if (!confirm("Have you sent the money and uploaded the proof?")) return;
     await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), { status: "paid" });
+    showToast("Marked as paid! The merchant will verify your payment. ✅");
   };
 
   const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this order?")) return;
     await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), { status: "cancelled" });
+    showToast("Order cancelled.", "error");
   };
 
   const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,10 +116,10 @@ export default function P2POrderRoomPage() {
       await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), {
         paymentProofUrl: data.url,
       });
-      alert("Proof uploaded successfully! ✅");
+      showToast("Payment proof uploaded successfully! ✅");
     } catch (err) {
       console.error("Upload failed", err);
-      alert("Failed to upload image. Please try again.");
+      showToast("Failed to upload image. Please try again.", "error");
     } finally {
       setUploading(false);
     }
@@ -127,6 +133,21 @@ export default function P2POrderRoomPage() {
 
   return (
     <div className="min-h-screen bg-[#0b0e11] text-white">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 left-1/2 z-[100] -translate-x-1/2 flex items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-2xl transition-all duration-300 ${
+            toast.type === "success"
+              ? "bg-green-500 text-white"
+              : "bg-red-500 text-white"
+          }`}
+          style={{ minWidth: 240, maxWidth: "90vw" }}
+        >
+          <span className="text-lg">{toast.type === "success" ? "✅" : "❌"}</span>
+          <span>{toast.msg}</span>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.06] bg-[#0b0e11]/95 px-4 py-4 backdrop-blur-md">
         <div className="flex items-center gap-3">
@@ -245,9 +266,8 @@ export default function P2POrderRoomPage() {
         {order.status === "paid" && isAdminOrMerchant && (
           <button
             onClick={async () => {
-              if (confirm("Have you verified the payment in your bank?")) {
-                await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), { status: "completed" });
-              }
+              await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), { status: "completed" });
+              showToast("USDT released! Order completed. ✅");
             }}
             className="w-full rounded-xl bg-green-500 py-4 text-sm font-bold text-white transition hover:bg-green-600"
           >
@@ -258,13 +278,13 @@ export default function P2POrderRoomPage() {
       </main>
 
       {/* Chat Drawer */}
-      {chatOpen && <ChatDrawer orderId={orderId} onClose={() => setChatOpen(false)} messages={messages} user={user} />}
+      {chatOpen && <ChatDrawer orderId={orderId} onClose={() => setChatOpen(false)} messages={messages} user={user} showToast={showToast} />}
     </div>
   );
 }
 
 // Subcomponent for Chat
-function ChatDrawer({ orderId, onClose, messages, user }: { orderId: string; onClose: () => void; messages: P2PMessage[]; user: any }) {
+function ChatDrawer({ orderId, onClose, messages, user, showToast }: { orderId: string; onClose: () => void; messages: P2PMessage[]; user: any; showToast: (msg: string, type?: "success" | "error") => void }) {
   const [text, setText] = useState("");
   const [sendingImg, setSendingImg] = useState(false);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
@@ -329,7 +349,7 @@ function ChatDrawer({ orderId, onClose, messages, user }: { orderId: string; onC
       });
     } catch (err) {
       console.error("Chat image upload failed", err);
-      alert("Failed to send image. Please try again.");
+      showToast("Failed to send image. Please try again.", "error");
     } finally {
       setSendingImg(false);
       if (fileRef.current) fileRef.current.value = "";
