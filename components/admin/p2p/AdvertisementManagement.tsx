@@ -145,11 +145,27 @@ export function AdvertisementManagement() {
             <select
               required
               value={form.merchantId ?? ""}
-              onChange={(e) => setForm({ ...form, merchantId: e.target.value })}
+              onChange={(e) => {
+                const mId = e.target.value;
+                const merchant = merchants.find((m) => m.id === mId);
+                setForm((prev) => ({
+                  ...prev,
+                  merchantId: mId,
+                  ...(merchant ? {
+                    availableUSDT: merchant.availableUSDT,
+                    paymentMethods: merchant.supportedPaymentMethods || [],
+                    paymentAccountDetails: (merchant.supportedPaymentMethods || []).map(method => ({
+                      method, accountName: "", accountNumber: ""
+                    }))
+                  } : {})
+                }));
+              }}
               className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
             >
               <option value="">-- Choose Merchant --</option>
-              {merchants.map((m) => (
+              {merchants
+                .filter(m => !ads.some(ad => ad.merchantId === m.id && ad.type === form.type))
+                .map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
@@ -161,7 +177,13 @@ export function AdvertisementManagement() {
               <label className="mb-1 block text-xs text-[#848e9c]">Type</label>
               <select
                 value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value as "buy" | "sell" })}
+                onChange={(e) => {
+                  const newType = e.target.value as "buy" | "sell";
+                  setForm(prev => {
+                    const isInvalid = prev.merchantId && ads.some(ad => ad.merchantId === prev.merchantId && ad.type === newType);
+                    return { ...prev, type: newType, merchantId: isInvalid ? "" : prev.merchantId };
+                  });
+                }}
                 className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
               >
                 <option value="buy">User buys USDT</option>
