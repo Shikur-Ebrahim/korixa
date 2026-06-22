@@ -81,8 +81,8 @@ export default function P2PMarketplace() {
             onClick={() => setActiveTab("buy")}
             className={`mr-6 pb-2.5 pt-3 text-sm font-semibold transition-colors ${
               activeTab === "buy"
-                ? "border-b-2 border-primary text-white"
-                : "text-[#848e9c] hover:text-white"
+                ? "border-b-2 border-green-500 text-green-500"
+                : "text-[#848e9c] hover:text-green-500"
             }`}
           >
             Buy USDT
@@ -91,8 +91,8 @@ export default function P2PMarketplace() {
             onClick={() => setActiveTab("sell")}
             className={`pb-2.5 pt-3 text-sm font-semibold transition-colors ${
               activeTab === "sell"
-                ? "border-b-2 border-red-500 text-white"
-                : "text-[#848e9c] hover:text-white"
+                ? "border-b-2 border-red-500 text-red-500"
+                : "text-[#848e9c] hover:text-red-500"
             }`}
           >
             Sell USDT
