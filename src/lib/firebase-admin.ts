@@ -3,16 +3,29 @@ import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 function getPrivateKey(): string {
-  const key = process.env.FIREBASE_PRIVATE_KEY;
+  let key = process.env.FIREBASE_PRIVATE_KEY;
   if (!key) {
     throw new Error("FIREBASE_PRIVATE_KEY is not configured.");
   }
+
+  key = key.trim();
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1);
+  }
+
   return key.replace(/\\n/g, "\n");
 }
 
 function getClientEmail(): string {
-  const email = process.env.FIREBASE_CLIENT_EMAIL ?? "";
-  return email.replace(/^\[/, "").replace(/\]\(.*\)$/, "").trim();
+  let email = (process.env.FIREBASE_CLIENT_EMAIL ?? "").trim();
+  const markdownMatch = email.match(/^\[([^\]]+)\]\([^)]+\)$/);
+  if (markdownMatch) {
+    email = markdownMatch[1];
+  }
+  return email.replace(/^mailto:/i, "").trim();
 }
 
 function createAdminApp(): App {

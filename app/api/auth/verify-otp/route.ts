@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createAuthTokenForEmail, verifyOTP } from "@/lib/otp";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),

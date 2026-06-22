@@ -170,7 +170,7 @@ async function sendBrandedEmail(options: {
   const { error } = await resend.emails.send({
     from,
     to: options.to,
-    replyTo: replyTo,
+    ...(replyTo ? { replyTo } : {}),
     subject: options.subject,
     html: buildVerificationEmailHtml(options.code, options.to),
     text: buildVerificationEmailText(options.code, options.to),

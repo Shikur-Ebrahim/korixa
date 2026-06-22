@@ -22,10 +22,11 @@ async function parseApiJson(res: Response): Promise<Record<string, unknown>> {
   const contentType = res.headers.get("content-type") ?? "";
 
   if (!contentType.includes("application/json")) {
+    const preview = text.slice(0, 120).replace(/\s+/g, " ");
     throw new Error(
       res.status === 404
         ? "Sign-up service unavailable. Redeploy the app and try again."
-        : `Server error (${res.status}). Check Firebase and Resend env vars on Vercel.`
+        : `Server error (${res.status}). Open /api/auth/health on your site to check env vars. ${preview ? `(${preview})` : ""}`
     );
   }
 
