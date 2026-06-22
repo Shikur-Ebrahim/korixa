@@ -151,7 +151,14 @@ export function P2PTradePanel() {
           </div>
         ) : (
           ads.map((ad) => (
-            <div key={ad.id} className="rounded-xl bg-gradient-to-br from-[#161a1e] to-[#1e2329] border border-white/[0.08] shadow-lg shadow-black/20 p-3.5 hover:border-primary/30 transition-colors">
+            <div
+              key={ad.id}
+              className={`rounded-xl p-3.5 transition-colors border shadow-lg shadow-black/20 ${
+                activeTab === "buy"
+                  ? "bg-gradient-to-br from-[#0d1829] to-[#0b0e11] border-blue-900/40 hover:border-blue-700/60"
+                  : "bg-gradient-to-br from-[#1f1f22] to-[#0b0e11] border-[#333336] hover:border-[#444448]"
+              }`}
+            >
               {/* Merchant Row */}
               <div className="flex items-center gap-2">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2b3139] text-xs font-bold text-white">
