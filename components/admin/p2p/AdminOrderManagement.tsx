@@ -44,7 +44,7 @@ function ChatPanel({ order, onClose }: { order: P2POrder; onClose: () => void })
     const uid = getAuth().currentUser?.uid ?? "admin";
     await addDoc(collection(getClientFirestore(), `p2pOrders/${order.id}/messages`), {
       senderId: uid,
-      senderName: "Admin",
+      senderName: order.merchantName || "Merchant",
       text: trimmed,
       createdAt: new Date().toISOString(),
     });
@@ -69,7 +69,7 @@ function ChatPanel({ order, onClose }: { order: P2POrder; onClose: () => void })
           <div className="text-center text-[11px] text-[#848e9c] pt-4">No messages yet</div>
         )}
         {messages.map((msg) => {
-          const isMerchant = msg.senderName === "Admin" || msg.senderId === order.merchantId;
+          const isMerchant = msg.senderId === order.merchantId || msg.senderId === (getAuth().currentUser?.uid ?? "admin") || msg.senderName === order.merchantName;
           return (
             <div key={msg.id} className={`flex ${isMerchant ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[80%] rounded-xl px-3 py-2 text-xs ${

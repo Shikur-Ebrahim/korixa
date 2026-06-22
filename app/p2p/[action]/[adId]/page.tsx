@@ -86,6 +86,7 @@ export default function P2POrderCreationPage() {
       const orderData: Omit<P2POrder, "id"> = {
         adId: ad.id,
         merchantId: ad.merchantId,
+        merchantName: ad.merchantName,
         buyerId: user.uid,
         type: action,
         amountUSDT: usdt,

@@ -43,6 +43,7 @@ export interface P2POrder {
   id: string;
   adId: string;
   merchantId: string;
+  merchantName?: string;
   buyerId: string;
   type: "buy" | "sell"; // From the user's perspective
   amountUSDT: number;

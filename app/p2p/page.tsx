@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { FiCheckCircle, FiArrowLeft } from "react-icons/fi";
+import { FiCheckCircle, FiArrowLeft, FiClock } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import type { P2PAdvertisement, PaymentMethod } from "@/lib/p2p/types";
 
@@ -53,17 +53,26 @@ export default function P2PMarketplace() {
 
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[#0b0e11]/95 backdrop-blur-md">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1e2329] text-white"
+            >
+              <FiArrowLeft size={16} />
+            </button>
+            <div>
+              <h1 className="text-base font-bold leading-tight">P2P Trading</h1>
+              <p className="text-[11px] text-[#848e9c]">Trade USDT with verified merchants</p>
+            </div>
+          </div>
+          
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/p2p/orders")}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1e2329] text-white"
           >
-            <FiArrowLeft size={16} />
+            <FiClock size={16} />
           </button>
-          <div>
-            <h1 className="text-base font-bold leading-tight">P2P Trading</h1>
-            <p className="text-[11px] text-[#848e9c]">Trade USDT with verified merchants</p>
-          </div>
         </div>
 
         {/* Buy / Sell Tabs */}
