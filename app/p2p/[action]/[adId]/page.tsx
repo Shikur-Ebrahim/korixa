@@ -91,10 +91,11 @@ export default function P2POrderCreationPage() {
         amountUSDT: usdt,
         amountETB: etb,
         price: ad.price,
-        paymentMethod: ad.paymentMethods[0], // default to first, in a real app let user choose
+        paymentMethod: ad.paymentMethods[0],
+        paymentAccountDetails: ad.paymentAccountDetails ?? [],
         status: "pending",
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 15 * 60000).toISOString(), // 15 mins to pay
+        expiresAt: new Date(Date.now() + 15 * 60000).toISOString(),
       };
 
       const docRef = await addDoc(collection(getClientFirestore(), "p2pOrders"), orderData);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc } from "firebase/firestore";
-import { FiPlus, FiTrash2, FiEdit2, FiCheck, FiX } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiCheck, FiX } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import type { P2PMerchant, PaymentMethod } from "@/lib/p2p/types";
 
@@ -14,25 +14,25 @@ const ALL_PAYMENT_METHODS: PaymentMethod[] = [
   "Bank of Abyssinia",
 ];
 
+const blankForm = (): Partial<P2PMerchant> => ({
+  name: "",
+  isVerified: true,
+  completionRate: 100,
+  totalOrders: 0,
+  availableUSDT: 0,
+  supportedPaymentMethods: [],
+  status: "active",
+});
+
 export function MerchantManagement() {
   const [merchants, setMerchants] = useState<P2PMerchant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState<Partial<P2PMerchant>>({
-    name: "",
-    isVerified: true,
-    completionRate: 100,
-    totalOrders: 0,
-    availableUSDT: 0,
-    supportedPaymentMethods: [],
-    status: "active",
-  });
+  const [form, setForm] = useState<Partial<P2PMerchant>>(blankForm());
 
   useEffect(() => {
-    const q = query(collection(getClientFirestore(), "merchants"));
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as P2PMerchant));
-      setMerchants(data);
+    const unsub = onSnapshot(collection(getClientFirestore(), "merchants"), (snap) => {
+      setMerchants(snap.docs.map((d) => ({ id: d.id, ...d.data() } as P2PMerchant)));
       setLoading(false);
     });
     return () => unsub();
@@ -40,14 +40,16 @@ export function MerchantManagement() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.id || !form.name) return;
+    if (!form.name?.trim()) return;
 
     try {
+      // Auto-generate a unique merchant ID — no UID required
+      const merchantId = `merchant_${Date.now()}`;
       const merchantData: P2PMerchant = {
-        id: form.id,
-        name: form.name,
+        id: merchantId,
+        name: form.name.trim(),
         isVerified: form.isVerified ?? true,
-        completionRate: Number(form.completionRate) || 0,
+        completionRate: Number(form.completionRate) || 100,
         totalOrders: Number(form.totalOrders) || 0,
         availableUSDT: Number(form.availableUSDT) || 0,
         supportedPaymentMethods: form.supportedPaymentMethods ?? [],
@@ -55,17 +57,9 @@ export function MerchantManagement() {
         createdAt: new Date().toISOString(),
       };
 
-      await setDoc(doc(getClientFirestore(), "merchants", form.id), merchantData);
+      await setDoc(doc(getClientFirestore(), "merchants", merchantId), merchantData);
       setShowAdd(false);
-      setForm({
-        name: "",
-        isVerified: true,
-        completionRate: 100,
-        totalOrders: 0,
-        availableUSDT: 0,
-        supportedPaymentMethods: [],
-        status: "active",
-      });
+      setForm(blankForm());
     } catch (err) {
       console.error(err);
       alert("Failed to save merchant");
@@ -73,23 +67,19 @@ export function MerchantManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this merchant?")) return;
-    try {
-      await deleteDoc(doc(getClientFirestore(), "merchants", id));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete merchant");
-    }
+    if (!confirm("Delete this merchant?")) return;
+    await deleteDoc(doc(getClientFirestore(), "merchants", id)).catch(console.error);
   };
 
-  const togglePaymentMethod = (method: PaymentMethod) => {
+  const toggleMethod = (method: PaymentMethod) => {
     setForm((prev) => {
-      const methods = prev.supportedPaymentMethods || [];
-      if (methods.includes(method)) {
-        return { ...prev, supportedPaymentMethods: methods.filter((m) => m !== method) };
-      } else {
-        return { ...prev, supportedPaymentMethods: [...methods, method] };
-      }
+      const methods = prev.supportedPaymentMethods ?? [];
+      return {
+        ...prev,
+        supportedPaymentMethods: methods.includes(method)
+          ? methods.filter((m) => m !== method)
+          : [...methods, method],
+      };
     });
   };
 
@@ -98,7 +88,7 @@ export function MerchantManagement() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-white">Verified Merchants</h3>
+        <h3 className="text-sm font-medium text-white">Merchants</h3>
         <button
           onClick={() => setShowAdd(!showAdd)}
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-[#0b0e11] transition hover:bg-primary/90"
@@ -110,27 +100,38 @@ export function MerchantManagement() {
 
       {showAdd && (
         <form onSubmit={handleSave} className="rounded-xl border border-white/[0.06] bg-[#0b0e11] p-4 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs text-[#848e9c]">Merchant Display Name</label>
+            <input
+              required
+              type="text"
+              value={form.name ?? ""}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+              placeholder="e.g. Crypto Trader"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs text-[#848e9c]">User UID</label>
+              <label className="mb-1 block text-xs text-[#848e9c]">Available USDT</label>
               <input
-                required
-                type="text"
-                value={form.id || ""}
-                onChange={(e) => setForm({ ...form, id: e.target.value })}
+                type="number"
+                value={form.availableUSDT ?? ""}
+                onChange={(e) => setForm({ ...form, availableUSDT: Number(e.target.value) })}
                 className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-                placeholder="Firebase UID"
+                placeholder="0"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-[#848e9c]">Display Name</label>
+              <label className="mb-1 block text-xs text-[#848e9c]">Completion Rate (%)</label>
               <input
-                required
-                type="text"
-                value={form.name || ""}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                type="number"
+                max={100}
+                value={form.completionRate ?? ""}
+                onChange={(e) => setForm({ ...form, completionRate: Number(e.target.value) })}
                 className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-                placeholder="e.g. CryptoTrader"
+                placeholder="100"
               />
             </div>
           </div>
@@ -144,11 +145,11 @@ export function MerchantManagement() {
                   <button
                     key={method}
                     type="button"
-                    onClick={() => togglePaymentMethod(method)}
-                    className={`rounded border px-2 py-1 text-xs transition ${
+                    onClick={() => toggleMethod(method)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                       active
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-white/[0.06] text-[#848e9c] hover:border-white/[0.2]"
+                        : "border-white/[0.06] text-[#848e9c] hover:border-white/20"
                     }`}
                   >
                     {method}
@@ -160,7 +161,7 @@ export function MerchantManagement() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
+            className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
           >
             Save Merchant
           </button>
@@ -169,21 +170,28 @@ export function MerchantManagement() {
 
       <div className="space-y-2">
         {merchants.length === 0 ? (
-          <div className="rounded-xl border border-white/[0.06] py-8 text-center text-sm text-[#848e9c]">
-            No merchants found.
+          <div className="rounded-xl border border-dashed border-white/[0.06] py-10 text-center text-sm text-[#848e9c]">
+            No merchants yet. Add one above.
           </div>
         ) : (
           merchants.map((m) => (
             <div key={m.id} className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#0b0e11] p-3">
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-medium text-white">{m.name}</span>
+                  <span className="text-sm font-semibold text-white">{m.name}</span>
                   {m.isVerified && <FiCheck className="text-xs text-primary" />}
                 </div>
-                <div className="mt-1 flex flex-wrap gap-2 text-[10px] text-[#848e9c]">
-                  <span>{m.totalOrders} Orders</span>
+                <div className="mt-0.5 flex flex-wrap gap-2 text-[10px] text-[#848e9c]">
+                  <span>{m.availableUSDT} USDT</span>
                   <span>•</span>
-                  <span>{m.completionRate}% Completion</span>
+                  <span>{m.completionRate}% completion</span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {m.supportedPaymentMethods.map((pm) => (
+                    <span key={pm} className="rounded bg-[#1e2329] px-1.5 py-0.5 text-[9px] text-[#848e9c]">
+                      {pm}
+                    </span>
+                  ))}
                 </div>
               </div>
               <button

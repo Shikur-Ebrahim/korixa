@@ -157,19 +157,35 @@ export default function P2POrderRoomPage() {
           </div>
         </div>
 
-        {/* Payment Instructions */}
-        <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
-          <h3 className="text-sm font-bold">Payment Method</h3>
-          <div className="mt-2 flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-primary/20 text-xs font-bold text-primary">
-              {order.paymentMethod.charAt(0)}
-            </span>
-            <span className="font-medium">{order.paymentMethod}</span>
-          </div>
-          <p className="mt-4 text-xs text-[#848e9c]">
-            Please transfer exactly {order.amountETB} ETB to the seller's {order.paymentMethod} account.
-            Chat with the seller using the chat button at the top right to get the account details.
+        {/* Payment Instructions — show real account details */}
+        <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4 space-y-3">
+          <h3 className="text-sm font-bold">Payment Details</h3>
+          <p className="text-xs text-[#848e9c]">
+            Transfer exactly <span className="font-bold text-white">{order.amountETB.toLocaleString()} ETB</span> to one of the accounts below. Then upload your receipt and click "I Have Paid".
           </p>
+          {order.paymentAccountDetails && order.paymentAccountDetails.length > 0 ? (
+            order.paymentAccountDetails.map((detail) => (
+              <div key={detail.method} className="rounded-lg border border-white/[0.06] bg-[#0b0e11] p-3">
+                <div className="mb-2 text-xs font-bold text-primary">{detail.method}</div>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-[11px] text-[#848e9c]">Account Name</span>
+                    <span className="text-[11px] font-semibold text-white">{detail.accountName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[11px] text-[#848e9c]">
+                      {detail.method === "Telebirr" ? "Phone Number" : "Account Number"}
+                    </span>
+                    <span className="text-[11px] font-mono font-bold text-white">{detail.accountNumber}</span>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-xs text-[#848e9c]">
+              Contact the merchant via chat for payment details.
+            </p>
+          )}
         </div>
 
         {/* Proof of Payment */}

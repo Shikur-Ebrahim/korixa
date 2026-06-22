@@ -1,5 +1,11 @@
 export type PaymentMethod = "Telebirr" | "CBE" | "Awash Bank" | "Dashen Bank" | "Bank of Abyssinia";
 
+export interface PaymentAccountDetail {
+  method: PaymentMethod;
+  accountName: string;   // Merchant's full name on the account
+  accountNumber: string; // Phone number (for Telebirr) or account number (for banks)
+}
+
 export interface P2PMerchant {
   id: string; // The user's UID
   name: string;
@@ -26,6 +32,7 @@ export interface P2PAdvertisement {
   minOrderLimit: number; // in ETB
   maxOrderLimit: number; // in ETB
   paymentMethods: PaymentMethod[];
+  paymentAccountDetails: PaymentAccountDetail[]; // Per-method account info shown to buyers
   status: "active" | "disabled";
   createdAt: string;
 }
@@ -42,6 +49,7 @@ export interface P2POrder {
   amountETB: number;
   price: number;
   paymentMethod: PaymentMethod;
+  paymentAccountDetails: PaymentAccountDetail[]; // Copied from ad at order creation time
   status: OrderStatus;
   paymentProofUrl?: string; // Cloudinary URL
   createdAt: string;
