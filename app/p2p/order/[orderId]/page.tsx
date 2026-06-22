@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { doc, onSnapshot, updateDoc, collection, addDoc, query, orderBy } from "firebase/firestore";
 import { useRouter, useParams } from "next/navigation";
-import { FiArrowLeft, FiMessageSquare, FiUploadCloud, FiCheck, FiX, FiClock, FiLoader } from "react-icons/fi";
+import { FiArrowLeft, FiMessageSquare, FiUploadCloud, FiCheck, FiX, FiClock, FiLoader, FiImage } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getAuth } from "firebase/auth";
@@ -400,24 +400,22 @@ function ChatDrawer({ orderId, onClose, messages, user }: { orderId: string; onC
         <div ref={endRef} />
       </div>
 
-      <div className="border-t border-white/[0.06] bg-[#161a1e] p-3">
-        {/* Image upload hint row */}
-        <div className="mb-2 flex items-center gap-2">
+      <div className="border-t border-white/[0.06] bg-[#161a1e] px-3 py-3">
+        <form onSubmit={handleSend} className="flex items-center gap-2">
+          {/* Gallery icon — left of input, opposite Send */}
           <label
-            htmlFor="chat-img-upload"
-            className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
+            className={`flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-full transition ${
               sendingImg
-                ? "border-primary/30 text-primary cursor-not-allowed"
-                : "border-white/[0.08] text-[#848e9c] hover:border-primary hover:text-primary"
+                ? "bg-primary/20 text-primary cursor-not-allowed"
+                : "bg-[#0b0e11] text-[#848e9c] hover:bg-[#1e2329] hover:text-primary"
             }`}
           >
             {sendingImg ? (
-              <><FiLoader size={14} className="animate-spin" /> Sending...</>
+              <FiLoader size={20} className="animate-spin" />
             ) : (
-              <><FiUploadCloud size={14} /> Upload payment screenshot</>
+              <FiImage size={20} />
             )}
             <input
-              id="chat-img-upload"
               ref={fileRef}
               type="file"
               accept="image/*"
@@ -426,10 +424,8 @@ function ChatDrawer({ orderId, onClose, messages, user }: { orderId: string; onC
               onChange={handleImageUpload}
             />
           </label>
-        </div>
 
-        {/* Text input row */}
-        <form onSubmit={handleSend} className="flex gap-2">
+          {/* Text input */}
           <input
             type="text"
             value={text}
@@ -437,10 +433,12 @@ function ChatDrawer({ orderId, onClose, messages, user }: { orderId: string; onC
             placeholder="Type a message..."
             className="flex-1 rounded-full border border-white/[0.06] bg-[#0b0e11] px-4 py-2.5 text-sm text-white focus:border-primary focus:outline-none"
           />
+
+          {/* Send button */}
           <button
             type="submit"
             disabled={!text.trim()}
-            className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-[#0b0e11] disabled:opacity-40 transition"
+            className="flex-shrink-0 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-[#0b0e11] disabled:opacity-40 transition"
           >
             Send
           </button>
