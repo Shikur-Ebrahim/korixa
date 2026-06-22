@@ -166,6 +166,12 @@ async function sendBrandedEmail(options: {
     );
   }
 
+  // Attach logo inline (CID) only when using localhost (no public HTTPS URL).
+  // On production the HTML already points to the public HTTPS URL, so no attachment needed.
+  const { getEmailLogoAttachment, getPublicEmailLogoUrl } = await import("@/lib/email-logo");
+  const useInlineAttachment = !getPublicEmailLogoUrl();
+  const logoAttachment = useInlineAttachment ? getEmailLogoAttachment() : null;
+
   const { error } = await resend.emails.send({
     from,
     to: options.to,
@@ -174,6 +180,18 @@ async function sendBrandedEmail(options: {
     html: buildVerificationEmailHtml(options.code, options.to),
     text: buildVerificationEmailText(options.code, options.to),
     headers: getEmailHeaders(),
+    ...(logoAttachment
+      ? {
+          attachments: [
+            {
+              filename: logoAttachment.filename,
+              content: logoAttachment.content,
+              contentId: logoAttachment.contentId,
+              // inline disposition so email clients render it in-body, not as download
+            },
+          ],
+        }
+      : {}),
   });
 
   if (error) {
