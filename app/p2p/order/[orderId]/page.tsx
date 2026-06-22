@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { doc, getDoc, onSnapshot, updateDoc, collection, addDoc, query, orderBy } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, collection, addDoc, query, orderBy } from "firebase/firestore";
 import { useRouter, useParams } from "next/navigation";
-import { FiArrowLeft, FiMessageSquare, FiUploadCloud, FiCheck, FiX, FiClock } from "react-icons/fi";
+import { FiArrowLeft, FiMessageSquare, FiUploadCloud, FiCheck, FiX, FiClock, FiLoader } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { getAuth } from "firebase/auth";
 import type { P2POrder, P2PMessage } from "@/lib/p2p/types";
 
 export default function P2POrderRoomPage() {
@@ -18,6 +19,7 @@ export default function P2POrderRoomPage() {
   const [messages, setMessages] = useState<P2PMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -78,33 +80,42 @@ export default function P2POrderRoomPage() {
   const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Cloudinary unsigned upload
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    if (!cloudName) {
-      alert("Cloudinary not configured!");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "korixa_p2p"); // You must create this in Cloudinary
+    setUploading(true);
 
     try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: "POST",
-        body: formData,
+      // Convert to base64 and upload via server-side /api/upload (same as KYC)
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
+
+      const token = await getAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          file: base64,
+          folder: `korixa/p2p/${orderId}`,
+        }),
+      });
+
       const data = await res.json();
-      if (data.secure_url) {
-        await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), {
-          paymentProofUrl: data.secure_url,
-        });
-        alert("Proof uploaded successfully!");
-      }
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), {
+        paymentProofUrl: data.url,
+      });
+      alert("Proof uploaded successfully! ✅");
     } catch (err) {
       console.error("Upload failed", err);
-      alert("Failed to upload image.");
+      alert("Failed to upload image. Please try again.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -200,10 +211,19 @@ export default function P2POrderRoomPage() {
             </div>
           ) : (
             <div>
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/[0.1] py-8 text-[#848e9c] transition hover:border-primary hover:text-primary">
-                <FiUploadCloud size={24} className="mb-2" />
-                <span className="text-xs font-medium">Upload receipt screenshot</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleUploadProof} />
+              <label className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed py-8 transition ${uploading ? "border-primary/40 text-primary cursor-not-allowed" : "border-white/[0.1] text-[#848e9c] hover:border-primary hover:text-primary"}`}>
+                {uploading ? (
+                  <>
+                    <FiLoader size={24} className="mb-2 animate-spin" />
+                    <span className="text-xs font-medium">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <FiUploadCloud size={24} className="mb-2" />
+                    <span className="text-xs font-medium">Upload receipt screenshot</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handleUploadProof} />
               </label>
             </div>
           )}

@@ -134,6 +134,16 @@ export function MerchantManagement() {
                 placeholder="100"
               />
             </div>
+            <div>
+              <label className="mb-1 block text-xs text-[#848e9c]">Total Orders (shown to users)</label>
+              <input
+                type="number"
+                value={form.totalOrders ?? ""}
+                onChange={(e) => setForm({ ...form, totalOrders: Number(e.target.value) })}
+                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                placeholder="e.g. 1240"
+              />
+            </div>
           </div>
 
           <div>
