@@ -13,17 +13,21 @@ export default function P2POrderHistory() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<P2POrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"processing" | "all" | "completed" | "cancelled">("processing");
+  const [activeTab, setActiveTab] = useState<"processing" | "completed" | "cancelled">("processing");
 
   useEffect(() => {
     if (!user) return;
     const q = query(
       collection(getClientFirestore(), "p2pOrders"),
-      where("buyerId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      where("buyerId", "==", user.uid)
     );
     const unsub = onSnapshot(q, (snap) => {
-      setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() } as P2POrder)));
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as P2POrder));
+      data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setOrders(data);
+      setLoading(false);
+    }, (err) => {
+      console.error(err);
       setLoading(false);
     });
     return () => unsub();
@@ -33,12 +37,11 @@ export default function P2POrderHistory() {
     if (activeTab === "processing") return o.status === "pending" || o.status === "paid";
     if (activeTab === "completed") return o.status === "completed";
     if (activeTab === "cancelled") return o.status === "cancelled";
-    return true; // all
+    return false;
   });
 
   const TABS = [
     { id: "processing", label: "Processing" },
-    { id: "all", label: "All" },
     { id: "completed", label: "Completed" },
     { id: "cancelled", label: "Cancelled" },
   ] as const;
