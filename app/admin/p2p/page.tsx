@@ -4,9 +4,8 @@ import { useState } from "react";
 import { FiUsers, FiShoppingBag, FiList, FiAlertTriangle } from "react-icons/fi";
 import { MerchantManagement } from "@/components/admin/p2p/MerchantManagement";
 import { AdvertisementManagement } from "@/components/admin/p2p/AdvertisementManagement";
-import { AdminOrderManagement } from "@/components/admin/p2p/AdminOrderManagement";
 
-type Tab = "merchants" | "ads" | "orders" | "appeals";
+type Tab = "merchants" | "ads" | "appeals";
 
 export default function AdminP2PPage() {
   const [activeTab, setActiveTab] = useState<Tab>("merchants");
@@ -14,7 +13,6 @@ export default function AdminP2PPage() {
   const tabs = [
     { id: "merchants", label: "Merchants", icon: FiUsers },
     { id: "ads", label: "Advertisements", icon: FiShoppingBag },
-    { id: "orders", label: "Orders", icon: FiList },
     { id: "appeals", label: "Appeals", icon: FiAlertTriangle },
   ];
 
@@ -49,7 +47,6 @@ export default function AdminP2PPage() {
       <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
         {activeTab === "merchants" && <MerchantManagement />}
         {activeTab === "ads" && <AdvertisementManagement />}
-        {activeTab === "orders" && <AdminOrderManagement />}
         {activeTab === "appeals" && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <FiAlertTriangle className="mb-3 text-4xl text-[#848e9c]" />
