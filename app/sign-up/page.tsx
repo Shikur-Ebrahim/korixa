@@ -72,27 +72,21 @@ function SignUpForm() {
           throw new Error("Invalid verification response.");
         }
 
-        const userCred = await signInWithCustomToken(getClientAuth(), customToken);
-        
-        // Fast redirect by checking the role immediately
-        const tokenResult = await userCred.user.getIdTokenResult();
-        if (tokenResult.claims.role === "admin") {
-          router.replace("/admin");
-        } else {
-          router.replace("/dashboard");
-        }
+        await signInWithCustomToken(getClientAuth(), customToken);
+        router.replace("/dashboard");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Verification failed.");
-        setLoading(false); // Only stop loading on error, let the redirect happen otherwise
+      } finally {
+        setLoading(false);
       }
     },
     [router]
   );
 
   useEffect(() => {
-    // If user is already logged in, AuthProvider handles the redirect.
-    // We just wait here.
-  }, [initialized, authLoading, user]);
+    if (!initialized || authLoading || !user) return;
+    router.replace("/dashboard");
+  }, [initialized, authLoading, user, router]);
 
   useEffect(() => {
     if (!urlParams.email || !urlParams.code || autoVerified.current) return;

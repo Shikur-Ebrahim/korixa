@@ -104,17 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(nextUser);
 
           if (nextUser) {
-            const userRole = await refreshRole(nextUser);
-
-            // Auto-redirect once per session based on role
-            if (!redirectedRef.current) {
-              redirectedRef.current = true;
-              if (userRole === "admin") {
-                router.replace("/admin");
-              } else if (window.location.pathname.startsWith("/sign-")) {
-                router.replace("/dashboard");
-              }
-            }
+            await refreshRole(nextUser);
           } else {
             setRole(null);
             redirectedRef.current = false;
