@@ -11,14 +11,19 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { getClientAuth, initClientAuth } from "@/lib/firebase";
 import type { KycStatus, UserKycRecord } from "@/lib/kyc/types";
 
+export type UserRole = "admin" | "user" | null;
+
 type AuthContextValue = {
   user: User | null;
+  role: UserRole;
   loading: boolean;
   initialized: boolean;
   kyc: UserKycRecord | null;
@@ -33,10 +38,13 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const [kyc, setKyc] = useState<UserKycRecord | null>(null);
   const [kycLoading, setKycLoading] = useState(false);
+  const router = useRouter();
+  const redirectedRef = useRef(false);
 
   const getIdToken = useCallback(async () => {
     const activeUser = getClientAuth().currentUser ?? user;
@@ -73,13 +81,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  /** Read role from Firebase custom claims (inside the ID token JWT) */
+  const refreshRole = useCallback(async (firebaseUser: User) => {
+    try {
+      // forceRefresh=true so we always get the latest claim after set-admin.js runs
+      const tokenResult = await firebaseUser.getIdTokenResult(true);
+      const claim = tokenResult.claims.role as string | undefined;
+      setRole(claim === "admin" ? "admin" : "user");
+      return claim === "admin" ? "admin" : "user";
+    } catch {
+      setRole("user");
+      return "user" as UserRole;
+    }
+  }, []);
+
   useEffect(() => {
     let unsubscribe = () => {};
 
     initClientAuth()
       .then((auth) => {
-        unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+        unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
           setUser(nextUser);
+
+          if (nextUser) {
+            const userRole = await refreshRole(nextUser);
+
+            // Auto-redirect once per session based on role
+            if (!redirectedRef.current) {
+              redirectedRef.current = true;
+              if (userRole === "admin") {
+                router.replace("/admin");
+              }
+              // Normal users: let ProtectedRoute / page handle their own redirect
+            }
+          } else {
+            setRole(null);
+            redirectedRef.current = false;
+          }
+
           setLoading(false);
           setInitialized(true);
         });
@@ -90,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     return () => unsubscribe();
-  }, []);
+  }, [refreshRole, router]);
 
   useEffect(() => {
     if (user) {
@@ -101,13 +140,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, refreshKyc]);
 
   const logout = useCallback(async () => {
+    redirectedRef.current = false;
     await signOut(getClientAuth());
     setKyc(null);
+    setRole(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
+      role,
       loading,
       initialized,
       kyc,
@@ -117,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       getIdToken,
       logout,
     }),
-    [user, loading, initialized, kyc, kycLoading, refreshKyc, getIdToken, logout]
+    [user, role, loading, initialized, kyc, kycLoading, refreshKyc, getIdToken, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
