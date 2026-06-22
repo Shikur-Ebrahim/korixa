@@ -72,12 +72,18 @@ function SignUpForm() {
           throw new Error("Invalid verification response.");
         }
 
-        await signInWithCustomToken(getClientAuth(), customToken);
-        // Do not redirect here! AuthProvider will read the role and redirect to /admin or /dashboard
+        const userCred = await signInWithCustomToken(getClientAuth(), customToken);
+        
+        // Fast redirect by checking the role immediately
+        const tokenResult = await userCred.user.getIdTokenResult();
+        if (tokenResult.claims.role === "admin") {
+          router.replace("/admin");
+        } else {
+          router.replace("/dashboard");
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Verification failed.");
-      } finally {
-        setLoading(false);
+        setLoading(false); // Only stop loading on error, let the redirect happen otherwise
       }
     },
     [router]
@@ -114,6 +120,7 @@ function SignUpForm() {
       if (!res.ok) throw new Error(String(data.error ?? "Failed to send code"));
 
       setMessage(String(data.message ?? "Verification code sent."));
+      setOtp(""); // Clear the old code so user can type the new one
       setStep("otp");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
