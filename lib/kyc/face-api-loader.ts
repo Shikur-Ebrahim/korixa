@@ -28,6 +28,6 @@ export async function loadFaceApiModels(): Promise<typeof import("@vladmandic/fa
 }
 
 export const FACE_DETECTOR_OPTIONS = {
-  inputSize: 416,
-  scoreThreshold: 0.5,
+  inputSize: 320,   // faster than 416 — processes each frame ~40% quicker
+  scoreThreshold: 0.4, // more sensitive face detection in dim / low-contrast light
 };

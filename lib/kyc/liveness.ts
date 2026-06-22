@@ -41,7 +41,7 @@ export const LIVENESS_CHALLENGES: LivenessChallengeMeta[] = [
   },
 ];
 
-export const LIVENESS_RETRY_MS = 6000;
+export const LIVENESS_RETRY_MS = 3000;
 
 /** Eye aspect ratio — lower values indicate a blink */
 export function eyeAspectRatio(
@@ -71,11 +71,13 @@ export function headYawFromLandmarks(
 }
 
 export function isBlinkDetected(ear: number, baselineEar: number): boolean {
-  return ear < baselineEar * 0.78;
+  // 0.85 relative threshold (easier than 0.78) + absolute 0.20 fallback for dim lighting / dark skin
+  return ear < baselineEar * 0.85 || ear < 0.20;
 }
 
 export function isHeadTurnLeft(yaw: number): boolean {
-  return yaw < -0.05;
+  // Lowered from -0.05 → -0.03: only a slight left lean needed
+  return yaw < -0.03;
 }
 
 export function isHeadTurnRight(yaw: number): boolean {
@@ -100,11 +102,17 @@ export function isSmiling(landmarks: { x: number; y: number }[]): boolean {
     return false;
   }
 
-  const mouthHeight = Math.hypot(topLip.x - bottomLip.x, topLip.y - bottomLip.y);
+  // Vertical mouth height only (old code used hypot with X included — inflated height, broke ratio)
+  const mouthHeight = Math.abs(bottomLip.y - topLip.y) || 1;
   const mouthWidth = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y);
   const lipCenterY = (topLip.y + bottomLip.y) / 2;
 
-  return mouthWidth / (mouthHeight || 1) > 1.5 && leftCorner.y <= lipCenterY + 2 && rightCorner.y <= lipCenterY + 2;
+  // Ratio lowered 1.5 → 1.2 (easier smile); corner tolerance raised 2px → 10px
+  return (
+    mouthWidth / mouthHeight > 1.2 &&
+    leftCorner.y <= lipCenterY + 10 &&
+    rightCorner.y <= lipCenterY + 10
+  );
 }
 
 /** Tracks open → closed → open cycles for blink detection */
