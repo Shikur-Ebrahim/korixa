@@ -119,9 +119,9 @@ export default function P2PMarketplace() {
               onChange={(e) => setFilterPayment(e.target.value as PaymentMethod | "All")}
               className="bg-transparent text-xs text-white focus:outline-none"
             >
-              <option value="All">All</option>
+              <option value="All" className="bg-[#1e2329] text-white">All</option>
               {PAYMENT_METHODS.map((m) => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m} value={m} className="bg-[#1e2329] text-white">{m}</option>
               ))}
             </select>
           </div>
@@ -138,7 +138,7 @@ export default function P2PMarketplace() {
           </div>
         ) : (
           ads.map((ad) => (
-            <div key={ad.id} className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-3.5">
+            <div key={ad.id} className="rounded-xl bg-gradient-to-br from-[#161a1e] to-[#1e2329] border border-white/[0.08] shadow-lg shadow-black/20 p-3.5 hover:border-primary/30 transition-colors">
 
               {/* Merchant Row */}
               <div className="flex items-center gap-2">
