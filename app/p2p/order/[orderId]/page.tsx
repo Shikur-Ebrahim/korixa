@@ -266,7 +266,10 @@ export default function P2POrderRoomPage() {
 // Subcomponent for Chat
 function ChatDrawer({ orderId, onClose, messages, user }: { orderId: string; onClose: () => void; messages: P2PMessage[]; user: any }) {
   const [text, setText] = useState("");
+  const [sendingImg, setSendingImg] = useState(false);
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -288,37 +291,161 @@ function ChatDrawer({ orderId, onClose, messages, user }: { orderId: string; onC
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setSendingImg(true);
+
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const token = await getAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          file: base64,
+          folder: `korixa/p2p/${orderId}/chat`,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      await addDoc(collection(getClientFirestore(), `p2pOrders/${orderId}/messages`), {
+        senderId: user.uid,
+        senderName: user.email?.split("@")[0] || "User",
+        text: "📷 Payment screenshot",
+        imageUrl: data.url,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("Chat image upload failed", err);
+      alert("Failed to send image. Please try again.");
+    } finally {
+      setSendingImg(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#0b0e11]">
+      {/* Image Preview Modal */}
+      {previewImg && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setPreviewImg(null)}
+        >
+          <img src={previewImg} alt="Preview" className="max-h-full max-w-full rounded-xl object-contain" />
+          <button
+            className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white"
+            onClick={() => setPreviewImg(null)}
+          >
+            <FiX size={20} />
+          </button>
+        </div>
+      )}
+
       <header className="flex items-center justify-between border-b border-white/[0.06] bg-[#161a1e] px-4 py-4">
         <h2 className="font-bold">Order Chat</h2>
         <button onClick={onClose} className="p-2 text-[#848e9c] transition hover:text-white">
           <FiX size={20} />
         </button>
       </header>
+
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-[#848e9c]">
+            <FiMessageSquare size={32} className="mb-3 opacity-40" />
+            <p className="text-sm">No messages yet.</p>
+            <p className="text-xs mt-1 opacity-60">You can share payment screenshots here.</p>
+          </div>
+        )}
         {messages.map((m) => (
           <div key={m.id} className={`flex flex-col ${m.senderId === user?.uid ? "items-end" : "items-start"}`}>
             <span className="mb-1 text-[10px] text-[#848e9c]">{m.senderName}</span>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${m.senderId === user?.uid ? "bg-primary text-[#0b0e11]" : "bg-[#1e2329] text-white"}`}>
-              {m.text}
-            </div>
+            {m.imageUrl ? (
+              <div
+                className={`max-w-[72%] cursor-pointer overflow-hidden rounded-2xl border ${m.senderId === user?.uid ? "border-primary/30" : "border-white/[0.08]"}`}
+                onClick={() => setPreviewImg(m.imageUrl!)}
+              >
+                <img
+                  src={m.imageUrl}
+                  alt="Payment screenshot"
+                  className="w-full object-cover"
+                  style={{ maxHeight: 220 }}
+                />
+                <div className={`px-3 py-1.5 text-xs font-medium ${m.senderId === user?.uid ? "bg-primary/20 text-primary" : "bg-[#1e2329] text-[#848e9c]"}`}>
+                  📷 Payment Screenshot — tap to view
+                </div>
+              </div>
+            ) : (
+              <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${m.senderId === user?.uid ? "bg-primary text-[#0b0e11]" : "bg-[#1e2329] text-white"}`}>
+                {m.text}
+              </div>
+            )}
+            <span className="mt-1 text-[9px] text-[#848e9c]/60">
+              {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
           </div>
         ))}
         <div ref={endRef} />
       </div>
-      <form onSubmit={handleSend} className="border-t border-white/[0.06] bg-[#161a1e] p-4 flex gap-2">
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 rounded-full border border-white/[0.06] bg-[#0b0e11] px-4 py-2 text-sm text-white focus:border-primary focus:outline-none"
-        />
-        <button type="submit" disabled={!text.trim()} className="rounded-full bg-primary px-6 py-2 text-sm font-bold text-[#0b0e11] disabled:opacity-50">
-          Send
-        </button>
-      </form>
+
+      <div className="border-t border-white/[0.06] bg-[#161a1e] p-3">
+        {/* Image upload hint row */}
+        <div className="mb-2 flex items-center gap-2">
+          <label
+            htmlFor="chat-img-upload"
+            className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
+              sendingImg
+                ? "border-primary/30 text-primary cursor-not-allowed"
+                : "border-white/[0.08] text-[#848e9c] hover:border-primary hover:text-primary"
+            }`}
+          >
+            {sendingImg ? (
+              <><FiLoader size={14} className="animate-spin" /> Sending...</>
+            ) : (
+              <><FiUploadCloud size={14} /> Upload payment screenshot</>
+            )}
+            <input
+              id="chat-img-upload"
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={sendingImg}
+              onChange={handleImageUpload}
+            />
+          </label>
+        </div>
+
+        {/* Text input row */}
+        <form onSubmit={handleSend} className="flex gap-2">
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 rounded-full border border-white/[0.06] bg-[#0b0e11] px-4 py-2.5 text-sm text-white focus:border-primary focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={!text.trim()}
+            className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-[#0b0e11] disabled:opacity-40 transition"
+          >
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
