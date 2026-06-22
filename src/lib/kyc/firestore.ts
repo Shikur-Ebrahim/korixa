@@ -1,5 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import type {
   ExtractedIdData,
   KycStatus,
@@ -28,7 +28,7 @@ function docToRecord(userId: string, data: FirebaseFirestore.DocumentData): User
 }
 
 export async function getUserKycRecord(userId: string): Promise<UserKycRecord | null> {
-  const snapshot = await adminDb.collection(USERS_COLLECTION).doc(userId).get();
+  const snapshot = await getAdminDb().collection(USERS_COLLECTION).doc(userId).get();
 
   if (!snapshot.exists) {
     return null;
@@ -41,7 +41,7 @@ export async function ensureUserRecord(
   userId: string,
   email: string
 ): Promise<UserKycRecord> {
-  const ref = adminDb.collection(USERS_COLLECTION).doc(userId);
+  const ref = getAdminDb().collection(USERS_COLLECTION).doc(userId);
   const snapshot = await ref.get();
 
   if (snapshot.exists) {
@@ -75,7 +75,7 @@ export async function submitUserKyc(
 ): Promise<UserKycRecord> {
   const evaluation = evaluateKycSubmission(payload);
 
-  const ref = adminDb.collection(USERS_COLLECTION).doc(userId);
+  const ref = getAdminDb().collection(USERS_COLLECTION).doc(userId);
   const now = FieldValue.serverTimestamp();
 
   const update = {

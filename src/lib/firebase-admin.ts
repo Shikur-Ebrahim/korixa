@@ -12,7 +12,6 @@ function getPrivateKey(): string {
 
 function getClientEmail(): string {
   const email = process.env.FIREBASE_CLIENT_EMAIL ?? "";
-  // Strip markdown link formatting if present in .env
   return email.replace(/^\[/, "").replace(/\]\(.*\)$/, "").trim();
 }
 
@@ -37,12 +36,31 @@ function createAdminApp(): App {
   });
 }
 
-const adminApp = createAdminApp();
+let adminApp: App | undefined;
+let adminAuthInstance: Auth | undefined;
+let adminDbInstance: Firestore | undefined;
 
-/** Server-only Firebase Admin Auth */
-export const adminAuth: Auth = getAuth(adminApp);
+function ensureAdminApp(): App {
+  if (!adminApp) {
+    adminApp = createAdminApp();
+    adminAuthInstance = getAuth(adminApp);
+    adminDbInstance = getFirestore(adminApp);
+  }
+  return adminApp;
+}
 
-/** Server-only Firestore */
-export const adminDb: Firestore = getFirestore(adminApp);
+/** Server-only Firebase Admin Auth (lazy init — avoids crashing API routes at import time) */
+export function getAdminAuth(): Auth {
+  ensureAdminApp();
+  return adminAuthInstance!;
+}
 
-export default adminApp;
+/** Server-only Firestore (lazy init) */
+export function getAdminDb(): Firestore {
+  ensureAdminApp();
+  return adminDbInstance!;
+}
+
+export default function getDefaultAdminApp(): App {
+  return ensureAdminApp();
+}

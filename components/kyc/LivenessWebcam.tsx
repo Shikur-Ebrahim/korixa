@@ -32,7 +32,7 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
   const stepRef = useRef(0);
   const completedRef = useRef<Record<LivenessChallenge, boolean>>({
     "face-present": false,
-    "blink-twice": false,
+    "blink-once": false,
     "turn-left": false,
     smile: false,
   });
@@ -46,7 +46,7 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
   const [phase, setPhase] = useState<AssistantPhase>("starting");
   const [completed, setCompleted] = useState<Record<LivenessChallenge, boolean>>({
     "face-present": false,
-    "blink-twice": false,
+    "blink-once": false,
     "turn-left": false,
     smile: false,
   });
@@ -113,15 +113,15 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
 
       try {
         if (fromStep >= LIVENESS_CHALLENGES.length - 1) {
-          await speakInstruction("Great job! Hold still.");
-          window.setTimeout(() => captureSelfie(), 900);
+          void speakInstruction("Great! Hold still.");
+          window.setTimeout(() => captureSelfie(), 350);
           return;
         }
 
         const next = fromStep + 1;
         syncStep(next);
 
-        if (LIVENESS_CHALLENGES[next]?.id === "blink-twice") {
+        if (LIVENESS_CHALLENGES[next]?.id === "blink-once") {
           blinkTrackerRef.current.reset();
         }
 
@@ -130,7 +130,7 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
           setAssistantLine(nextChallenge.instruction);
           setStatusText(nextChallenge.hint);
           lastSpokenRef.current = Date.now();
-          await speakInstruction(nextChallenge.instruction);
+          void speakInstruction(nextChallenge.instruction);
         }
       } finally {
         advancingRef.current = false;
@@ -193,12 +193,12 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
           markComplete("face-present");
           setStatusText("Face detected ✓");
           void advanceStep(activeStep);
-        } else if (active.id === "blink-twice") {
-          const { blinkCount, complete } = blinkTrackerRef.current.update(ear);
-          setStatusText(`Blinks detected: ${blinkCount} / 2`);
+        } else if (active.id === "blink-once") {
+          const { complete } = blinkTrackerRef.current.update(ear);
+          setStatusText(complete ? "Blink detected ✓" : "Blink once");
 
           if (complete) {
-            markComplete("blink-twice");
+            markComplete("blink-once");
             void advanceStep(activeStep);
           } else if (shouldRetry) {
             void repeatInstruction(activeStep);
@@ -262,7 +262,7 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
         setAssistantLine(first.instruction);
         setStatusText(first.hint);
         lastSpokenRef.current = Date.now();
-        await speakInstruction(first.instruction);
+        void speakInstruction(first.instruction);
 
         rafRef.current = requestAnimationFrame(() => {
           void detectLoop();

@@ -17,6 +17,25 @@ import { getClientAuth } from "@/lib/firebase";
 
 type Step = "email" | "otp";
 
+async function parseApiJson(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  const contentType = res.headers.get("content-type") ?? "";
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      res.status === 404
+        ? "Sign-up service unavailable. Redeploy the app and try again."
+        : `Server error (${res.status}). Check Firebase and Resend env vars on Vercel.`
+    );
+  }
+
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error("Invalid server response. Please try again.");
+  }
+}
+
 function SignUpForm() {
   const router = useRouter();
   const { user, loading: authLoading, initialized } = useAuth();
@@ -44,10 +63,15 @@ function SignUpForm() {
           }),
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Verification failed");
+        const data = await parseApiJson(res);
+        if (!res.ok) throw new Error(String(data.error ?? "Verification failed"));
 
-        await signInWithCustomToken(getClientAuth(), data.customToken);
+        const customToken = data.customToken;
+        if (typeof customToken !== "string") {
+          throw new Error("Invalid verification response.");
+        }
+
+        await signInWithCustomToken(getClientAuth(), customToken);
         router.push("/dashboard");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Verification failed.");
@@ -85,10 +109,10 @@ function SignUpForm() {
         body: JSON.stringify({ email }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to send code");
+      const data = await parseApiJson(res);
+      if (!res.ok) throw new Error(String(data.error ?? "Failed to send code"));
 
-      setMessage(data.message);
+      setMessage(String(data.message ?? "Verification code sent."));
       setStep("otp");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

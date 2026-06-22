@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { getEmailLogoAttachment, getEmailLogoSrc } from "@/lib/email-logo";
 import {
   getEmailHeaders,
@@ -174,7 +174,7 @@ async function sendBrandedEmail(options: {
     subject: options.subject,
     html: buildVerificationEmailHtml(options.code, options.to),
     text: buildVerificationEmailText(options.code, options.to),
-    attachments: [logoAttachment],
+    attachments: logoAttachment ? [logoAttachment] : undefined,
     headers: getEmailHeaders(),
   });
 
@@ -189,7 +189,7 @@ async function saveOtp(email: string, purpose: OtpPurpose, code: string): Promis
     new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000)
   );
 
-  await adminDb.collection(OTP_COLLECTION).doc(`${normalized}_${purpose}`).set({
+  await getAdminDb().collection(OTP_COLLECTION).doc(`${normalized}_${purpose}`).set({
     email: normalized,
     code,
     purpose,
@@ -205,7 +205,7 @@ async function verifyStoredOtp(
   purpose: OtpPurpose
 ): Promise<{ valid: boolean; error?: string }> {
   const normalized = normalizeEmail(email);
-  const docRef = adminDb.collection(OTP_COLLECTION).doc(`${normalized}_${purpose}`);
+  const docRef = getAdminDb().collection(OTP_COLLECTION).doc(`${normalized}_${purpose}`);
   const snapshot = await docRef.get();
 
   if (!snapshot.exists) {
@@ -268,14 +268,14 @@ export async function createAuthTokenForEmail(
   let user;
 
   try {
-    user = await adminAuth.getUserByEmail(normalized);
+    user = await getAdminAuth().getUserByEmail(normalized);
   } catch {
-    user = await adminAuth.createUser({
+    user = await getAdminAuth().createUser({
       email: normalized,
       emailVerified: true,
       displayName: displayName || normalized.split("@")[0],
     });
   }
 
-  return adminAuth.createCustomToken(user.uid);
+  return getAdminAuth().createCustomToken(user.uid);
 }

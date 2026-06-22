@@ -33,12 +33,16 @@ function readLogoBase64(): string {
  * Inline logo attachment for Resend emails.
  * Embeds public/app logo.jpg directly — works on localhost and production.
  */
-export function getEmailLogoAttachment(): ResendLogoAttachment {
-  return {
-    filename: "korixa-logo.jpg",
-    content: Buffer.from(readLogoBase64(), "base64"),
-    contentId: EMAIL_LOGO_CID,
-  };
+export function getEmailLogoAttachment(): ResendLogoAttachment | null {
+  try {
+    return {
+      filename: "korixa-logo.jpg",
+      content: Buffer.from(readLogoBase64(), "base64"),
+      contentId: EMAIL_LOGO_CID,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function getAppBaseUrl(): string {

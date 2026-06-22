@@ -9,7 +9,7 @@ export function speakInstruction(text: string): Promise<void> {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.92;
+    utterance.rate = 1.15;
     utterance.pitch = 1;
     utterance.volume = 1;
 

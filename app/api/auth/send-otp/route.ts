@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sendVerificationOTP } from "@/lib/otp";
 
+export const dynamic = "force-dynamic";
+
 const schema = z.object({
   email: z.string().email("Invalid email address"),
 });
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
       {
         error: isDomainIssue
           ? "Email could not be sent. Set RESEND_FROM_EMAIL to your verified domain (e.g. Korixa <noreply@korixapay.com>) in Vercel."
-          : "Failed to send verification code. Please try again.",
+          : message,
       },
       { status: isDomainIssue ? 503 : 500 }
     );

@@ -1,4 +1,4 @@
-import { adminAuth } from "@/lib/firebase-admin";
+import { getAdminAuth } from "@/lib/firebase-admin";
 import type { DecodedIdToken } from "firebase-admin/auth";
 
 export async function verifyAuthToken(request: Request): Promise<DecodedIdToken> {
@@ -15,7 +15,7 @@ export async function verifyAuthToken(request: Request): Promise<DecodedIdToken>
   }
 
   try {
-    return await adminAuth.verifyIdToken(token);
+    return await getAdminAuth().verifyIdToken(token);
   } catch {
     throw new AuthError("Invalid or expired session. Please sign in again.", 401);
   }

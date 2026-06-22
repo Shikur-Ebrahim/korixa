@@ -1,6 +1,6 @@
 "use client";
 
-export type LivenessChallenge = "face-present" | "blink-twice" | "turn-left" | "smile";
+export type LivenessChallenge = "face-present" | "blink-once" | "turn-left" | "smile";
 
 export type LivenessChallengeMeta = {
   id: LivenessChallenge;
@@ -15,33 +15,33 @@ export const LIVENESS_CHALLENGES: LivenessChallengeMeta[] = [
     id: "face-present",
     label: "Look at camera",
     hint: "Position your face in the frame",
-    instruction: "Please look at the camera",
-    retryInstruction: "Please look at the camera. Make sure your face is visible.",
+    instruction: "Look at the camera",
+    retryInstruction: "Look at the camera and keep your face in the frame.",
   },
   {
-    id: "blink-twice",
-    label: "Blink twice",
-    hint: "Blink your eyes two times",
-    instruction: "Blink your eyes twice",
-    retryInstruction: "Blink your eyes twice, slowly.",
+    id: "blink-once",
+    label: "Blink once",
+    hint: "Blink your eyes once",
+    instruction: "Blink once",
+    retryInstruction: "Close and open your eyes once.",
   },
   {
     id: "turn-left",
     label: "Turn left",
-    hint: "Turn your head slowly to the left",
-    instruction: "Turn your head slowly left",
-    retryInstruction: "Turn your head slowly to the left.",
+    hint: "Turn your head slightly left",
+    instruction: "Turn your head left",
+    retryInstruction: "Turn your head a little to the left.",
   },
   {
     id: "smile",
     label: "Smile",
-    hint: "Show a natural smile",
-    instruction: "Now smile",
-    retryInstruction: "Please smile for the camera.",
+    hint: "Show a small smile",
+    instruction: "Smile",
+    retryInstruction: "Give a small smile for the camera.",
   },
 ];
 
-export const LIVENESS_RETRY_MS = 9000;
+export const LIVENESS_RETRY_MS = 6000;
 
 /** Eye aspect ratio — lower values indicate a blink */
 export function eyeAspectRatio(
@@ -71,23 +71,23 @@ export function headYawFromLandmarks(
 }
 
 export function isBlinkDetected(ear: number, baselineEar: number): boolean {
-  return ear < baselineEar * 0.65;
+  return ear < baselineEar * 0.78;
 }
 
 export function isHeadTurnLeft(yaw: number): boolean {
-  return yaw < -0.12;
+  return yaw < -0.05;
 }
 
 export function isHeadTurnRight(yaw: number): boolean {
-  return yaw > 0.12;
+  return yaw > 0.05;
 }
 
 export function isFaceCentered(yaw: number): boolean {
-  return Math.abs(yaw) < 0.08;
+  return Math.abs(yaw) < 0.12;
 }
 
-export function isFacePresent(yaw: number): boolean {
-  return Math.abs(yaw) < 0.18;
+export function isFacePresent(_yaw: number): boolean {
+  return true;
 }
 
 export function isSmiling(landmarks: { x: number; y: number }[]): boolean {
@@ -104,10 +104,10 @@ export function isSmiling(landmarks: { x: number; y: number }[]): boolean {
   const mouthWidth = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y);
   const lipCenterY = (topLip.y + bottomLip.y) / 2;
 
-  return mouthWidth / (mouthHeight || 1) > 2.4 && leftCorner.y < lipCenterY && rightCorner.y < lipCenterY;
+  return mouthWidth / (mouthHeight || 1) > 1.5 && leftCorner.y <= lipCenterY + 2 && rightCorner.y <= lipCenterY + 2;
 }
 
-/** Tracks open → closed → open cycles for double-blink detection */
+/** Tracks open → closed → open cycles for blink detection */
 export function createBlinkTracker() {
   let baselineEar: number | null = null;
   let eyesClosed = false;
@@ -134,10 +134,10 @@ export function createBlinkTracker() {
         blinkCount += 1;
         baselineEar = ear;
       } else if (!closed) {
-        baselineEar = baselineEar * 0.9 + ear * 0.1;
+        baselineEar = baselineEar * 0.85 + ear * 0.15;
       }
 
-      return { blinkCount, complete: blinkCount >= 2 };
+      return { blinkCount, complete: blinkCount >= 1 };
     },
   };
 }

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAuthTokenForEmail, verifyOTP } from "@/lib/otp";
 
+export const dynamic = "force-dynamic";
+
 const schema = z.object({
   email: z.string().email("Invalid email address"),
   code: z.string().length(6, "Code must be 6 digits"),

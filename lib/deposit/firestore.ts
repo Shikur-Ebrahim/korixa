@@ -1,5 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import type { DepositChain } from "@/lib/deposit/constants";
 import { DEPOSIT_TOKEN } from "@/lib/deposit/constants";
 import type {
@@ -18,15 +18,15 @@ type HdWalletState = {
 };
 
 function walletRef(userId: string) {
-  return adminDb.doc(`users/${userId}/wallet/default`);
+  return getAdminDb().doc(`users/${userId}/wallet/default`);
 }
 
 function depositAddressRef(userId: string, chain: DepositChain) {
-  return adminDb.doc(`users/${userId}/deposit_addresses/${chain}`);
+  return getAdminDb().doc(`users/${userId}/deposit_addresses/${chain}`);
 }
 
 function lookupRef(address: string) {
-  return adminDb.doc(`${LOOKUP_COLLECTION}/${address.toLowerCase()}`);
+  return getAdminDb().doc(`${LOOKUP_COLLECTION}/${address.toLowerCase()}`);
 }
 
 export async function getUserWallet(userId: string): Promise<UserWalletRecord> {
@@ -61,9 +61,9 @@ export async function getOrAllocateDepositAddress(input: {
   const existing = await getDepositAddress(input.userId, input.chain);
   if (existing) return existing;
 
-  const hdRef = adminDb.doc(`${HD_WALLET_DOC}_${input.chain}`);
+  const hdRef = getAdminDb().doc(`${HD_WALLET_DOC}_${input.chain}`);
 
-  const allocation = await adminDb.runTransaction(async (tx) => {
+  const allocation = await getAdminDb().runTransaction(async (tx) => {
     const existingSnap = await tx.get(depositAddressRef(input.userId, input.chain));
     if (existingSnap.exists) {
       return { existing: existingSnap.data() as DepositAddressRecord };
@@ -102,7 +102,7 @@ export async function getOrAllocateDepositAddress(input: {
     createdAt: new Date().toISOString(),
   };
 
-  await adminDb.runTransaction(async (tx) => {
+  await getAdminDb().runTransaction(async (tx) => {
     const existingSnap = await tx.get(depositAddressRef(input.userId, input.chain));
     if (existingSnap.exists) return;
 
@@ -133,7 +133,7 @@ export async function ensureHdWallet(
   chain: DepositChain,
   generateWallet: () => Promise<{ xpub: string }>
 ): Promise<HdWalletState> {
-  const hdRef = adminDb.doc(`${HD_WALLET_DOC}_${chain}`);
+  const hdRef = getAdminDb().doc(`${HD_WALLET_DOC}_${chain}`);
   const snap = await hdRef.get();
 
   if (snap.exists && snap.data()?.xpub) {
@@ -157,7 +157,7 @@ export async function findUserByDepositAddress(
 }
 
 export async function listUserDeposits(userId: string, limit = 20): Promise<DepositRecord[]> {
-  const snap = await adminDb.collection("deposits").where("userId", "==", userId).limit(50).get();
+  const snap = await getAdminDb().collection("deposits").where("userId", "==", userId).limit(50).get();
 
   return snap.docs
     .map((doc) => doc.data() as DepositRecord)
@@ -176,9 +176,9 @@ export async function creditDeposit(input: {
   status: DepositStatus;
 }): Promise<{ credited: boolean; deposit: DepositRecord }> {
   const depositId = input.txHash.toLowerCase();
-  const depositDoc = adminDb.doc(`deposits/${depositId}`);
+  const depositDoc = getAdminDb().doc(`deposits/${depositId}`);
 
-  return adminDb.runTransaction(async (tx) => {
+  return getAdminDb().runTransaction(async (tx) => {
     const existing = await tx.get(depositDoc);
     const userWallet = await tx.get(walletRef(input.userId));
 
