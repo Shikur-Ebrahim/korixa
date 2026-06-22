@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getFirestore, type Firestore } from "firebase/firestore";
 import {
   browserLocalPersistence,
   getAuth,
@@ -58,4 +59,13 @@ export async function initClientAuth(): Promise<Auth> {
   const clientAuth = getClientAuth();
   await ensurePersistence(clientAuth);
   return clientAuth;
+}
+
+let firestore: Firestore | undefined;
+
+export function getClientFirestore(): Firestore {
+  if (!firestore) {
+    firestore = getFirestore(getFirebaseApp());
+  }
+  return firestore;
 }
