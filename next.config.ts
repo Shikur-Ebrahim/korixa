@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Required for firebase-admin on Vercel — do not bundle into serverless functions
+  serverExternalPackages: ["firebase-admin"],
   images: {
     remotePatterns: [
       {

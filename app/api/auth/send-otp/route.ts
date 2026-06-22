@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { sendVerificationOTP } from "@/lib/otp";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const { sendVerificationOTP } = await import("@/lib/otp");
     const result = await sendVerificationOTP(parsed.data.email);
     return NextResponse.json(result);
   } catch (error) {

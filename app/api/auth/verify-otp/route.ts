@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAuthTokenForEmail, verifyOTP } from "@/lib/otp";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const { createAuthTokenForEmail, verifyOTP } = await import("@/lib/otp");
     const verification = await verifyOTP(parsed.data.email, parsed.data.code);
 
     if (!verification.valid) {
@@ -41,9 +42,8 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("verify-otp error:", error);
-    return NextResponse.json(
-      { error: "Verification failed. Please try again." },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Verification failed. Please try again.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

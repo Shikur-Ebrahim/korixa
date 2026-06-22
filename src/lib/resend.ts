@@ -51,5 +51,3 @@ export function getEmailHeaders(): Record<string, string> {
   };
 }
 
-/** @deprecated Use getFromEmail() */
-export const FROM_EMAIL = getFromEmail();
