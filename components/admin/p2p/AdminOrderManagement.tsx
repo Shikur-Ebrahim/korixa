@@ -72,15 +72,22 @@ function ChatPanel({ order, onClose }: { order: P2POrder; onClose: () => void })
           const isMerchant = msg.senderId === order.merchantId || msg.senderId === (getAuth().currentUser?.uid ?? "admin") || msg.senderName === order.merchantName;
           return (
             <div key={msg.id} className={`flex ${isMerchant ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] rounded-xl px-3 py-2 text-xs ${
-                isMerchant ? "bg-primary/20 text-white" : "bg-[#1e2329] text-[#848e9c]"
-              }`}>
-                {msg.imageUrl ? (
-                  <a href={msg.imageUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-primary underline">
-                    <FiImage size={12} /> View Image
-                  </a>
-                ) : msg.text}
-              </div>
+              {msg.imageUrl ? (
+                <a href={msg.imageUrl} target="_blank" rel="noreferrer" className={`max-w-[75%] block overflow-hidden rounded-xl border ${isMerchant ? "border-primary/30" : "border-white/[0.08]"}`}>
+                  <img
+                    src={msg.imageUrl}
+                    alt="screenshot"
+                    className="w-full object-cover"
+                    style={{ maxHeight: 200 }}
+                  />
+                </a>
+              ) : (
+                <div className={`max-w-[80%] rounded-xl px-3 py-2 text-xs ${
+                  isMerchant ? "bg-primary/20 text-white" : "bg-[#1e2329] text-[#848e9c]"
+                }`}>
+                  {msg.text}
+                </div>
+              )}
             </div>
           );
         })}
