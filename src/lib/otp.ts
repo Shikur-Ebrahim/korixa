@@ -1,6 +1,6 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
-import { getEmailLogoAttachment, getEmailLogoSrc } from "@/lib/email-logo";
+import { getEmailLogoSrc } from "@/lib/email-logo";
 import {
   getEmailHeaders,
   getFromEmail,
@@ -154,7 +154,6 @@ async function sendBrandedEmail(options: {
   code: string;
 }) {
   const resend = getResend();
-  const logoAttachment = getEmailLogoAttachment();
   const replyTo = getReplyToEmail();
   const from = getFromEmail();
 
@@ -174,7 +173,6 @@ async function sendBrandedEmail(options: {
     subject: options.subject,
     html: buildVerificationEmailHtml(options.code, options.to),
     text: buildVerificationEmailText(options.code, options.to),
-    attachments: logoAttachment ? [logoAttachment] : undefined,
     headers: getEmailHeaders(),
   });
 
@@ -237,13 +235,14 @@ export async function sendVerificationOTP(
   const normalized = normalizeEmail(email);
   const code = generateOtpCode();
 
+  // Save first — fails fast if Firestore / Firebase Admin is misconfigured
+  await saveOtp(normalized, "registration", code);
+
   await sendBrandedEmail({
     to: normalized,
     subject: "Welcome to Korixa — verify your email",
     code,
   });
-
-  await saveOtp(normalized, "registration", code);
 
   return {
     success: true,
