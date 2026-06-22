@@ -7,7 +7,6 @@ import { DepositCryptoCard } from "@/components/deposit/DepositCryptoCard";
 import { DepositHero } from "@/components/deposit/DepositHero";
 import { DepositQuickActions } from "@/components/deposit/QuickActions";
 import { DepositStatusTracker } from "@/components/deposit/DepositStatusTracker";
-import { FiatDepositCard } from "@/components/deposit/FiatDepositCard";
 import { LearningCenter } from "@/components/deposit/LearningCenter";
 import { P2PCard } from "@/components/deposit/P2PCard";
 import { TransferCard } from "@/components/deposit/TransferCard";
@@ -90,9 +89,8 @@ export function DepositScreen() {
 
       <section className="space-y-3">
         <h2 className={appTheme.sectionTitle}>I Don&apos;t Have Crypto Assets</h2>
-        <BuyCryptoCard />
         <P2PCard />
-        <FiatDepositCard />
+        <BuyCryptoCard />
       </section>
 
       <section className="space-y-3">
