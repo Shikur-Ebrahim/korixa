@@ -13,7 +13,7 @@ export default function P2POrderHistory() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<P2POrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"processing" | "all">("processing");
+  const [activeTab, setActiveTab] = useState<"processing" | "all" | "completed" | "cancelled">("processing");
 
   useEffect(() => {
     if (!user) return;
@@ -31,8 +31,17 @@ export default function P2POrderHistory() {
 
   const filteredOrders = orders.filter((o) => {
     if (activeTab === "processing") return o.status === "pending" || o.status === "paid";
+    if (activeTab === "completed") return o.status === "completed";
+    if (activeTab === "cancelled") return o.status === "cancelled";
     return true; // all
   });
+
+  const TABS = [
+    { id: "processing", label: "Processing" },
+    { id: "all", label: "All" },
+    { id: "completed", label: "Completed" },
+    { id: "cancelled", label: "Cancelled" },
+  ] as const;
 
   return (
     <div className="min-h-screen bg-[#0b0e11] pb-24 text-white">
@@ -49,27 +58,20 @@ export default function P2POrderHistory() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/[0.06] px-4">
-          <button
-            onClick={() => setActiveTab("processing")}
-            className={`mr-6 pb-2.5 pt-3 text-sm font-semibold transition-colors ${
-              activeTab === "processing"
-                ? "border-b-2 border-primary text-white"
-                : "text-[#848e9c] hover:text-white"
-            }`}
-          >
-            Processing
-          </button>
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`pb-2.5 pt-3 text-sm font-semibold transition-colors ${
-              activeTab === "all"
-                ? "border-b-2 border-primary text-white"
-                : "text-[#848e9c] hover:text-white"
-            }`}
-          >
-            All
-          </button>
+        <div className="flex border-b border-white/[0.06] px-4 overflow-x-auto scrollbar-hide">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap mr-6 pb-2.5 pt-3 text-sm font-semibold transition-colors ${
+                activeTab === tab.id
+                  ? "border-b-2 border-primary text-white"
+                  : "text-[#848e9c] hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
