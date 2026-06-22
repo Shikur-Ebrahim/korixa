@@ -23,31 +23,25 @@ export function Logo({ size = "md", showName = true, className = "" }: LogoProps
   const tapCount = useRef(0);
   const tapTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const handleTap = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleTap = (e: React.PointerEvent) => {
     tapCount.current += 1;
     
     if (tapTimer.current) clearTimeout(tapTimer.current);
     
-    if (tapCount.current >= 5) {
+    tapTimer.current = setTimeout(() => {
       tapCount.current = 0;
+    }, 1500);
+
+    if (tapCount.current >= 5) {
+      e.preventDefault();
+      tapCount.current = 0;
+      if (tapTimer.current) clearTimeout(tapTimer.current);
       router.push("/admin-login");
-    } else {
-      tapTimer.current = setTimeout(() => {
-        if (tapCount.current === 1) {
-          if (window.location.pathname !== "/") {
-            router.push("/");
-          } else {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }
-        }
-        tapCount.current = 0;
-      }, 350); // wait 350ms to see if they tap again
     }
   };
 
   return (
-    <Link href="/" className={`flex items-center gap-2.5 ${className}`} onClick={handleTap}>
+    <Link href="/" className={`flex items-center gap-2.5 ${className}`} onPointerDown={handleTap}>
       <Image
         src="/app logo.jpg"
         alt="Korixa logo"
