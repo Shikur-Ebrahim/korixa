@@ -31,7 +31,7 @@ export function Logo({ size = "md", showName = true, className = "" }: LogoProps
     
     if (tapCount.current >= 5) {
       tapCount.current = 0;
-      router.push("/admin/login");
+      router.push("/admin-login");
     } else {
       tapTimer.current = setTimeout(() => {
         if (tapCount.current === 1) {
