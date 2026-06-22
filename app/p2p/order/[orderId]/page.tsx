@@ -383,9 +383,6 @@ function ChatDrawer({ orderId, onClose, messages, user }: { orderId: string; onC
                   className="w-full object-cover"
                   style={{ maxHeight: 220 }}
                 />
-                <div className={`px-3 py-1.5 text-xs font-medium ${m.senderId === user?.uid ? "bg-primary/20 text-primary" : "bg-[#1e2329] text-[#848e9c]"}`}>
-                  📷 Payment Screenshot — tap to view
-                </div>
               </div>
             ) : (
               <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${m.senderId === user?.uid ? "bg-primary text-[#0b0e11]" : "bg-[#1e2329] text-white"}`}>
