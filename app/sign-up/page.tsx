@@ -73,7 +73,7 @@ function SignUpForm() {
         }
 
         await signInWithCustomToken(getClientAuth(), customToken);
-        router.push("/dashboard");
+        // Do not redirect here! AuthProvider will read the role and redirect to /admin or /dashboard
       } catch (err) {
         setError(err instanceof Error ? err.message : "Verification failed.");
       } finally {
@@ -84,9 +84,9 @@ function SignUpForm() {
   );
 
   useEffect(() => {
-    if (!initialized || authLoading || !user) return;
-    router.replace("/dashboard");
-  }, [initialized, authLoading, user, router]);
+    // If user is already logged in, AuthProvider handles the redirect.
+    // We just wait here.
+  }, [initialized, authLoading, user]);
 
   useEffect(() => {
     if (!urlParams.email || !urlParams.code || autoVerified.current) return;

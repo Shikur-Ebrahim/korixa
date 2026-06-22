@@ -111,8 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               redirectedRef.current = true;
               if (userRole === "admin") {
                 router.replace("/admin");
+              } else if (window.location.pathname.startsWith("/sign-")) {
+                router.replace("/dashboard");
               }
-              // Normal users: let ProtectedRoute / page handle their own redirect
             }
           } else {
             setRole(null);
