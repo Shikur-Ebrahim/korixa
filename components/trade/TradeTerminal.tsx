@@ -2,12 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { BuySellPanel } from "@/components/trade/BuySellPanel";
+import { P2PTradePanel } from "@/components/trade/P2PTradePanel";
 import { MarketOverviewStrip } from "@/components/trade/MarketOverviewStrip";
-import { OpenOrders } from "@/components/trade/OpenOrders";
 import { OrderBook } from "@/components/trade/OrderBook";
 import { RecentTrades } from "@/components/trade/RecentTrades";
-import { TradeHistory } from "@/components/trade/TradeHistory";
 import { TradeKycBanner } from "@/components/trade/TradeKycBanner";
 import { TradeProvider } from "@/components/trade/TradeProvider";
 import { TradeSkeleton } from "@/components/trade/TradeStates";
@@ -64,9 +62,7 @@ function TradeTerminalContent() {
         </div>
       </div>
 
-      <BuySellPanel />
-      <OpenOrders />
-      <TradeHistory />
+      <P2PTradePanel />
     </div>
   );
 }
