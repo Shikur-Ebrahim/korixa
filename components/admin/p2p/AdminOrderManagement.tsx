@@ -44,9 +44,8 @@ function ChatPanel({ order, onClose }: { order: P2POrder; onClose: () => void })
     const uid = getAuth().currentUser?.uid ?? "admin";
     await addDoc(collection(getClientFirestore(), `p2pOrders/${order.id}/messages`), {
       senderId: uid,
-      senderRole: "merchant",
-      content: trimmed,
-      type: "text",
+      senderName: "Admin",
+      text: trimmed,
       createdAt: new Date().toISOString(),
     });
     setText("");
@@ -70,17 +69,17 @@ function ChatPanel({ order, onClose }: { order: P2POrder; onClose: () => void })
           <div className="text-center text-[11px] text-[#848e9c] pt-4">No messages yet</div>
         )}
         {messages.map((msg) => {
-          const isMerchant = msg.senderRole === "merchant";
+          const isMerchant = msg.senderName === "Admin" || msg.senderId === order.merchantId;
           return (
             <div key={msg.id} className={`flex ${isMerchant ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[80%] rounded-xl px-3 py-2 text-xs ${
                 isMerchant ? "bg-primary/20 text-white" : "bg-[#1e2329] text-[#848e9c]"
               }`}>
-                {msg.type === "image" ? (
-                  <a href={msg.content} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-primary underline">
-                    <FiImage size={12} /> View Proof
+                {msg.imageUrl ? (
+                  <a href={msg.imageUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-primary underline">
+                    <FiImage size={12} /> View Image
                   </a>
-                ) : msg.content}
+                ) : msg.text}
               </div>
             </div>
           );
