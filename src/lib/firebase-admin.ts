@@ -1,5 +1,4 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
-import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 function getPrivateKey(): string {
@@ -50,30 +49,25 @@ function createAdminApp(): App {
 }
 
 let adminApp: App | undefined;
-let adminAuthInstance: Auth | undefined;
 let adminDbInstance: Firestore | undefined;
 
-function ensureAdminApp(): App {
+/** Initialize Firebase Admin app + Firestore only (no auth — avoids jwks-rsa/jose on OTP routes). */
+export function ensureAdminApp(): App {
   if (!adminApp) {
     adminApp = createAdminApp();
-    adminAuthInstance = getAuth(adminApp);
     adminDbInstance = getFirestore(adminApp);
   }
   return adminApp;
 }
 
-/** Server-only Firebase Admin Auth (lazy init — avoids crashing API routes at import time) */
-export function getAdminAuth(): Auth {
-  ensureAdminApp();
-  return adminAuthInstance!;
+export function getAdminApp(): App {
+  return ensureAdminApp();
 }
 
-/** Server-only Firestore (lazy init) */
+/** Server-only Firestore — safe for send-otp and health checks on Vercel. */
 export function getAdminDb(): Firestore {
   ensureAdminApp();
   return adminDbInstance!;
 }
 
-export default function getDefaultAdminApp(): App {
-  return ensureAdminApp();
-}
+export default getAdminApp;

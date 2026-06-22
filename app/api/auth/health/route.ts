@@ -66,9 +66,13 @@ export async function GET() {
       appUrl: appUrl || "(not set)",
       hint: firebaseLive.ok
         ? "All good — try sign-up now."
-        : firebaseLive.error?.includes("DECODER") || firebaseLive.error?.includes("private key")
-          ? "Fix FIREBASE_PRIVATE_KEY in Vercel — paste key with real line breaks (BEGIN to END)."
-          : "Enable Firestore in Firebase Console, or fix FIREBASE_PRIVATE_KEY in Vercel.",
+        : firebaseLive.error?.includes("ERR_REQUIRE_ESM") ||
+            firebaseLive.error?.includes("jwks-rsa") ||
+            firebaseLive.error?.includes("jose")
+          ? "Firebase Admin auth module conflict — redeploy latest code from GitHub."
+          : firebaseLive.error?.includes("DECODER") || firebaseLive.error?.includes("private key")
+            ? "Fix FIREBASE_PRIVATE_KEY in Vercel — paste key with real line breaks (BEGIN to END)."
+            : "Enable Firestore in Firebase Console, or fix FIREBASE_PRIVATE_KEY in Vercel.",
     });
   } catch (error) {
     return NextResponse.json(

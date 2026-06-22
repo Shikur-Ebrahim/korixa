@@ -1,4 +1,4 @@
-import { getAdminAuth } from "@/lib/firebase-admin";
+import { getAdminAuth } from "@/lib/firebase-admin-auth";
 import type { DecodedIdToken } from "firebase-admin/auth";
 
 export async function verifyAuthToken(request: Request): Promise<DecodedIdToken> {

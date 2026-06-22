@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase-admin/firestore";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { getEmailLogoSrc } from "@/lib/email-logo";
 import {
   getEmailHeaders,
@@ -265,6 +265,8 @@ export async function createAuthTokenForEmail(
 ): Promise<string> {
   const normalized = normalizeEmail(email);
   let user;
+
+  const { getAdminAuth } = await import("@/lib/firebase-admin-auth");
 
   try {
     user = await getAdminAuth().getUserByEmail(normalized);
