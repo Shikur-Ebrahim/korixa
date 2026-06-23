@@ -4,19 +4,18 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getUserSecurity, getUserProfile } from "@/lib/profile/service";
 import type { UserSecurity, UserProfile } from "@/lib/profile/types";
-import { FiCheck, FiMail, FiSmartphone, FiShield, FiAlertTriangle, FiKey, FiLock, FiLogOut } from "react-icons/fi";
+import { FiCheck, FiMail, FiShield, FiAlertTriangle, FiKey, FiLock, FiLogOut, FiMonitor, FiActivity, FiFileText } from "react-icons/fi";
 
-function calculateSecurityScore(profile: UserProfile | null, security: UserSecurity | null) {
+function calculateSecurityScore(security: UserSecurity | null) {
   let score = 0;
   if (!security) return score;
 
-  if (security.emailVerified) score += 10;
-  if (security.phoneVerified) score += 15;
-  if (security.mfaEnabled) score += 30;
-  // Let's assume trusted device and recovery codes for now
-  score += 10; // trusted device (base)
-  if (security.antiPhishingCode) score += 10;
-  if (security.withdrawalWhitelistEnabled) score += 15;
+  if (security.emailVerified) score += 20;
+  if (security.mfaEnabled) score += 40;
+  if (security.recoveryCodesGenerated) score += 15;
+  // Assumed trusted device base score (can be calculated dynamically later)
+  score += 10;
+  if (security.antiPhishingCode) score += 15;
   
   return Math.min(score, 100);
 }
@@ -48,7 +47,7 @@ export default function SecurityCenter() {
     return <div className="animate-pulse h-64 bg-white/[0.02] rounded-2xl"></div>;
   }
 
-  const score = calculateSecurityScore(profile, security);
+  const score = calculateSecurityScore(security);
   const scoreColor = score >= 80 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500";
   const textColor = score >= 80 ? "text-green-500" : score >= 50 ? "text-yellow-500" : "text-red-500";
 
@@ -80,22 +79,22 @@ export default function SecurityCenter() {
             <ul className="space-y-2">
               {!security?.mfaEnabled && (
                 <li className="flex items-center gap-2 text-xs text-[#848e9c]">
-                  <FiAlertTriangle className="text-yellow-500" /> Enable Google Authenticator (+30)
+                  <FiAlertTriangle className="text-yellow-500 shrink-0" /> Enable Google Authenticator (+40)
                 </li>
               )}
-              {!security?.phoneVerified && (
+              {!security?.recoveryCodesGenerated && (
                 <li className="flex items-center gap-2 text-xs text-[#848e9c]">
-                  <FiAlertTriangle className="text-yellow-500" /> Verify Phone Number (+15)
+                  <FiAlertTriangle className="text-yellow-500 shrink-0" /> Generate Recovery Codes (+15)
                 </li>
               )}
               {!security?.antiPhishingCode && (
                 <li className="flex items-center gap-2 text-xs text-[#848e9c]">
-                  <FiAlertTriangle className="text-yellow-500" /> Add Anti-Phishing Code (+10)
+                  <FiAlertTriangle className="text-yellow-500 shrink-0" /> Add Anti-Phishing Code (+15)
                 </li>
               )}
               {score >= 100 && (
                 <li className="flex items-center gap-2 text-xs text-green-500">
-                  <FiCheck /> Your account is fully secured.
+                  <FiCheck className="shrink-0" /> Your account is fully secured.
                 </li>
               )}
             </ul>
@@ -106,14 +105,14 @@ export default function SecurityCenter() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Email Verification */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5 lg:col-span-2">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <FiMail size={18} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold">Email Verification</h3>
+                <h3 className="text-sm font-bold">Email Authentication</h3>
                 {security?.emailVerified ? (
                   <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-green-500"><FiCheck /> Verified</span>
                 ) : (
@@ -122,36 +121,9 @@ export default function SecurityCenter() {
               </div>
               <p className="mt-1 text-xs text-[#848e9c] line-clamp-1">{profile?.email}</p>
               <div className="mt-4 flex gap-3">
-                <button className="text-xs font-semibold text-primary hover:text-white transition">Change Email</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Phone Verification */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5">
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <FiSmartphone size={18} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold">Phone Verification</h3>
-                {security?.phoneVerified ? (
-                  <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-green-500"><FiCheck /> Verified</span>
-                ) : (
-                  <span className="text-[10px] font-bold uppercase text-yellow-500">Unverified</span>
-                )}
-              </div>
-              <p className="mt-1 text-xs text-[#848e9c] line-clamp-1">
-                {security?.phoneVerified ? profile?.phoneNumber : "Used for withdrawals and security modifications"}
-              </p>
-              <div className="mt-4 flex gap-3">
-                {security?.phoneVerified ? (
-                  <button className="text-xs font-semibold text-primary hover:text-white transition">Change Phone</button>
-                ) : (
-                  <button className="rounded bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition">Add Phone Number</button>
-                )}
+                <button className="rounded bg-white/[0.04] border border-white/[0.08] px-3 py-1.5 text-xs font-bold text-white hover:bg-white/[0.08] transition">
+                  Change Email
+                </button>
               </div>
             </div>
           </div>
@@ -163,7 +135,7 @@ export default function SecurityCenter() {
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <FiShield size={18} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold">Authenticator App (MFA)</h3>
                 {security?.mfaEnabled ? (
@@ -186,13 +158,40 @@ export default function SecurityCenter() {
           </div>
         </div>
 
+        {/* Recovery Codes */}
+        <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <FiFileText size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold">Recovery Codes</h3>
+                {security?.recoveryCodesGenerated ? (
+                  <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-green-500"><FiCheck /> Saved</span>
+                ) : (
+                  <span className="text-[10px] font-bold uppercase text-yellow-500">Missing</span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-[#848e9c]">
+                Generate 10 recovery codes to regain access if you lose your Authenticator App.
+              </p>
+              <div className="mt-4 flex gap-3">
+                <button className="text-xs font-semibold text-primary hover:text-white transition">
+                  {security?.recoveryCodesGenerated ? "View Codes" : "Generate Codes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Anti-Phishing Code */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <FiKey size={18} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold">Anti-Phishing Code</h3>
                 {security?.antiPhishingCode ? (
@@ -201,8 +200,8 @@ export default function SecurityCenter() {
                   <span className="text-[10px] font-bold uppercase text-[#848e9c]">Disabled</span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-[#848e9c] line-clamp-2">
-                A custom code that will appear in all official emails from Korixa to prevent phishing attacks.
+              <p className="mt-1 text-xs text-[#848e9c]">
+                A custom code that will appear in all official Resend security emails from Korixa.
               </p>
               <div className="mt-4 flex gap-3">
                 <button className="text-xs font-semibold text-primary hover:text-white transition">
@@ -213,26 +212,41 @@ export default function SecurityCenter() {
           </div>
         </div>
 
-        {/* Withdrawal Whitelist */}
+        {/* Active Sessions & Devices */}
         <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <FiLock size={18} />
+              <FiMonitor size={18} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold">Withdrawal Whitelist</h3>
-                {security?.withdrawalWhitelistEnabled ? (
-                  <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-green-500"><FiCheck /> Enabled</span>
-                ) : (
-                  <span className="text-[10px] font-bold uppercase text-[#848e9c]">Disabled</span>
-                )}
+                <h3 className="text-sm font-bold">Device Management</h3>
               </div>
-              <p className="mt-1 text-xs text-[#848e9c] line-clamp-2">
-                When enabled, withdrawals are only permitted to wallet addresses saved in your whitelist.
+              <p className="mt-1 text-xs text-[#848e9c]">
+                Manage trusted devices and active sessions across browsers and mobile apps.
               </p>
               <div className="mt-4 flex gap-3">
-                <button className="text-xs font-semibold text-primary hover:text-white transition">Manage Whitelist</button>
+                <button className="text-xs font-semibold text-primary hover:text-white transition">View Devices</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Login History */}
+        <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <FiActivity size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold">Login History</h3>
+              </div>
+              <p className="mt-1 text-xs text-[#848e9c]">
+                Review your recent login activity to detect any unauthorized access.
+              </p>
+              <div className="mt-4 flex gap-3">
+                <button className="text-xs font-semibold text-primary hover:text-white transition">View History</button>
               </div>
             </div>
           </div>
@@ -244,7 +258,7 @@ export default function SecurityCenter() {
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-500">
               <FiLogOut size={18} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h3 className="text-sm font-bold text-red-500">Account Protection</h3>
               <p className="mt-1 text-xs text-[#848e9c]">
                 If you notice suspicious activity, you can immediately freeze your account or lock all withdrawals.

@@ -20,9 +20,9 @@ export interface UserProfile {
 export interface UserSecurity {
   uid: string;
   emailVerified: boolean;
-  phoneVerified: boolean;
   mfaEnabled: boolean;
   mfaSecret?: string; // Stored securely
+  recoveryCodesGenerated: boolean;
   antiPhishingCode: string | null;
   withdrawalWhitelistEnabled: boolean;
   withdrawalWhitelist: string[]; // List of addresses
