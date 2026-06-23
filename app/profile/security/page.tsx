@@ -10,15 +10,19 @@ import QRCode from "qrcode";
 import { FiCheck, FiMail, FiShield, FiAlertTriangle, FiKey, FiLock, FiLogOut, FiMonitor, FiActivity, FiFileText, FiArrowLeft, FiX, FiCopy, FiUserCheck } from "react-icons/fi";
 import { appTheme } from "@/components/layout/app-theme";
 
-function calculateSecurityScore(security: UserSecurity | null, profile: UserProfile | null) {
+function calculateSecurityScore(
+  security: UserSecurity | null,
+  profile: UserProfile | null,
+  emailVerified: boolean
+) {
   let score = 0;
-  if (!security) return score;
 
-  if (security.emailVerified) score += 15;
+  // Email verified from live Firebase Auth (not Firestore — always accurate)
+  if (emailVerified) score += 15;
   if (profile?.kycStatus === "verified") score += 30;
-  if (security.mfaEnabled) score += 30;
-  if (security.recoveryCodesGenerated) score += 15;
-  if (security.antiPhishingCode) score += 10;
+  if (security?.mfaEnabled) score += 30;
+  if (security?.recoveryCodesGenerated) score += 15;
+  if (security?.antiPhishingCode) score += 10;
   
   return Math.min(score, 100);
 }
@@ -166,7 +170,7 @@ export default function SecurityCenter() {
   }
 
 
-  const score = calculateSecurityScore(security, profile);
+  const score = calculateSecurityScore(security, profile, user?.emailVerified ?? false);
   const scoreColor = score >= 80 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500";
   const textColor = score >= 80 ? "text-green-500" : score >= 50 ? "text-yellow-500" : "text-red-500";
 
@@ -177,7 +181,7 @@ export default function SecurityCenter() {
         {/* Header with Back Button */}
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => router.push("/dashboard")} 
+            onClick={() => router.push("/dashboard?profile=open")} 
             className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] text-white hover:bg-white/[0.08] transition"
           >
             <FiArrowLeft size={16} />

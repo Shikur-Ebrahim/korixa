@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, type ReactNode } from "react";
 import { AppBottomNav } from "@/components/layout/AppBottomNav";
 import { AppMobileHeader } from "@/components/layout/AppMobileHeader";
 import { NotificationsDrawer } from "@/components/layout/NotificationsDrawer";
@@ -12,8 +12,19 @@ import { useLoginTracker } from "@/lib/profile/useLoginTracker";
 export function AppShellLayout({ children }: { children: ReactNode }) {
   useLoginTracker();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  // Auto-open profile drawer when navigating back from security page
+  useEffect(() => {
+    if (searchParams.get("profile") === "open") {
+      setProfileOpen(true);
+      // Clean the query param without reloading
+      router.replace(pathname, { scroll: false });
+    }
+  }, [searchParams, pathname, router]);
 
   const hideBottomNav = pathname.startsWith("/kyc");
 
