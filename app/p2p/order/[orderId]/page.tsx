@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { doc, onSnapshot, updateDoc, collection, addDoc, query, orderBy } from "firebase/firestore";
 import { useRouter, useParams } from "next/navigation";
-import { FiArrowLeft, FiMessageSquare, FiUploadCloud, FiCheck, FiX, FiClock, FiLoader, FiImage } from "react-icons/fi";
+import { FiArrowLeft, FiMessageSquare, FiUploadCloud, FiCheck, FiX, FiClock, FiLoader, FiImage, FiCopy } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getAuth } from "firebase/auth";
@@ -21,6 +21,7 @@ export default function P2POrderRoomPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -136,14 +137,14 @@ export default function P2POrderRoomPage() {
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed top-4 left-1/2 z-[100] -translate-x-1/2 flex items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-2xl transition-all duration-300 ${
+          className={`fixed top-4 left-1/2 z-[100] -translate-x-1/2 flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-semibold shadow-2xl transition-all duration-300 ${
             toast.type === "success"
               ? "bg-green-500 text-white"
               : "bg-red-500 text-white"
           }`}
-          style={{ minWidth: 240, maxWidth: "90vw" }}
+          style={{ minWidth: 200, maxWidth: "86vw" }}
         >
-          <span className="text-lg">{toast.type === "success" ? "✅" : "❌"}</span>
+          <span className="text-sm">{toast.type === "success" ? "✅" : "❌"}</span>
           <span>{toast.msg}</span>
         </div>
       )}
@@ -199,16 +200,30 @@ export default function P2POrderRoomPage() {
             order.paymentAccountDetails.map((detail) => (
               <div key={detail.method} className="rounded-lg border border-white/[0.06] bg-[#0b0e11] p-3">
                 <div className="mb-2 text-xs font-bold text-primary">{detail.method}</div>
-                <div className="space-y-1">
-                  <div className="flex justify-between">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
                     <span className="text-[11px] text-[#848e9c]">Account Name</span>
                     <span className="text-[11px] font-semibold text-white">{detail.accountName}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-[11px] text-[#848e9c]">
                       {detail.method === "Telebirr" ? "Phone Number" : "Account Number"}
                     </span>
-                    <span className="text-[11px] font-mono font-bold text-white">{detail.accountNumber}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-mono font-bold text-white">{detail.accountNumber}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(detail.accountNumber);
+                          setCopied(detail.method);
+                          setTimeout(() => setCopied(null), 2000);
+                        }}
+                        className="flex items-center justify-center rounded-md bg-[#1e2329] p-1.5 text-[#848e9c] transition hover:bg-primary/20 hover:text-primary"
+                        title="Copy"
+                      >
+                        {copied === detail.method ? <FiCheck size={11} className="text-green-400" /> : <FiCopy size={11} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
