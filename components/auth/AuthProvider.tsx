@@ -18,6 +18,8 @@ import {
 import { useRouter } from "next/navigation";
 import { getClientAuth, initClientAuth } from "@/lib/firebase";
 import type { KycStatus, UserKycRecord } from "@/lib/kyc/types";
+import { getUserSecurity } from "@/lib/profile/service";
+import { MfaVerificationScreen } from "./MfaVerificationScreen";
 
 export type UserRole = "admin" | "user" | null;
 
@@ -43,6 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [initialized, setInitialized] = useState(false);
   const [kyc, setKyc] = useState<UserKycRecord | null>(null);
   const [kycLoading, setKycLoading] = useState(false);
+  const [mfaLocked, setMfaLocked] = useState(false);
+  const [mfaChecking, setMfaChecking] = useState(false);
   const router = useRouter();
   const redirectedRef = useRef(false);
 
@@ -101,17 +105,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initClientAuth()
       .then((auth) => {
         unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
-          setUser(nextUser);
-
           if (nextUser) {
-            await refreshRole(nextUser);
+            // First set loading true so we don't flash content before MFA check
+            setLoading(true);
+            setMfaChecking(true);
+            try {
+              const security = await getUserSecurity(nextUser.uid);
+              if (security?.mfaEnabled) {
+                // If this is a fresh login event, require MFA.
+                // In a highly robust system, you might track this with a session cookie.
+                // For now, any time AuthState changes to logged in, we lock them if MFA enabled.
+                setMfaLocked(true);
+              } else {
+                setMfaLocked(false);
+              }
+              await refreshRole(nextUser);
+              setUser(nextUser);
+            } catch (err) {
+              console.error("MFA Check failed", err);
+              setUser(nextUser); // Default to letting them in, or handle error
+            } finally {
+              setMfaChecking(false);
+              setLoading(false);
+              setInitialized(true);
+            }
           } else {
+            setUser(null);
             setRole(null);
+            setMfaLocked(false);
             redirectedRef.current = false;
+            setLoading(false);
+            setInitialized(true);
           }
-
-          setLoading(false);
-          setInitialized(true);
         });
       })
       .catch(() => {
@@ -153,7 +178,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user, role, loading, initialized, kyc, kycLoading, refreshKyc, getIdToken, logout]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {mfaLocked && (
+        <MfaVerificationScreen
+          onVerified={() => setMfaLocked(false)}
+          onCancel={logout}
+        />
+      )}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

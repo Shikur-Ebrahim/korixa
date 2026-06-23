@@ -14,6 +14,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { OtpVerification, useOtpFromUrl } from "@/components/auth/OtpVerification";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { getClientAuth } from "@/lib/firebase";
+import Link from "next/link";
 
 type Step = "email" | "otp";
 
@@ -23,11 +24,7 @@ async function parseApiJson(res: Response): Promise<Record<string, unknown>> {
 
   if (!contentType.includes("application/json")) {
     const preview = text.slice(0, 120).replace(/\s+/g, " ");
-    throw new Error(
-      res.status === 404
-        ? "Sign-up service unavailable. Redeploy the app and try again."
-        : `Server error (${res.status}). Open /api/auth/health on your site to check env vars. ${preview ? `(${preview})` : ""}`
-    );
+    throw new Error(`Server error (${res.status}). ${preview}`);
   }
 
   try {
@@ -37,7 +34,7 @@ async function parseApiJson(res: Response): Promise<Record<string, unknown>> {
   }
 }
 
-function SignUpForm() {
+function SignInForm() {
   const router = useRouter();
   const { user, loading: authLoading, initialized } = useAuth();
   const urlParams = useOtpFromUrl();
@@ -61,11 +58,12 @@ function SignUpForm() {
           body: JSON.stringify({
             email: emailAddress,
             code,
+            isSignIn: true, // Key difference from sign-up
           }),
         });
 
         const data = await parseApiJson(res);
-        if (!res.ok) throw new Error(String(data.error ?? "Verification failed"));
+        if (!res.ok) throw new Error(String(data.error ?? "Login failed"));
 
         const customToken = data.customToken;
         if (typeof customToken !== "string") {
@@ -84,6 +82,7 @@ function SignUpForm() {
   );
 
   useEffect(() => {
+    // AuthProvider will handle the MFA intercept if needed
     if (!initialized || authLoading || !user) return;
     router.replace("/dashboard");
   }, [initialized, authLoading, user, router]);
@@ -107,14 +106,14 @@ function SignUpForm() {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, isSignIn: true }),
       });
 
       const data = await parseApiJson(res);
       if (!res.ok) throw new Error(String(data.error ?? "Failed to send code"));
 
-      setMessage(String(data.message ?? "Verification code sent."));
-      setOtp(""); // Clear the old code so user can type the new one
+      setMessage(String(data.message ?? "Login code sent."));
+      setOtp("");
       setStep("otp");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -125,8 +124,8 @@ function SignUpForm() {
 
   return (
     <AuthLayout
-      title="Get started"
-      subtitle="Enter your email — no password needed. We'll send a 6-digit code."
+      title="Welcome back"
+      subtitle="Enter your email to log in — no password needed."
     >
       {step === "email" ? (
         <form
@@ -138,17 +137,17 @@ function SignUpForm() {
         >
           <AuthError message={error} />
           
-          {error?.includes("already registered") && (
+          {error?.includes("Account not found") && (
             <div className="rounded-xl border border-[#F7931A]/30 bg-[#F7931A]/10 px-4 py-3 mt-2 mb-4 text-center">
               <p className="text-sm text-[#F7931A] font-medium mb-2">
-                This email is already registered.
+                No account found for this email.
               </p>
               <button
                 type="button"
-                onClick={() => router.push("/sign-in")}
+                onClick={() => router.push("/sign-up")}
                 className="text-xs font-bold text-white bg-[#161a1e] px-4 py-1.5 rounded hover:bg-white/[0.04] transition border border-white/[0.1]"
               >
-                Go to Sign In
+                Create an Account
               </button>
             </div>
           )}
@@ -174,7 +173,16 @@ function SignUpForm() {
           </AuthButton>
 
           <AuthDivider />
+          {/* Note: Google Auth inside SocialAuthButtons will still auto-create accounts unless we update that too, 
+              but it's acceptable for standard flow right now since Google provides identity verification. */}
           <SocialAuthButtons />
+
+          <div className="mt-6 text-center text-xs text-[#848e9c]">
+            New to Korixa?{" "}
+            <Link href="/sign-up" className="text-primary hover:underline font-bold">
+              Sign up
+            </Link>
+          </div>
         </form>
       ) : (
         <form
@@ -221,10 +229,10 @@ function SignUpForm() {
   );
 }
 
-export default function SignUpPage() {
+export default function SignInPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#0A1628]" />}>
-      <SignUpForm />
+      <SignInForm />
     </Suspense>
   );
 }

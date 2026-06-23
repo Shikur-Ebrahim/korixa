@@ -7,6 +7,7 @@ export const maxDuration = 30;
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
+  isSignIn: z.boolean().optional().default(false),
 });
 
 export async function POST(request: Request) {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     const { sendVerificationOTP } = await import("@/lib/otp");
-    const result = await sendVerificationOTP(parsed.data.email);
+    const result = await sendVerificationOTP(parsed.data.email, parsed.data.isSignIn);
     return NextResponse.json(result);
   } catch (error) {
     console.error("send-otp error:", error);

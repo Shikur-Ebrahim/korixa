@@ -80,3 +80,56 @@ export async function updateAntiPhishingCode(token: string, code: string) {
 
   return { success: true };
 }
+
+export async function verifyLoginMfa(token: string, code: string) {
+  const uid = await verifyToken(token);
+  const db = getAdminDb();
+  
+  const doc = await db.collection("security").doc(uid).get();
+  if (!doc.exists) throw new Error("Security settings not found");
+  
+  const data = doc.data();
+  if (!data?.mfaEnabled || !data?.mfaSecret) {
+    return { success: true }; // MFA not enabled
+  }
+
+  const isValid = speakeasy.totp.verify({
+    secret: data.mfaSecret,
+    encoding: 'base32',
+    token: code,
+    window: 1
+  });
+
+  if (!isValid) {
+    throw new Error("Invalid authenticator code.");
+  }
+
+  return { success: true };
+}
+
+export async function verifyLoginRecoveryCode(token: string, code: string) {
+  const uid = await verifyToken(token);
+  const db = getAdminDb();
+  
+  const docRef = db.collection("security").doc(uid);
+  const doc = await docRef.get();
+  if (!doc.exists) throw new Error("Security settings not found");
+  
+  const data = doc.data();
+  if (!data?.recoveryCodesGenerated || !data?.recoveryCodes) {
+    throw new Error("Recovery codes not enabled for this account.");
+  }
+
+  const codes: string[] = data.recoveryCodes;
+  const codeIndex = codes.findIndex(c => c === code);
+
+  if (codeIndex === -1) {
+    throw new Error("Invalid recovery code.");
+  }
+
+  // Remove the used recovery code
+  codes.splice(codeIndex, 1);
+  await docRef.update({ recoveryCodes: codes });
+
+  return { success: true, remaining: codes.length };
+}

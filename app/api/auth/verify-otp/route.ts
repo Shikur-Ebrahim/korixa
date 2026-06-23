@@ -9,6 +9,7 @@ const schema = z.object({
   email: z.string().email("Invalid email address"),
   code: z.string().length(6, "Code must be 6 digits"),
   displayName: z.string().optional(),
+  isSignIn: z.boolean().optional().default(false),
 });
 
 export async function POST(request: Request) {
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     const { createAuthTokenForEmail, verifyOTP } = await import("@/lib/otp");
-    const verification = await verifyOTP(parsed.data.email, parsed.data.code);
+    const verification = await verifyOTP(parsed.data.email, parsed.data.code, parsed.data.isSignIn);
 
     if (!verification.valid) {
       return NextResponse.json({ error: verification.error }, { status: 400 });
@@ -32,7 +33,8 @@ export async function POST(request: Request) {
 
     const customToken = await createAuthTokenForEmail(
       parsed.data.email,
-      parsed.data.displayName
+      parsed.data.displayName,
+      parsed.data.isSignIn
     );
 
     return NextResponse.json({

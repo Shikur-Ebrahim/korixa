@@ -8,7 +8,7 @@ import {
   getResend,
 } from "@/lib/resend";
 
-export type OtpPurpose = "registration";
+export type OtpPurpose = "registration" | "login";
 
 const OTP_EXPIRY_MINUTES = 5;
 const OTP_COLLECTION = "otp_codes";
@@ -243,19 +243,42 @@ async function verifyStoredOtp(
   return { valid: true };
 }
 
-/** Send registration OTP via Resend and store in Firestore */
+/** Send OTP via Resend and store in Firestore */
 export async function sendVerificationOTP(
-  email: string
+  email: string,
+  isSignIn: boolean = false
 ): Promise<{ success: boolean; message: string }> {
   const normalized = normalizeEmail(email);
+  const purpose: OtpPurpose = isSignIn ? "login" : "registration";
+
+  const { getAdminAuth } = await import("@/lib/firebase-admin-auth");
+  let userExists = true;
+  try {
+    await getAdminAuth().getUserByEmail(normalized);
+  } catch (err: any) {
+    if (err.code === "auth/user-not-found") {
+      userExists = false;
+    } else {
+      throw err;
+    }
+  }
+
+  if (isSignIn && !userExists) {
+    throw new Error("Account not found. Please sign up.");
+  }
+  
+  if (!isSignIn && userExists) {
+    throw new Error("This account is already registered. Please log in.");
+  }
+
   const code = generateOtpCode();
 
   // Save first — fails fast if Firestore / Firebase Admin is misconfigured
-  await saveOtp(normalized, "registration", code);
+  await saveOtp(normalized, purpose, code);
 
   await sendBrandedEmail({
     to: normalized,
-    subject: "Welcome to Korixa — verify your email",
+    subject: isSignIn ? "Login to Korixa — verify your email" : "Welcome to Korixa — verify your email",
     code,
   });
 
@@ -265,18 +288,20 @@ export async function sendVerificationOTP(
   };
 }
 
-/** Verify registration OTP */
+/** Verify registration/login OTP */
 export async function verifyOTP(
   email: string,
-  code: string
+  code: string,
+  isSignIn: boolean = false
 ): Promise<{ valid: boolean; error?: string }> {
-  return verifyStoredOtp(email, code, "registration");
+  return verifyStoredOtp(email, code, isSignIn ? "login" : "registration");
 }
 
 /** Create Firebase custom token after OTP verification */
 export async function createAuthTokenForEmail(
   email: string,
-  displayName?: string
+  displayName?: string,
+  isSignIn: boolean = false
 ): Promise<string> {
   const normalized = normalizeEmail(email);
   let user;
@@ -285,7 +310,10 @@ export async function createAuthTokenForEmail(
 
   try {
     user = await getAdminAuth().getUserByEmail(normalized);
-  } catch {
+  } catch (err: any) {
+    if (isSignIn) {
+      throw new Error("Account not found. Please sign up.");
+    }
     user = await getAdminAuth().createUser({
       email: normalized,
       emailVerified: true,
