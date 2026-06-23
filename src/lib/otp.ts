@@ -18,7 +18,6 @@ export type OtpRecord = {
   code: string;
   purpose: OtpPurpose;
   expiresAt: FirebaseFirestore.Timestamp;
-  used: boolean;
   createdAt: FirebaseFirestore.Timestamp;
 };
 
@@ -210,7 +209,6 @@ async function saveOtp(email: string, purpose: OtpPurpose, code: string): Promis
     code,
     purpose,
     expiresAt,
-    used: false,
     createdAt: Timestamp.now(),
   });
 }
@@ -230,11 +228,9 @@ async function verifyStoredOtp(
 
   const data = snapshot.data() as OtpRecord;
 
-  if (data.used) {
-    return { valid: false, error: "This code has already been used." };
-  }
-
   if (data.expiresAt.toMillis() < Date.now()) {
+    // Delete expired OTP immediately to keep the collection clean
+    await docRef.delete();
     return { valid: false, error: "This code has expired. Please request a new one." };
   }
 
@@ -242,7 +238,8 @@ async function verifyStoredOtp(
     return { valid: false, error: "Invalid verification code." };
   }
 
-  await docRef.update({ used: true });
+  // Delete the OTP document immediately after successful verification
+  await docRef.delete();
   return { valid: true };
 }
 
