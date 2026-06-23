@@ -5,12 +5,10 @@ import { useState, type ReactNode } from "react";
 import { AppBottomNav } from "@/components/layout/AppBottomNav";
 import { AppMobileHeader } from "@/components/layout/AppMobileHeader";
 import { NotificationsDrawer } from "@/components/layout/NotificationsDrawer";
-import { ProfileDrawer } from "@/components/layout/ProfileDrawer";
 import { appTheme } from "@/components/layout/app-theme";
 
 export function AppShellLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const hideBottomNav = pathname.startsWith("/kyc");
@@ -18,12 +16,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
   return (
     <div className={appTheme.page}>
       <AppMobileHeader
-        onProfileClick={() => {
-          setNotificationsOpen(false);
-          setProfileOpen(true);
-        }}
         onNotificationsClick={() => {
-          setProfileOpen(false);
           setNotificationsOpen(true);
         }}
       />
@@ -31,7 +24,6 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       {!hideBottomNav && <AppBottomNav />}
-      <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
       <NotificationsDrawer open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
     </div>
   );

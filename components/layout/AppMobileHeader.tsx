@@ -6,22 +6,20 @@ import { FiBell, FiUser } from "react-icons/fi";
 import { appTheme } from "@/components/layout/app-theme";
 
 type AppMobileHeaderProps = {
-  onProfileClick: () => void;
   onNotificationsClick?: () => void;
 };
 
-export function AppMobileHeader({ onProfileClick, onNotificationsClick }: AppMobileHeaderProps) {
+export function AppMobileHeader({ onNotificationsClick }: AppMobileHeaderProps) {
   return (
     <header className={`${appTheme.header} relative`}>
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
-        <button
-          type="button"
-          onClick={onProfileClick}
+        <Link
+          href="/profile"
           aria-label="Open profile"
           className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-[#161a1e] text-[#eaecef] transition hover:bg-white/[0.06]"
         >
           <FiUser className="text-base" />
-        </button>
+        </Link>
 
         <Link href="/dashboard" className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2">
           <Image
