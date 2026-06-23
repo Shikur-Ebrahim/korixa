@@ -78,7 +78,8 @@ export default function SecurityCenter() {
       const { secret, otpauthUrl } = await generateMfaSecret(token, user.email || "user@korixa.com");
       setMfaSecret(secret);
       const qrDataUrl = await new Promise<string>((resolve, reject) => {
-        QRCode.toDataURL(otpauthUrl, { margin: 1, width: 200, color: { dark: "#000000", light: "#ffffff" } }, (err, url) => {
+        // @ts-ignore
+        QRCode.toDataURL(otpauthUrl, { margin: 1, width: 200, color: { dark: "#000000", light: "#ffffff" } }, (err: any, url: string) => {
           if (err) reject(err);
           else resolve(url);
         });
