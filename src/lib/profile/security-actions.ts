@@ -101,7 +101,7 @@ export async function verifyLoginMfa(token: string, code: string) {
   });
 
   if (!isValid) {
-    throw new Error("Invalid authenticator code.");
+    return { success: false, error: "Incorrect code. Please enter the correct code." };
   }
 
   return { success: true };
@@ -124,7 +124,7 @@ export async function verifyLoginRecoveryCode(token: string, code: string) {
   const codeIndex = codes.findIndex(c => c === code);
 
   if (codeIndex === -1) {
-    throw new Error("Invalid recovery code.");
+    return { success: false, error: "Incorrect recovery code. Please enter a valid code." };
   }
 
   // Remove the used recovery code

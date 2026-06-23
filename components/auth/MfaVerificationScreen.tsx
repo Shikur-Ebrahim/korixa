@@ -22,10 +22,16 @@ export function MfaVerificationScreen({ onVerified, onCancel }: { onVerified: ()
       const token = await getIdToken();
       if (!token) throw new Error("Not authenticated");
 
+      let res;
       if (useRecovery) {
-        await verifyLoginRecoveryCode(token, code.trim());
+        res = await verifyLoginRecoveryCode(token, code.trim());
       } else {
-        await verifyLoginMfa(token, code.replace(/\s+/g, ""));
+        res = await verifyLoginMfa(token, code.replace(/\s+/g, ""));
+      }
+      
+      if (!res.success && res.error) {
+        setError(res.error);
+        return;
       }
       
       onVerified();
