@@ -49,7 +49,7 @@ function formatCodeRowHtml(code: string): string {
     .join("");
 }
 
-function buildVerificationEmailHtml(code: string, email: string): string {
+function buildVerificationEmailHtml(code: string, email: string, antiPhishingCode?: string): string {
   const logoSrc = getEmailLogoSrc();
   const verifyUrl = getVerifyUrl(email, code);
   const title = "Welcome to Korixa";
@@ -100,6 +100,7 @@ function buildVerificationEmailHtml(code: string, email: string): string {
           <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:420px;background:#1E40AF;border-radius:16px;border:1px solid rgba(147,197,253,0.25);">
             <tr>
               <td style="padding:28px 22px;text-align:center;">
+                ${antiPhishingCode ? `<div style="background:rgba(247,147,26,0.1);border:1px solid rgba(247,147,26,0.3);color:#F7931A;padding:8px;border-radius:8px;font-size:12px;font-weight:bold;margin-bottom:20px;text-align:center;">Anti-Phishing Code: ${antiPhishingCode}</div>` : ''}
                 <h1 style="color:#ffffff;font-size:20px;margin:0 0 8px;font-weight:700;">${title}</h1>
                 <p style="color:#DBEAFE;font-size:13px;line-height:1.6;margin:0 0 20px;">${message}</p>
 
@@ -130,11 +131,11 @@ function buildVerificationEmailHtml(code: string, email: string): string {
 </html>`;
 }
 
-function buildVerificationEmailText(code: string, email: string): string {
+function buildVerificationEmailText(code: string, email: string, antiPhishingCode?: string): string {
   const title = "Welcome to Korixa";
   const verifyUrl = getVerifyUrl(email, code);
 
-  return `${title}
+  return `${antiPhishingCode ? `[Anti-Phishing Code: ${antiPhishingCode}]\n\n` : ''}${title}
 
 Your Korixa verification code is: ${code}
 
@@ -151,6 +152,7 @@ async function sendBrandedEmail(options: {
   to: string;
   subject: string;
   code: string;
+  antiPhishingCode?: string;
 }) {
   const resend = getResend();
   const replyTo = getReplyToEmail();
@@ -176,8 +178,8 @@ async function sendBrandedEmail(options: {
     to: options.to,
     ...(replyTo ? { replyTo } : {}),
     subject: options.subject,
-    html: buildVerificationEmailHtml(options.code, options.to),
-    text: buildVerificationEmailText(options.code, options.to),
+    html: buildVerificationEmailHtml(options.code, options.to, options.antiPhishingCode),
+    text: buildVerificationEmailText(options.code, options.to, options.antiPhishingCode),
     headers: getEmailHeaders(),
     ...(logoAttachment
       ? {
@@ -253,8 +255,11 @@ export async function sendVerificationOTP(
 
   const { getAdminAuth } = await import("@/lib/firebase-admin-auth");
   let userExists = true;
+  let uid: string | null = null;
+  
   try {
-    await getAdminAuth().getUserByEmail(normalized);
+    const userRecord = await getAdminAuth().getUserByEmail(normalized);
+    uid = userRecord.uid;
   } catch (err: any) {
     if (err.code === "auth/user-not-found") {
       userExists = false;
@@ -276,10 +281,19 @@ export async function sendVerificationOTP(
   // Save first — fails fast if Firestore / Firebase Admin is misconfigured
   await saveOtp(normalized, purpose, code);
 
+  let antiPhishingCode: string | undefined = undefined;
+  if (uid) {
+    const securityDoc = await getAdminDb().collection("security").doc(uid).get();
+    if (securityDoc.exists) {
+      antiPhishingCode = securityDoc.data()?.antiPhishingCode;
+    }
+  }
+
   await sendBrandedEmail({
     to: normalized,
     subject: isSignIn ? "Login to Korixa — verify your email" : "Welcome to Korixa — verify your email",
     code,
+    antiPhishingCode,
   });
 
   return {
