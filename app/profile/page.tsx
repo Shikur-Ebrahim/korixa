@@ -135,8 +135,8 @@ export default function ProfileDashboard() {
           />
           <SecurityFeature 
             icon={FiCheckCircle} 
-            title="Phone Verification" 
-            enabled={security?.phoneVerified ?? false}
+            title="Recovery Codes" 
+            enabled={security?.recoveryCodesGenerated ?? false}
             href="/profile/security"
           />
           <SecurityFeature 
