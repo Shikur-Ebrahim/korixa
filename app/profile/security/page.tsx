@@ -7,19 +7,18 @@ import { getUserSecurity, getUserProfile } from "@/lib/profile/service";
 import type { UserSecurity, UserProfile } from "@/lib/profile/types";
 import { generateMfaSecret, verifyAndEnableMfa, generateRecoveryCodes, updateAntiPhishingCode } from "@/lib/profile/security-actions";
 import QRCode from "qrcode";
-import { FiCheck, FiMail, FiShield, FiAlertTriangle, FiKey, FiLock, FiLogOut, FiMonitor, FiActivity, FiFileText, FiArrowLeft, FiX, FiCopy } from "react-icons/fi";
+import { FiCheck, FiMail, FiShield, FiAlertTriangle, FiKey, FiLock, FiLogOut, FiMonitor, FiActivity, FiFileText, FiArrowLeft, FiX, FiCopy, FiUserCheck } from "react-icons/fi";
 import { appTheme } from "@/components/layout/app-theme";
 
-function calculateSecurityScore(security: UserSecurity | null) {
+function calculateSecurityScore(security: UserSecurity | null, profile: UserProfile | null) {
   let score = 0;
   if (!security) return score;
 
   if (security.emailVerified) score += 15;
-  if (security.phoneVerified) score += 15;
+  if (profile?.kycStatus === "verified") score += 30;
   if (security.mfaEnabled) score += 30;
   if (security.recoveryCodesGenerated) score += 15;
-  score += 10; // Base trusted device score
-  if (security.antiPhishingCode) score += 15;
+  if (security.antiPhishingCode) score += 10;
   
   return Math.min(score, 100);
 }
@@ -152,7 +151,7 @@ export default function SecurityCenter() {
     );
   }
 
-  const score = calculateSecurityScore(security);
+  const score = calculateSecurityScore(security, profile);
   const scoreColor = score >= 80 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500";
   const textColor = score >= 80 ? "text-green-500" : score >= 50 ? "text-yellow-500" : "text-red-500";
 
@@ -198,9 +197,9 @@ export default function SecurityCenter() {
                     <FiAlertTriangle className="text-yellow-500 shrink-0" /> Enable Google Authenticator (+30)
                   </li>
                 )}
-                {!security?.phoneVerified && (
+                {profile?.kycStatus !== "verified" && (
                   <li className="flex items-center gap-2 text-[10px] md:text-xs text-[#848e9c]">
-                    <FiAlertTriangle className="text-yellow-500 shrink-0" /> Verify Phone Number (+15)
+                    <FiAlertTriangle className="text-yellow-500 shrink-0" /> Complete Identity Verification (+30)
                   </li>
                 )}
                 {!security?.recoveryCodesGenerated && (
@@ -210,7 +209,7 @@ export default function SecurityCenter() {
                 )}
                 {!security?.antiPhishingCode && (
                   <li className="flex items-center gap-2 text-[10px] md:text-xs text-[#848e9c]">
-                    <FiAlertTriangle className="text-yellow-500 shrink-0" /> Add Anti-Phishing Code (+15)
+                    <FiAlertTriangle className="text-yellow-500 shrink-0" /> Add Anti-Phishing Code (+10)
                   </li>
                 )}
                 {score >= 100 && (
@@ -234,17 +233,55 @@ export default function SecurityCenter() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs md:text-sm font-bold">Email Authentication</h3>
-                  {security?.emailVerified ? (
+                  {user?.emailVerified ? (
                     <span className="flex items-center gap-1 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-green-500"><FiCheck /> Verified</span>
                   ) : (
                     <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-red-500">Unverified</span>
                   )}
                 </div>
-                <p className="mt-1 text-[10px] md:text-xs text-[#848e9c] line-clamp-1">{profile?.email}</p>
+                <p className="mt-1 text-[10px] md:text-xs text-[#848e9c] line-clamp-1">{user?.email}</p>
                 <div className="mt-3 md:mt-4 flex gap-2 md:gap-3">
-                  {!security?.emailVerified && (
+                  {!user?.emailVerified && (
                     <button className="rounded bg-primary px-3 py-1.5 text-[10px] md:text-xs font-bold text-[#0b0e11] hover:bg-primary/90 transition">
                       Verify Email
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Identity Verification (KYC) */}
+          <div className="rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4 md:p-5">
+            <div className="flex items-start gap-3 md:gap-4">
+              <div className={`flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full ${profile?.kycStatus === 'verified' ? 'bg-green-500/10 text-green-500' : 'bg-primary/10 text-primary'}`}>
+                <FiUserCheck size={16} className="md:w-[18px] md:h-[18px]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs md:text-sm font-bold">Identity Verification</h3>
+                  {profile?.kycStatus === 'verified' ? (
+                    <span className="flex items-center gap-1 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-green-500"><FiCheck /> Verified</span>
+                  ) : profile?.kycStatus === 'pending' ? (
+                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-yellow-500">In Review</span>
+                  ) : profile?.kycStatus === 'rejected' ? (
+                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-red-500">Rejected</span>
+                  ) : (
+                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-[#848e9c]">Unverified</span>
+                  )}
+                </div>
+                <p className="mt-1 text-[10px] md:text-xs text-[#848e9c]">
+                  {profile?.kycStatus === 'verified'
+                    ? 'Your identity has been successfully verified. Security score +30.'
+                    : 'Complete KYC to unlock full account features and boost your security score by +30.'}
+                </p>
+                <div className="mt-3 md:mt-4 flex gap-2 md:gap-3">
+                  {profile?.kycStatus !== 'verified' && (
+                    <button
+                      onClick={() => router.push('/kyc')}
+                      className="rounded bg-primary px-3 py-1.5 text-[10px] md:text-xs font-bold text-[#0b0e11] hover:bg-primary/90 transition"
+                    >
+                      {profile?.kycStatus === 'pending' ? 'View Status' : 'Verify Now'}
                     </button>
                   )}
                 </div>
