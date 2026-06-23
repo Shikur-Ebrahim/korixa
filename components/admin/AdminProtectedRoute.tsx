@@ -10,7 +10,7 @@ export function AdminProtectedRoute({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!initialized || loading) return;
-    if (!user) { router.replace("/sign-up"); return; }
+    if (!user) { router.replace("/"); return; }
     if (role === "user") { router.replace("/dashboard"); return; }
   }, [initialized, loading, user, role, router]);
 

@@ -24,7 +24,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => {
       if (!getClientAuth().currentUser) {
         setAllowRedirect(true);
-        router.replace("/sign-up");
+        router.replace("/");
       }
     }, 400);
 
