@@ -29,7 +29,7 @@ function calculateSecurityScore(
 
 export default function SecurityCenter() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, kyc } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [security, setSecurity] = useState<UserSecurity | null>(null);
   const [loading, setLoading] = useState(true);
@@ -271,42 +271,85 @@ export default function SecurityCenter() {
           </div>
 
           {/* Identity Verification (KYC) */}
-          <div className="rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4 md:p-5">
-            <div className="flex items-start gap-3 md:gap-4">
-              <div className={`flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full ${profile?.kycStatus === 'verified' ? 'bg-green-500/10 text-green-500' : 'bg-primary/10 text-primary'}`}>
-                <FiUserCheck size={16} className="md:w-[18px] md:h-[18px]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs md:text-sm font-bold">Identity Verification</h3>
-                  {profile?.kycStatus === 'verified' ? (
-                    <span className="flex items-center gap-1 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-green-500"><FiCheck /> Verified</span>
-                  ) : profile?.kycStatus === 'pending' ? (
-                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-yellow-500">In Review</span>
-                  ) : profile?.kycStatus === 'rejected' ? (
-                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-red-500">Rejected</span>
-                  ) : (
-                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-[#848e9c]">Unverified</span>
-                  )}
+          {(() => {
+            // kyc null = user never started verification
+            const kycStarted  = kyc !== null;
+            const kycVerified = kyc?.kycStatus === 'verified';
+            const kycRejected = kyc?.kycStatus === 'rejected';
+            const kycPending  = kycStarted && !kycVerified && !kycRejected;
+
+            const borderClass = kycVerified ? 'border-green-500/20' : kycPending ? 'border-yellow-500/20' : 'border-red-500/20';
+            const iconClass   = kycVerified ? 'bg-green-500/10 text-green-500' : kycPending ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500';
+
+            return (
+              <div className={`rounded-xl md:rounded-2xl border ${borderClass} bg-[#161a1e] p-4 md:p-5`}>
+                <div className="flex items-start gap-3 md:gap-4">
+                  <div className={`flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full ${iconClass}`}>
+                    <FiUserCheck size={16} className="md:w-[18px] md:h-[18px]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs md:text-sm font-bold">Identity Verification</h3>
+                      {kycVerified ? (
+                        <span className="flex items-center gap-1 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-green-500"><FiCheck /> Verified</span>
+                      ) : kycPending ? (
+                        <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-yellow-500">In Review</span>
+                      ) : kycRejected ? (
+                        <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-red-500">Rejected</span>
+                      ) : (
+                        <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-red-500">Unverified</span>
+                      )}
+                    </div>
+
+                    <p className="mt-1 text-[10px] md:text-xs text-[#848e9c]">
+                      {kycVerified
+                        ? 'Your identity has been verified. Security score +30.'
+                        : kycPending
+                        ? 'Your documents are under review. This usually takes 1–3 business days.'
+                        : kycRejected
+                        ? 'Verification was rejected. Please resubmit your documents.'
+                        : 'Not started. Complete 4 simple steps to boost your security score by +30.'}
+                    </p>
+
+                    {/* 4-step progress bars */}
+                    {!kycVerified && (
+                      <div className="mt-3 flex items-center gap-1.5">
+                        {['Personal Info', 'ID Document', 'Selfie', 'Review'].map((step, i) => (
+                          <div key={step} className="flex flex-col items-center gap-1 flex-1">
+                            <div className={`h-1 w-full rounded-full ${
+                              kycPending && i < 3 ? 'bg-yellow-500' :
+                              kycPending && i === 3 ? 'bg-yellow-500/30' :
+                              kycRejected ? 'bg-red-500/40' :
+                              'bg-white/[0.08]'
+                            }`} />
+                            <span className="text-[8px] text-[#848e9c] whitespace-nowrap hidden md:block">{step}</span>
+                            <span className="text-[8px] text-[#848e9c] md:hidden">{i + 1}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-3 md:mt-4 flex gap-2 md:gap-3">
+                      {!kycVerified && (
+                        <button
+                          onClick={() => router.push('/kyc')}
+                          className={`rounded px-3 py-1.5 text-[10px] md:text-xs font-bold transition ${
+                            kycPending
+                              ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20'
+                              : kycRejected
+                              ? 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20'
+                              : 'bg-primary text-[#0b0e11] hover:bg-primary/90'
+                          }`}
+                        >
+                          {kycPending ? 'View Status' : kycRejected ? 'Retry Verification' : 'Verify Now — 4 Steps'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <p className="mt-1 text-[10px] md:text-xs text-[#848e9c]">
-                  {profile?.kycStatus === 'verified'
-                    ? 'Your identity has been successfully verified. Security score +30.'
-                    : 'Complete KYC to unlock full account features and boost your security score by +30.'}
-                </p>
-                <div className="mt-3 md:mt-4 flex gap-2 md:gap-3">
-                  {profile?.kycStatus !== 'verified' && (
-                    <button
-                      onClick={() => router.push('/kyc')}
-                      className="rounded bg-primary px-3 py-1.5 text-[10px] md:text-xs font-bold text-[#0b0e11] hover:bg-primary/90 transition"
-                    >
-                      {profile?.kycStatus === 'pending' ? 'View Status' : 'Verify Now'}
-                    </button>
-                  )}
-                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Two-Factor Authentication (MFA) */}
           <div className="rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4 md:p-5 lg:col-span-2">
