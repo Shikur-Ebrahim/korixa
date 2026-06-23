@@ -21,7 +21,8 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { appTheme } from "@/components/layout/app-theme";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 type ProfileDrawerProps = {
   open: boolean;
@@ -72,6 +73,15 @@ const MENU_GROUPS = [
 export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
   const { user, kycStatus, logout } = useAuth();
   const [copiedUid, setCopiedUid] = useState(false);
+  const router = useRouter();
+
+  // Prefetch key pages as soon as drawer opens
+  useEffect(() => {
+    if (open) {
+      router.prefetch("/profile/security");
+      router.prefetch("/kyc");
+    }
+  }, [open, router]);
 
   if (!open) return null;
 
@@ -167,18 +177,37 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
               </p>
               <div className="rounded-xl border border-white/[0.04] bg-[#161a1e] divide-y divide-white/[0.04] overflow-hidden">
                 {group.items.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className="flex items-center justify-between px-4 py-3.5 text-sm text-[#eaecef] transition hover:bg-white/[0.04]"
-                    onClick={onClose}
-                  >
-                    <span className="flex items-center gap-3">
-                      <item.icon className="text-[#848e9c] text-lg" />
-                      {item.label}
-                    </span>
-                    <FiChevronRight className="text-[#848e9c]" />
-                  </Link>
+                  item.href === "/profile/security" ? (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-[#eaecef] transition hover:bg-white/[0.04]"
+                      onClick={() => {
+                        onClose();
+                        // Navigate after a tiny delay so drawer closes without blocking
+                        setTimeout(() => router.push("/profile/security"), 50);
+                      }}
+                    >
+                      <span className="flex items-center gap-3">
+                        <item.icon className="text-[#848e9c] text-lg" />
+                        {item.label}
+                      </span>
+                      <FiChevronRight className="text-[#848e9c]" />
+                    </button>
+                  ) : (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="flex items-center justify-between px-4 py-3.5 text-sm text-[#eaecef] transition hover:bg-white/[0.04]"
+                      onClick={onClose}
+                    >
+                      <span className="flex items-center gap-3">
+                        <item.icon className="text-[#848e9c] text-lg" />
+                        {item.label}
+                      </span>
+                      <FiChevronRight className="text-[#848e9c]" />
+                    </Link>
+                  )
                 ))}
               </div>
             </div>

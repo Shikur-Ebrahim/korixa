@@ -145,11 +145,26 @@ export default function SecurityCenter() {
 
   if (loading) {
     return (
-      <div className={`${appTheme.page} p-4 md:p-6`}>
-        <div className="animate-pulse h-64 bg-white/[0.02] rounded-2xl w-full max-w-4xl mx-auto"></div>
+      <div className={`${appTheme.page} relative min-h-screen pb-20`}>
+        <div className="mx-auto w-full max-w-4xl px-4 py-6 flex flex-col gap-6 animate-pulse">
+          {/* Header skeleton */}
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-white/[0.04]" />
+            <div className="h-6 w-44 rounded bg-white/[0.04]" />
+          </div>
+          {/* Score card skeleton */}
+          <div className="rounded-2xl bg-white/[0.03] h-40 w-full" />
+          {/* Cards grid skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="rounded-xl bg-white/[0.03] h-24" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
+
 
   const score = calculateSecurityScore(security, profile);
   const scoreColor = score >= 80 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500";
