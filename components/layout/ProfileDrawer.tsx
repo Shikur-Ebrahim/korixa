@@ -39,7 +39,6 @@ const MENU_GROUPS = [
     title: "Account & Security",
     items: [
       { label: "Security Center", href: "/profile/security", icon: FiLock },
-      { label: "Two-Factor Authentication", href: "/profile/security", icon: FiShield },
       { label: "Identity Verification", href: "/kyc", icon: FiUserCheck },
     ],
   },

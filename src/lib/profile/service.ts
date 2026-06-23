@@ -39,6 +39,7 @@ export async function initializeUserProfile(user: User): Promise<UserProfile> {
   const newSecurity: UserSecurity = {
     uid: user.uid,
     emailVerified: user.emailVerified,
+    phoneVerified: !!user.phoneNumber,
     mfaEnabled: false,
     recoveryCodesGenerated: false,
     antiPhishingCode: null,

@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getUserSecurity, getUserProfile } from "@/lib/profile/service";
 import type { UserSecurity, UserProfile } from "@/lib/profile/types";
-import { FiCheck, FiMail, FiShield, FiAlertTriangle, FiKey, FiLock, FiLogOut, FiMonitor, FiActivity, FiFileText } from "react-icons/fi";
+import { FiCheck, FiMail, FiSmartphone, FiShield, FiAlertTriangle, FiKey, FiLock, FiLogOut, FiMonitor, FiActivity, FiFileText } from "react-icons/fi";
 
 function calculateSecurityScore(security: UserSecurity | null) {
   let score = 0;
   if (!security) return score;
 
-  if (security.emailVerified) score += 20;
-  if (security.mfaEnabled) score += 40;
+  if (security.emailVerified) score += 15;
+  if (security.phoneVerified) score += 15;
+  if (security.mfaEnabled) score += 30;
   if (security.recoveryCodesGenerated) score += 15;
   // Assumed trusted device base score (can be calculated dynamically later)
   score += 10;
@@ -79,7 +80,12 @@ export default function SecurityCenter() {
             <ul className="space-y-2">
               {!security?.mfaEnabled && (
                 <li className="flex items-center gap-2 text-xs text-[#848e9c]">
-                  <FiAlertTriangle className="text-yellow-500 shrink-0" /> Enable Google Authenticator (+40)
+                  <FiAlertTriangle className="text-yellow-500 shrink-0" /> Enable Google Authenticator (+30)
+                </li>
+              )}
+              {!security?.phoneVerified && (
+                <li className="flex items-center gap-2 text-xs text-[#848e9c]">
+                  <FiAlertTriangle className="text-yellow-500 shrink-0" /> Verify Phone Number (+15)
                 </li>
               )}
               {!security?.recoveryCodesGenerated && (
@@ -105,7 +111,7 @@ export default function SecurityCenter() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Email Verification */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5 lg:col-span-2">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <FiMail size={18} />
@@ -124,6 +130,35 @@ export default function SecurityCenter() {
                 <button className="rounded bg-white/[0.04] border border-white/[0.08] px-3 py-1.5 text-xs font-bold text-white hover:bg-white/[0.08] transition">
                   Change Email
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Phone Verification */}
+        <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <FiSmartphone size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold">Phone Verification</h3>
+                {security?.phoneVerified ? (
+                  <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-green-500"><FiCheck /> Verified</span>
+                ) : (
+                  <span className="text-[10px] font-bold uppercase text-yellow-500">Unverified</span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-[#848e9c] line-clamp-1">
+                {security?.phoneVerified ? profile?.phoneNumber : "Used for withdrawals and security modifications"}
+              </p>
+              <div className="mt-4 flex gap-3">
+                {security?.phoneVerified ? (
+                  <button className="rounded bg-white/[0.04] border border-white/[0.08] px-3 py-1.5 text-xs font-bold text-white hover:bg-white/[0.08] transition">Change Phone</button>
+                ) : (
+                  <button className="rounded bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition">Add Phone Number</button>
+                )}
               </div>
             </div>
           </div>
