@@ -88,6 +88,11 @@ function SignInForm() {
   }, [initialized, authLoading, user, router]);
 
   useEffect(() => {
+    if (urlParams.email && !urlParams.code) {
+      setEmail(urlParams.email);
+      return;
+    }
+
     if (!urlParams.email || !urlParams.code || autoVerified.current) return;
 
     setEmail(urlParams.email);

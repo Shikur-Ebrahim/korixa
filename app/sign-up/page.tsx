@@ -117,6 +117,10 @@ function SignUpForm() {
       setOtp(""); // Clear the old code so user can type the new one
       setStep("otp");
     } catch (err) {
+      if (err instanceof Error && err.message.includes("already registered")) {
+        router.replace(`/sign-in?email=${encodeURIComponent(email)}`);
+        return;
+      }
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
@@ -137,21 +141,6 @@ function SignUpForm() {
           }}
         >
           <AuthError message={error} />
-          
-          {error?.includes("already registered") && (
-            <div className="rounded-xl border border-[#F7931A]/30 bg-[#F7931A]/10 px-4 py-3 mt-2 mb-4 text-center">
-              <p className="text-sm text-[#F7931A] font-medium mb-2">
-                This email is already registered.
-              </p>
-              <button
-                type="button"
-                onClick={() => router.push("/sign-in")}
-                className="text-xs font-bold text-white bg-[#161a1e] px-4 py-1.5 rounded hover:bg-white/[0.04] transition border border-white/[0.1]"
-              >
-                Go to Sign In
-              </button>
-            </div>
-          )}
 
           {message && (
             <p className="rounded-xl border border-secondary/20 bg-secondary/10 px-3 py-2 text-xs text-secondary">
