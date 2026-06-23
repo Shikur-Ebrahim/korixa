@@ -7,8 +7,10 @@ import { AppMobileHeader } from "@/components/layout/AppMobileHeader";
 import { NotificationsDrawer } from "@/components/layout/NotificationsDrawer";
 import { ProfileDrawer } from "@/components/layout/ProfileDrawer";
 import { appTheme } from "@/components/layout/app-theme";
+import { useLoginTracker } from "@/lib/profile/useLoginTracker";
 
 export function AppShellLayout({ children }: { children: ReactNode }) {
+  useLoginTracker();
   const pathname = usePathname();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
