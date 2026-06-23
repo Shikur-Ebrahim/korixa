@@ -77,7 +77,7 @@ export default function SecurityCenter() {
       const token = await user.getIdToken();
       const { secret, otpauthUrl } = await generateMfaSecret(token, user.email || "user@korixa.com");
       setMfaSecret(secret);
-      const qrDataUrl = await QRCode.toDataURL(otpauthUrl, { margin: 1, width: 200, color: { dark: "#000000", light: "#ffffff" } });
+      const qrDataUrl = await QRCode.toDataURL(otpauthUrl, { margin: 1, width: 200, color: { dark: "#000000", light: "#ffffff" } } as any);
       setMfaQrCode(qrDataUrl);
       setShowMfaModal(true);
     } catch (error) {
