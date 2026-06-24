@@ -12,15 +12,20 @@ import { getClientFirestore } from "@/lib/firebase";
 import { collection, query, where, orderBy, onSnapshot, limit } from "firebase/firestore";
 import type { AppMarketPageData } from "@/lib/coingecko";
 
-const getCoinColor = (coin: string) => {
-  switch (coin) {
-    case "BTC": return "bg-[#F7931A] text-white";
-    case "ETH": return "bg-[#627EEA] text-white";
-    case "USDT": return "bg-[#26A17B] text-white";
-    case "SOL": return "bg-[#14F195] text-[#0b0e11]";
-    case "BNB": return "bg-[#F3BA2F] text-[#0b0e11]";
-    default: return "bg-gray-700 text-white";
-  }
+const COIN_COLORS: Record<string, string> = {
+  BTC: "#F7931A",
+  ETH: "#627EEA",
+  USDT: "#26A17B",
+  SOL: "#14F195",
+  BNB: "#F3BA2F",
+};
+
+const COIN_LOGOS: Record<string, string> = {
+  BTC:  "https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png",
+  ETH:  "https://assets.coingecko.com/coins/images/279/thumb/ethereum.png",
+  USDT: "https://assets.coingecko.com/coins/images/325/thumb/Tether.png",
+  SOL:  "https://assets.coingecko.com/coins/images/4128/thumb/solana.png",
+  BNB:  "https://assets.coingecko.com/coins/images/825/thumb/bnb-icon2_2x.png",
 };
 
 const getTypeIcon = (type: string) => {
@@ -106,8 +111,15 @@ export default function AssetDetailsPage() {
             <FiArrowLeft size={22} className="text-[#eaecef]" />
           </button>
           <div className="flex items-center gap-2">
-            <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[8px] font-bold ${getCoinColor(coinParam)}`}>
-              {coinParam.slice(0, 3)}
+            <div className="relative h-6 w-6 shrink-0">
+              <img
+                src={COIN_LOGOS[coinParam] ?? `https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png`}
+                alt={coinParam}
+                className="h-6 w-6 rounded-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
             </div>
             <h1 className="text-lg font-bold text-white">{coinParam}</h1>
           </div>

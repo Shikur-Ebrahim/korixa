@@ -13,15 +13,20 @@ import { TopGainersList } from "@/components/landing/market/TopGainersList";
 import type { AppMarketPageData } from "@/lib/coingecko";
 import { TransferModal } from "@/components/profile/TransferModal";
 
-const getCoinColor = (coin: string) => {
-  switch (coin) {
-    case "BTC": return "bg-[#F7931A] text-white";
-    case "ETH": return "bg-[#627EEA] text-white";
-    case "USDT": return "bg-[#26A17B] text-white";
-    case "SOL": return "bg-[#14F195] text-[#0b0e11]";
-    case "BNB": return "bg-[#F3BA2F] text-[#0b0e11]";
-    default: return "bg-gray-700 text-white";
-  }
+const COIN_COLORS: Record<string, string> = {
+  BTC: "#F7931A",
+  ETH: "#627EEA",
+  USDT: "#26A17B",
+  SOL: "#14F195",
+  BNB: "#F3BA2F",
+};
+
+const COIN_LOGOS: Record<string, string> = {
+  BTC:  "https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png",
+  ETH:  "https://assets.coingecko.com/coins/images/279/thumb/ethereum.png",
+  USDT: "https://assets.coingecko.com/coins/images/325/thumb/Tether.png",
+  SOL:  "https://assets.coingecko.com/coins/images/4128/thumb/solana.png",
+  BNB:  "https://assets.coingecko.com/coins/images/825/thumb/bnb-icon2_2x.png",
 };
 
 export default function FundingAccountPage() {
@@ -184,12 +189,23 @@ export default function FundingAccountPage() {
                   className="flex items-center justify-between py-3.5 px-2 hover:bg-white/[0.02] rounded-xl transition cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-inner ${getCoinColor(asset.coin)}`}>
-                      {asset.coin.slice(0, 3)}
+                    <div className="relative h-10 w-10 shrink-0">
+                      <img
+                        src={COIN_LOGOS[asset.coin] ?? `https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png`}
+                        alt={asset.coin}
+                        className="h-10 w-10 rounded-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                      <div
+                        className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#161a1f]"
+                        style={{ background: COIN_COLORS[asset.coin] ?? "#848e9c" }}
+                      />
                     </div>
                     <div>
                       <p className="font-bold text-[#eaecef] leading-tight">{asset.coin}</p>
-                      <p className="text-xs text-[#848e9c]">{asset.name}</p>
+                      <p className="text-xs text-[#848e9c]">{asset.name || asset.coin}</p>
                     </div>
                   </div>
                   <div className="text-right">
