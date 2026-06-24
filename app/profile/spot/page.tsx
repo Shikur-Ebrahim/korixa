@@ -188,11 +188,18 @@ export default function SpotAccountPage() {
               <span className="text-xs font-medium text-[#848e9c]">Transfer</span>
             </button>
 
-            <Link href="/profile/orders" className="flex flex-col items-center gap-2">
+            <Link href="/trade/orders" className="flex flex-col items-center gap-2">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white hover:bg-white/[0.08] transition">
                 <FiActivity size={20} />
               </div>
               <span className="text-xs font-medium text-[#848e9c]">Orders</span>
+            </Link>
+
+            <Link href="/trade/history" className="flex flex-col items-center gap-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white hover:bg-white/[0.08] transition">
+                <FiActivity size={20} />
+              </div>
+              <span className="text-xs font-medium text-[#848e9c]">History</span>
             </Link>
           </div>
         </motion.div>

@@ -16,7 +16,7 @@ const TABS = [
 export default function SpotOrdersPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("history");
+  const [activeTab, setActiveTab] = useState("open");
   const [trades, setTrades] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
