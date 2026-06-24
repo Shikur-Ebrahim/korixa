@@ -54,6 +54,8 @@ export default function SpotAccountPage() {
   const [favs,        setFavs]        = useState<string[]>([]);
   const [promo,       setPromo]       = useState(true);
   const [mounted,     setMounted]     = useState(false);
+  const [mktPage,     setMktPage]     = useState(1);
+  const MKT_PAGE_SIZE = 20;
 
   const fetchMkt = async (silent = false) => {
     if (!silent) setMktLoading(true);
@@ -100,6 +102,13 @@ export default function SpotAccountPage() {
     const q = search.toLowerCase().trim();
     return q ? coins.filter(c => c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q)) : coins;
   }, [coins, search]);
+
+  const displayCoins = filteredCoins.length > 0 ? filteredCoins : coins;
+  const totalMktPages = Math.max(1, Math.ceil(displayCoins.length / MKT_PAGE_SIZE));
+  const paginatedCoins = displayCoins.slice((mktPage - 1) * MKT_PAGE_SIZE, mktPage * MKT_PAGE_SIZE);
+
+  // Reset page when search changes
+  useEffect(() => { setMktPage(1); }, [search]);
 
   const toggleFav = (id: string) => setFavs(prev => {
     const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
@@ -383,7 +392,7 @@ export default function SpotAccountPage() {
             </div>
           ) : (
             <div className="rounded-xl border border-white/[0.05] bg-[#161a1e] overflow-hidden">
-              {(filteredCoins.length > 0 ? filteredCoins : coins).slice(0, 20).map((coin) => {
+              {paginatedCoins.map((coin) => {
                 const pos    = (coin.change24h ?? 0) >= 0;
                 const starred = favs.includes(coin.id);
                 return (
@@ -416,10 +425,26 @@ export default function SpotAccountPage() {
             </div>
           )}
 
-          <Link href="/market"
-            className="mt-2 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-white/[0.05] bg-[#161a1e] text-[#848e9c] hover:text-white text-xs font-medium transition">
-            See All Coins <FiTrendingUp size={12} />
-          </Link>
+          {/* Pagination controls */}
+          {!mktLoading && !mktError && totalMktPages > 1 && (
+            <div className="mt-2 flex items-center justify-between px-1">
+              <button 
+                disabled={mktPage === 1} 
+                onClick={() => setMktPage(p => Math.max(1, p - 1))}
+                className="px-3 py-2 rounded-xl bg-[#161a1e] border border-white/[0.05] text-[#848e9c] text-xs font-medium hover:text-white disabled:opacity-50 transition">
+                Previous
+              </button>
+              <span className="text-[10px] text-[#848e9c]">
+                Page {mktPage} of {totalMktPages}
+              </span>
+              <button 
+                disabled={mktPage === totalMktPages} 
+                onClick={() => setMktPage(p => Math.min(totalMktPages, p + 1))}
+                className="px-3 py-2 rounded-xl bg-[#161a1e] border border-white/[0.05] text-[#848e9c] text-xs font-medium hover:text-white disabled:opacity-50 transition">
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

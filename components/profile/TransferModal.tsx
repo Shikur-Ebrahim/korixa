@@ -82,7 +82,7 @@ export function TransferModal({ isOpen, onClose, defaultAsset = "USDT", defaultF
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/80"
         />
         <motion.div 
           initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
