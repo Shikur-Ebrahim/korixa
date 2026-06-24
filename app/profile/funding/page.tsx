@@ -97,7 +97,7 @@ export default function FundingAccountPage() {
             {!hideBalances && <span className="text-[#848e9c] font-medium">USD</span>}
           </div>
           <div className="mt-1 relative z-10 text-sm">
-            <span className="text-[#848e9c]">≈ {fmtCoin(totalUsd / getPrice("BTC"))} BTC</span>
+            <span className="text-[#848e9c]">≈ {fmtCoin(totalUsd / (getPrice("BTC") || 65000))} BTC</span>
           </div>
 
           {/* Quick Actions */}
