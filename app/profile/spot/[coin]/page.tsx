@@ -40,6 +40,7 @@ export default function AssetDetailsPage() {
   const coinParam = typeof params.coin === "string" ? params.coin.toUpperCase() : "USDT";
 
   const [asset, setAsset] = useState<SpotHolding | null>(null);
+  const [marketData, setMarketData] = useState<AppMarketPageData | null>(null);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -74,6 +75,25 @@ export default function AssetDetailsPage() {
     }
   }, [user, coinParam]);
 
+  useEffect(() => {
+    const fetchMarket = async () => {
+      try {
+        const res = await fetch("/api/market", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setMarketData(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch market data:", err);
+      }
+    };
+    fetchMarket();
+  }, []);
+
+  const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === coinParam);
+  const currentPrice = marketCoin?.price || asset?.currentPrice || 0;
+  const usdValue = asset ? (asset.value !== undefined ? asset.value : asset.amount * currentPrice) : 0;
+
   const formatUsd = (val: number) => `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
@@ -103,7 +123,7 @@ export default function AssetDetailsPage() {
             
             <p className="text-[#848e9c] text-sm font-medium mb-1">Total Value</p>
             <h2 className="text-[32px] font-bold text-white tracking-tight leading-none mb-1">
-              {asset ? formatUsd(asset.value) : "$0.00"}
+              {formatUsd(usdValue)}
             </h2>
             <p className="text-[#848e9c] text-sm font-medium">{asset ? asset.amount : "0"} {coinParam}</p>
             

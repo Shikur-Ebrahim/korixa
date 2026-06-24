@@ -11,6 +11,7 @@ import { GlobalStatsBar } from "@/components/landing/market/GlobalStatsBar";
 import { InsightList } from "@/components/landing/market/InsightList";
 import { TopGainersList } from "@/components/landing/market/TopGainersList";
 import type { AppMarketPageData } from "@/lib/coingecko";
+import { TransferModal } from "@/components/profile/TransferModal";
 
 const getCoinColor = (coin: string) => {
   switch (coin) {
@@ -31,6 +32,7 @@ export default function FundingAccountPage() {
   const [loading, setLoading] = useState(true);
   const [marketLoading, setMarketLoading] = useState(true);
   const [hideBalances, setHideBalances] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   useEffect(() => {
     if (user?.uid) {
@@ -124,12 +126,12 @@ export default function FundingAccountPage() {
           {/* Quick Actions Row */}
           <div className="grid grid-cols-4 gap-3 mt-8 relative z-10">
             {[
-              { icon: FiDownload, label: "Deposit" },
-              { icon: FiUpload, label: "Withdraw" },
-              { icon: FiRepeat, label: "Transfer" },
-              { icon: FiUsers, label: "P2P" },
+              { icon: FiDownload, label: "Deposit", onClick: () => router.push("/deposit") },
+              { icon: FiUpload, label: "Withdraw", onClick: () => {} },
+              { icon: FiRepeat, label: "Transfer", onClick: () => setIsTransferModalOpen(true) },
+              { icon: FiUsers, label: "P2P", onClick: () => router.push("/p2p") },
             ].map((action, i) => (
-              <button key={i} className="flex flex-col items-center gap-2 group">
+              <button key={i} onClick={action.onClick} className="flex flex-col items-center gap-2 group">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
                   <action.icon size={20} />
                 </div>
@@ -212,7 +214,7 @@ export default function FundingAccountPage() {
             </p>
           </div>
 
-          {marketLoading || !marketData ? (
+          {marketLoading || !marketData || !marketData.global ? (
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="animate-pulse h-14 rounded-xl bg-white/[0.04]" />
@@ -231,7 +233,9 @@ export default function FundingAccountPage() {
             </div>
           )}
         </div>
+        </div>
       </div>
+      <TransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} defaultFrom="funding" />
     </div>
   );
 }

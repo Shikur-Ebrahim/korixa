@@ -70,9 +70,11 @@ export default function SpotAccountPage() {
     fetchMarket();
   }, []);
 
-  // Use the pre-calculated fiat value if available, or fallback to amount * currentPrice
+  // Calculate fiat value dynamically using market data
   const totalUsd = assets.reduce((sum, asset) => {
-    const assetValue = asset.value !== undefined ? asset.value : asset.amount * (asset.currentPrice || 0);
+    const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
+    const currentPrice = marketCoin?.price || asset.currentPrice || 0;
+    const assetValue = asset.value !== undefined ? asset.value : asset.amount * currentPrice;
     return sum + assetValue;
   }, 0);
 
@@ -202,8 +204,9 @@ export default function SpotAccountPage() {
           ) : (
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1">
               {assets.map((asset) => {
-                const usdValue = asset.value !== undefined ? asset.value : asset.amount * (asset.currentPrice || 0);
                 const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
+                const currentPrice = marketCoin?.price || asset.currentPrice || 0;
+                const usdValue = asset.value !== undefined ? asset.value : asset.amount * currentPrice;
                 const change24h = marketCoin?.change24h ?? 0;
                 
                 return (
@@ -255,7 +258,7 @@ export default function SpotAccountPage() {
             </p>
           </div>
 
-          {marketLoading || !marketData ? (
+          {marketLoading || !marketData || !marketData.global ? (
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="animate-pulse h-14 rounded-xl bg-white/[0.04]" />
