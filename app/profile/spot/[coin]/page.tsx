@@ -10,6 +10,7 @@ import { TransferModal } from "@/components/profile/TransferModal";
 import Link from "next/link";
 import { getClientFirestore } from "@/lib/firebase";
 import { collection, query, where, orderBy, onSnapshot, limit } from "firebase/firestore";
+import type { AppMarketPageData } from "@/lib/coingecko";
 
 const getCoinColor = (coin: string) => {
   switch (coin) {
