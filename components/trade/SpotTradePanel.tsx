@@ -7,14 +7,17 @@ import { executeSpotTrade } from "@/lib/trade/trade-service";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { subscribeSpotHoldings, SpotHolding } from "@/lib/profile/wallet-service";
 import { appTheme } from "@/components/layout/app-theme";
-import { FiClock } from "react-icons/fi";
+import { FiClock, FiLock, FiShield } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export function SpotTradePanel() {
   const { pair } = useTrade();
-  const { user } = useAuth();
+  const { user, kycStatus, kycLoading } = useAuth();
   const router = useRouter();
   const { data: ticker } = useBinanceTicker(pair.symbol);
+
+  const isKycVerified = kycStatus === "verified";
 
   const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
   const [orderType, setOrderType] = useState<"limit" | "market">("market");
@@ -80,6 +83,7 @@ export function SpotTradePanel() {
       router.push("/sign-in");
       return;
     }
+    if (!isKycVerified) return; // Extra guard
     if (currentAmount <= 0 || currentPrice <= 0) return;
     
     // In market mode, we always execute immediately at the displayed market price
@@ -154,13 +158,13 @@ export function SpotTradePanel() {
 
         {/* Price Input */}
         <div className="space-y-1">
-          <div className="flex h-10 w-full items-center justify-between rounded-lg bg-[#0b0e11] px-3 border border-white/[0.06] focus-within:border-primary/50 transition">
+          <div className={`flex h-10 w-full items-center justify-between rounded-lg bg-[#0b0e11] px-3 border border-white/[0.06] focus-within:border-primary/50 transition ${!isKycVerified ? "opacity-50" : ""}`}>
             <span className="text-xs text-[#848e9c]">Price</span>
             <input
               type="number"
               value={priceInput}
               onChange={(e) => setPriceInput(e.target.value)}
-              disabled={orderType === "market"}
+              disabled={orderType === "market" || !isKycVerified}
               className="w-full bg-transparent text-right text-sm font-medium text-white outline-none disabled:text-[#848e9c]"
               placeholder="0.00"
             />
@@ -170,13 +174,14 @@ export function SpotTradePanel() {
 
         {/* Amount Input */}
         <div className="space-y-1">
-          <div className="flex h-10 w-full items-center justify-between rounded-lg bg-[#0b0e11] px-3 border border-white/[0.06] focus-within:border-primary/50 transition">
+          <div className={`flex h-10 w-full items-center justify-between rounded-lg bg-[#0b0e11] px-3 border border-white/[0.06] focus-within:border-primary/50 transition ${!isKycVerified ? "opacity-50" : ""}`}>
             <span className="text-xs text-[#848e9c]">Amount</span>
             <input
               type="number"
               value={amountInput}
               onChange={(e) => setAmountInput(e.target.value)}
-              className="w-full bg-transparent text-right text-sm font-medium text-white outline-none"
+              disabled={!isKycVerified}
+              className="w-full bg-transparent text-right text-sm font-medium text-white outline-none disabled:text-[#848e9c]"
               placeholder="0.00"
             />
             <span className="ml-2 text-xs font-medium text-white">{baseCoin}</span>
@@ -189,7 +194,8 @@ export function SpotTradePanel() {
             <button
               key={pct}
               onClick={() => handlePercentageClick(pct)}
-              className="flex-1 rounded border border-white/[0.06] bg-[#0b0e11] py-1 text-[10px] font-medium text-[#848e9c] hover:border-[#848e9c] hover:text-white transition"
+              disabled={!isKycVerified}
+              className="flex-1 rounded border border-white/[0.06] bg-[#0b0e11] py-1 text-[10px] font-medium text-[#848e9c] hover:border-[#848e9c] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-white/[0.06] disabled:hover:text-[#848e9c]"
             >
               {pct}%
             </button>
@@ -212,17 +218,43 @@ export function SpotTradePanel() {
           </span>
         </div>
 
-        {/* Submit Button */}
-        <button
-          onClick={handleTrade}
-          disabled={isSubmitting || currentAmount <= 0 || currentPrice <= 0 || (activeTab === "buy" ? totalQuote > quoteBalance : currentAmount > baseBalance)}
-          className={`w-full rounded-xl py-3 text-sm font-bold text-white transition disabled:opacity-50 disabled:cursor-not-allowed ${
-            activeTab === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"
-          }`}
-        >
-          {isSubmitting ? "Processing..." : `${activeTab === "buy" ? "Buy" : "Sell"} ${baseCoin}`}
-        </button>
+        {/* Submit Button or KYC Lock */}
+        {!isKycVerified ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
+              <FiLock className="text-yellow-500 shrink-0" size={18} />
+              <div>
+                <p className="text-xs font-semibold text-yellow-500">Trading Locked</p>
+                <p className="text-[10px] text-[#848e9c] mt-0.5">
+                  {kycStatus === "pending" 
+                    ? "Your KYC verification is under review. Trading will unlock once approved."
+                    : kycStatus === "rejected"
+                    ? "Your verification was rejected. Please resubmit to unlock trading."
+                    : "Complete identity verification (KYC) to start trading."}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/kyc?start=1"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
+            >
+              <FiShield size={16} />
+              {kycStatus === "pending" ? "Check Verification Status" : kycStatus === "rejected" ? "Resubmit Verification" : "Complete KYC to Trade"}
+            </Link>
+          </div>
+        ) : (
+          <button
+            onClick={handleTrade}
+            disabled={isSubmitting || currentAmount <= 0 || currentPrice <= 0 || (activeTab === "buy" ? totalQuote > quoteBalance : currentAmount > baseBalance)}
+            className={`w-full rounded-xl py-3 text-sm font-bold text-white transition disabled:opacity-50 disabled:cursor-not-allowed ${
+              activeTab === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"
+            }`}
+          >
+            {isSubmitting ? "Processing..." : `${activeTab === "buy" ? "Buy" : "Sell"} ${baseCoin}`}
+          </button>
+        )}
       </div>
     </div>
   );
 }
+
