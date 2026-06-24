@@ -149,7 +149,7 @@ export default function SpotAccountPage() {
             className="p-1.5 -ml-1.5 rounded-full hover:bg-white/[0.06] transition">
             <FiArrowLeft size={22} />
           </button>
-          <h1 className="text-[24px] font-semibold text-white leading-none">Spot Account</h1>
+          <h1 className="text-[18px] font-semibold text-white leading-none">Spot Account</h1>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={handleRefresh}
@@ -169,79 +169,91 @@ export default function SpotAccountPage() {
 
         {/* ── BALANCE CARD ── */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5 relative overflow-hidden">
+          className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-36 h-36 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="flex justify-between items-start relative z-10">
-            {/* Left: main balance */}
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[#848e9c] text-sm font-medium">Total Spot Balance</span>
-                <button onClick={() => setHideBalance(v => !v)} className="text-[#848e9c] hover:text-white transition">
-                  {hideBalance ? <FiEyeOff size={14} /> : <FiEye size={14} />}
-                </button>
-              </div>
-              {holdingsLoading ? (
-                <SkeletonCard className="h-9 w-40 mb-1" />
-              ) : (
-                <h2 className="text-[28px] font-bold text-white leading-none mb-1">
-                  {mask(formatUsd(totalValue))}
-                </h2>
-              )}
-              <p className="text-[#848e9c] text-xs">
-                ≈ {mask(`${(totalValue / 65000).toFixed(6)} BTC`)}
-              </p>
-
-              <div className="flex gap-6 mt-4">
-                <div>
-                  <p className="text-[11px] text-[#848e9c] mb-0.5">Available Balance</p>
-                  <p className="text-sm font-semibold text-white">{mask(formatUsd(availableBalance))}</p>
+          <div className="relative z-10">
+            {/* Balance row */}
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[#848e9c] text-xs font-medium">Total Spot Balance</span>
+                  <button onClick={() => setHideBalance(v => !v)} className="text-[#848e9c] hover:text-white transition">
+                    {hideBalance ? <FiEyeOff size={13} /> : <FiEye size={13} />}
+                  </button>
                 </div>
-                <div>
-                  <p className="text-[11px] text-[#848e9c] mb-0.5">Frozen Balance</p>
-                  <p className="text-sm font-semibold text-white">{mask(formatUsd(frozenBalance))}</p>
-                </div>
+                {holdingsLoading ? (
+                  <SkeletonCard className="h-8 w-36 mb-1" />
+                ) : (
+                  <h2 className="text-[22px] font-bold text-white leading-none mb-0.5">
+                    {mask(formatUsd(totalValue))}
+                  </h2>
+                )}
+                <p className="text-[#848e9c] text-[11px]">≈ {mask(`${(totalValue / 65000).toFixed(6)} BTC`)}</p>
               </div>
-            </div>
 
-            {/* Right: PnL */}
-            <div className="text-right min-w-[110px]">
-              <p className="text-[11px] text-[#848e9c] mb-1">Today's PnL</p>
-              <p className={`text-base font-bold ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {mask(`${totalPnl >= 0 ? "+" : ""}${formatUsd(totalPnl)} (${pnlPercent >= 0 ? "+" : ""}${pnlPercent.toFixed(2)}%)`)}
-              </p>
-              <p className="text-[11px] text-[#848e9c] mt-2 mb-1">7D PnL</p>
-              <p className={`text-sm font-semibold ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {mask(`${totalPnl >= 0 ? "+" : ""}${formatUsd(totalPnl * 3.2)} (+${(pnlPercent * 2.8).toFixed(2)}%)`)}
-              </p>
-              {/* Sparkline placeholder */}
-              <div className="mt-2 flex items-end gap-0.5 justify-end h-8">
+              {/* Sparkline */}
+              <div className="flex items-end gap-0.5 h-8 mt-1">
                 {[3,5,4,7,6,9,8,10,9,12].map((v, i) => (
-                  <div key={i} style={{ height: `${v * 3}%` }}
+                  <div key={i} style={{ height: `${v * 8}%` }}
                     className="w-1 rounded-sm bg-green-500/60 min-h-[2px]" />
                 ))}
               </div>
             </div>
-          </div>
 
-          {/* Quick Actions */}
-          <div className="flex gap-2 mt-5">
-            <Link href="/p2p/buy"
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-primary text-[#0b0e11] rounded-xl font-bold text-[15px] hover:bg-primary/90 transition">
-              <FiRepeat size={15} /> Trade
-            </Link>
-            <Link href="/deposit"
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-white/[0.06] text-white border border-white/[0.06] rounded-xl font-medium text-[15px] hover:bg-white/[0.1] transition">
-              <FiDownload size={15} /> Deposit
-            </Link>
-            <button
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-white/[0.06] text-white border border-white/[0.06] rounded-xl font-medium text-[15px] hover:bg-white/[0.1] transition">
-              <FiUpload size={15} /> Withdraw
-            </button>
-            <button onClick={() => setIsTransferOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-white/[0.06] text-white border border-white/[0.06] rounded-xl font-medium text-[15px] hover:bg-white/[0.1] transition">
-              <FiRepeat size={15} /> Transfer
-            </button>
+            {/* PnL + Balances */}
+            <div className="grid grid-cols-2 gap-3 pb-3 border-b border-white/[0.04] mb-3">
+              <div>
+                <p className="text-[10px] text-[#848e9c] mb-0.5">Today&apos;s PnL</p>
+                <p className={`text-xs font-bold ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {mask(`${totalPnl >= 0 ? "+" : ""}${formatUsd(totalPnl)}`)}
+                </p>
+                <p className={`text-[10px] font-medium ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {mask(`(${pnlPercent >= 0 ? "+" : ""}${pnlPercent.toFixed(2)}%)`)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[#848e9c] mb-0.5">7D PnL</p>
+                <p className={`text-xs font-bold ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {mask(`${totalPnl >= 0 ? "+" : ""}${formatUsd(totalPnl * 3.2)}`)}
+                </p>
+                <p className={`text-[10px] font-medium ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {mask(`(+${(pnlPercent * 2.8).toFixed(2)}%)`)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[#848e9c] mb-0.5">Available</p>
+                <p className="text-xs font-semibold text-white">{mask(formatUsd(availableBalance))}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[#848e9c] mb-0.5">Frozen</p>
+                <p className="text-xs font-semibold text-white">{mask(formatUsd(frozenBalance))}</p>
+              </div>
+            </div>
+
+            {/* Quick Actions — 2x2 grid */}
+            <div className="grid grid-cols-4 gap-2">
+              <Link href="/p2p/buy"
+                className="flex flex-col items-center gap-1 py-2 bg-primary text-[#0b0e11] rounded-xl font-bold hover:bg-primary/90 transition">
+                <FiRepeat size={14} />
+                <span className="text-[11px] font-bold leading-none">Trade</span>
+              </Link>
+              <Link href="/deposit"
+                className="flex flex-col items-center gap-1 py-2 bg-white/[0.06] text-white border border-white/[0.06] rounded-xl hover:bg-white/[0.1] transition">
+                <FiDownload size={14} />
+                <span className="text-[11px] font-medium leading-none">Deposit</span>
+              </Link>
+              <button
+                className="flex flex-col items-center gap-1 py-2 bg-white/[0.06] text-white border border-white/[0.06] rounded-xl hover:bg-white/[0.1] transition">
+                <FiUpload size={14} />
+                <span className="text-[11px] font-medium leading-none">Withdraw</span>
+              </button>
+              <button onClick={() => setIsTransferOpen(true)}
+                className="flex flex-col items-center gap-1 py-2 bg-white/[0.06] text-white border border-white/[0.06] rounded-xl hover:bg-white/[0.1] transition">
+                <FiRepeat size={14} />
+                <span className="text-[11px] font-medium leading-none">Transfer</span>
+              </button>
+            </div>
           </div>
         </motion.div>
 
@@ -271,7 +283,7 @@ export default function SpotAccountPage() {
         {/* ── ASSET HOLDINGS ── */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xl font-semibold text-white">Asset Holdings</h3>
+            <h3 className="text-base font-semibold text-white">Asset Holdings</h3>
             <div className="flex items-center gap-2">
               <label className="flex items-center gap-1.5 text-[11px] text-[#848e9c] cursor-pointer select-none">
                 <input type="checkbox" checked={hideSmall} onChange={e => setHideSmall(e.target.checked)}
@@ -329,41 +341,41 @@ export default function SpotAccountPage() {
                     <motion.div
                       initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.04 }}
-                      className="grid grid-cols-[2fr_1fr_1fr_1fr] items-center px-3 py-3.5 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition cursor-pointer"
+                      className="grid grid-cols-[1.6fr_1fr_1fr_1fr] items-center px-2 py-3 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition cursor-pointer"
                     >
                       {/* Asset info */}
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2">
                         {live?.image ? (
-                          <div className="relative w-9 h-9 shrink-0">
-                            <Image src={live.image} alt={h.coin} fill sizes="36px" className="rounded-full object-cover" />
+                          <div className="relative w-7 h-7 shrink-0">
+                            <Image src={live.image} alt={h.coin} fill sizes="28px" className="rounded-full object-cover" />
                           </div>
                         ) : (
-                          <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
                             {h.coin.slice(0, 2)}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="text-[16px] font-medium text-white leading-tight">{h.coin}</p>
-                          <p className="text-[13px] text-[#848e9c] leading-tight truncate">{live?.name ?? h.coin}</p>
+                          <p className="text-xs font-semibold text-white leading-tight">{h.coin}</p>
+                          <p className="text-[10px] text-[#848e9c] leading-tight truncate">{live?.name ?? h.coin}</p>
                         </div>
                       </div>
 
                       {/* Available */}
                       <div className="text-right">
-                        <p className="text-[13px] font-medium text-[#eaecef]">{mask(h.amount.toFixed(6))}</p>
-                        <p className="text-[11px] text-[#848e9c]">{mask(formatUsd(h.liveValue))}</p>
+                        <p className="text-[10px] font-medium text-[#eaecef]">{mask(h.amount.toFixed(4))}</p>
+                        <p className="text-[9px] text-[#848e9c]">{mask(formatUsd(h.liveValue))}</p>
                       </div>
 
                       {/* Frozen */}
                       <div className="text-right">
-                        <p className="text-[13px] font-medium text-[#eaecef]">{mask(((h as any).lockedBalance ?? 0).toFixed(6))}</p>
-                        <p className="text-[11px] text-[#848e9c]">{mask(formatUsd(((h as any).lockedBalance ?? 0) * h.currentPrice))}</p>
+                        <p className="text-[10px] font-medium text-[#eaecef]">{mask(((h as any).lockedBalance ?? 0).toFixed(4))}</p>
+                        <p className="text-[9px] text-[#848e9c]">{mask(formatUsd(((h as any).lockedBalance ?? 0) * h.currentPrice))}</p>
                       </div>
 
                       {/* USD Value + change */}
                       <div className="text-right">
-                        <p className="text-[13px] font-semibold text-white">{mask(formatUsd(h.liveValue))}</p>
-                        <p className={`text-[11px] font-semibold ${positive ? "text-green-400" : "text-red-400"}`}>
+                        <p className="text-[10px] font-semibold text-white">{mask(formatUsd(h.liveValue))}</p>
+                        <p className={`text-[9px] font-semibold ${positive ? "text-green-400" : "text-red-400"}`}>
                           {formatPercent(h.change24h)}
                         </p>
                       </div>
@@ -381,7 +393,7 @@ export default function SpotAccountPage() {
 
         {/* ── SPOT ACCOUNT OVERVIEW TABS ── */}
         <div>
-          <h3 className="text-xl font-semibold text-white mb-3">Spot Account Overview</h3>
+          <h3 className="text-base font-semibold text-white mb-3">Spot Account Overview</h3>
           <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-1">
             {OVERVIEW_TABS.map(tab => (
               <button key={tab.id} onClick={() => setActiveOverviewTab(tab.id)}
@@ -404,7 +416,7 @@ export default function SpotAccountPage() {
         {/* ── LIVE MARKET COIN LIST ── */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xl font-semibold text-white">Markets</h3>
+            <h3 className="text-base font-semibold text-white">Markets</h3>
             <Link href="/market" className="text-primary text-sm font-medium hover:underline">
               View All →
             </Link>
@@ -454,15 +466,15 @@ export default function SpotAccountPage() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-[16px] font-medium text-white leading-tight">
-                        {coin.symbol}<span className="text-[#848e9c] font-normal text-[13px]">/USDT</span>
+                      <p className="text-sm font-medium text-white leading-tight">
+                        {coin.symbol}<span className="text-[#848e9c] font-normal text-xs">/USDT</span>
                       </p>
-                      <p className="text-[13px] text-[#848e9c] truncate leading-tight">{coin.name}</p>
+                      <p className="text-[11px] text-[#848e9c] truncate leading-tight">{coin.name}</p>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="text-[15px] font-semibold text-white">{formatUsd(coin.price)}</p>
-                      <p className={`text-[13px] font-semibold ${positive ? "text-green-400" : "text-red-400"}`}>
+                      <p className="text-sm font-semibold text-white">{formatUsd(coin.price)}</p>
+                      <p className={`text-[11px] font-semibold ${positive ? "text-green-400" : "text-red-400"}`}>
                         {formatPercent(coin.change24h)}
                       </p>
                     </div>
