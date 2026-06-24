@@ -176,33 +176,33 @@ export default function SpotAccountPage() {
                 return (
                   <div key={asset.id}
                     onClick={() => router.push(`/profile/spot/${asset.coin.toLowerCase()}`)}
-                    className="flex items-center justify-between py-3.5 px-2 hover:bg-white/[0.02] rounded-xl transition cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-10 w-10 shrink-0">
-                        <img src={COIN_LOGOS[asset.coin] ?? ""} alt={asset.coin}
-                          className="h-10 w-10 rounded-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                        <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#0b0e11]"
-                          style={{ background: COIN_COLORS[asset.coin] ?? "#848e9c" }} />
-                      </div>
+                    className="flex items-center gap-3 py-3.5 px-2 hover:bg-white/[0.02] rounded-xl transition cursor-pointer">
+                    <div className="relative h-10 w-10 shrink-0">
+                      <img src={COIN_LOGOS[asset.coin] ?? ""} alt={asset.coin}
+                        className="h-10 w-10 rounded-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#0b0e11]"
+                        style={{ background: COIN_COLORS[asset.coin] ?? "#848e9c" }} />
+                    </div>
+
+                    <div className="flex flex-1 min-w-0 justify-between items-center">
                       <div>
                         <p className="font-bold text-[#eaecef] leading-tight">{asset.coin}</p>
-                        <p className="text-xs text-[#848e9c]">Market rate</p>
+                        <p className="text-[11px] text-[#848e9c]">Market rate</p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="font-bold text-[#eaecef] leading-tight">{fmtCoin(amount)}</p>
-                        <p className="text-xs text-[#848e9c]">≈ {fmt(usdVal)}</p>
+                        <p className="text-[11px] text-[#848e9c]">≈ {fmt(usdVal)}</p>
                       </div>
-                      <div className="text-right min-w-[60px]">
-                        <p className={`text-xs font-semibold ${positive ? "text-green-400" : "text-red-400"}`}>
-                          {positive ? "+" : ""}{change.toFixed(2)}%
-                        </p>
-                        <p className="text-[11px] text-[#848e9c]">
-                          ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: asset.coin === "BTC" ? 0 : 2 })}
-                        </p>
-                      </div>
+                    </div>
+
+                    <div className="text-right ml-2 min-w-[60px]">
+                      <p className={`text-[11px] font-semibold ${positive ? "text-green-400" : "text-red-400"}`}>
+                        {positive ? "+" : ""}{change.toFixed(2)}%
+                      </p>
+                      <p className="text-[10px] text-[#848e9c]">
+                        ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: asset.coin === "BTC" ? 0 : 2 })}
+                      </p>
                     </div>
                   </div>
                 );
