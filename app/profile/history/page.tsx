@@ -76,7 +76,7 @@ export default function TransactionHistoryPage() {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-[#0b0e11] border-b border-white/[0.04] px-4 pt-4 pb-2">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => router.back()} className="p-1.5 -ml-1.5 rounded-full hover:bg-white/[0.06] transition">
+          <button onClick={() => router.push("/dashboard?profile=open")} className="p-1.5 -ml-1.5 rounded-full hover:bg-white/[0.06] transition">
             <FiArrowLeft size={22} className="text-[#eaecef]" />
           </button>
           <h1 className="text-lg font-bold text-white">Transaction History</h1>

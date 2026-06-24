@@ -62,7 +62,7 @@ export default function FundingAccountPage() {
       <div className="sticky top-0 z-40 bg-[#0b0e11]/90 backdrop-blur-md border-b border-white/[0.04] px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => router.back()}
+            onClick={() => router.push("/dashboard?profile=open")}
             className="p-1.5 -ml-1.5 rounded-full hover:bg-white/[0.06] transition"
           >
             <FiArrowLeft size={22} className="text-[#eaecef]" />

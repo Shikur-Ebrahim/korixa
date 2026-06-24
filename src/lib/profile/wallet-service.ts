@@ -1,5 +1,5 @@
 import { getClientFirestore } from "@/lib/firebase";
-import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit, onSnapshot, Unsubscribe } from "firebase/firestore";
 
 export type AssetType = "BTC" | "ETH" | "USDT" | "SOL" | "BNB" | string;
 
@@ -100,4 +100,42 @@ export async function getTransactions(uid: string, txType?: TransactionType, lim
     console.error("Failed to fetch transactions", error);
     return [];
   }
+}
+
+export function subscribeSpotHoldings(uid: string, callback: (holdings: SpotHolding[]) => void): Unsubscribe {
+  const db = getClientFirestore();
+  const q = query(collection(db, "wallets"), where("userId", "==", uid), where("type", "==", "spot"));
+  
+  return onSnapshot(q, (snapshot) => {
+    if (snapshot.empty) {
+      callback([]);
+      return;
+    }
+    const holdings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SpotHolding));
+    callback(holdings);
+  }, (error) => {
+    console.error("Failed to subscribe to spot holdings", error);
+    callback([]);
+  });
+}
+
+export function subscribeTransactions(uid: string, txType: TransactionType | undefined, limitCount: number, callback: (transactions: TransactionRecord[]) => void): Unsubscribe {
+  const db = getClientFirestore();
+  let q = query(collection(db, "transactions"), where("userId", "==", uid), orderBy("timestamp", "desc"), limit(limitCount));
+  
+  if (txType) {
+    q = query(collection(db, "transactions"), where("userId", "==", uid), where("type", "==", txType), orderBy("timestamp", "desc"), limit(limitCount));
+  }
+  
+  return onSnapshot(q, (snapshot) => {
+    if (snapshot.empty) {
+      callback([]);
+      return;
+    }
+    const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TransactionRecord));
+    callback(txs);
+  }, (error) => {
+    console.error("Failed to subscribe to transactions", error);
+    callback([]);
+  });
 }
