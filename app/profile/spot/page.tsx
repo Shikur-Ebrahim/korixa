@@ -7,7 +7,6 @@ import {
   FiDownload, FiUpload, FiTrendingUp, FiSearch, FiStar,
   FiActivity, FiClock, FiBarChart2, FiList, FiX
 } from "react-icons/fi";
-import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { subscribeSpotHoldings, SpotHolding } from "@/lib/profile/wallet-service";
@@ -19,11 +18,11 @@ import Link from "next/link";
 type OverviewTab = "open_orders" | "order_history" | "trade_history" | "tx_history" | "analysis";
 
 const OVERVIEW_TABS: { id: OverviewTab; label: string; icon: React.ReactNode }[] = [
-  { id: "open_orders",   label: "Open Orders",        icon: <FiList      size={16} /> },
-  { id: "order_history", label: "Order History",      icon: <FiClock     size={16} /> },
-  { id: "trade_history", label: "Trade History",      icon: <FiActivity  size={16} /> },
-  { id: "tx_history",    label: "Transaction History",icon: <FiRepeat    size={16} /> },
-  { id: "analysis",      label: "Asset Analysis",     icon: <FiBarChart2 size={16} /> },
+  { id: "open_orders",   label: "Open Orders",         icon: <FiList      size={16} /> },
+  { id: "order_history", label: "Order History",       icon: <FiClock     size={16} /> },
+  { id: "trade_history", label: "Trade History",       icon: <FiActivity  size={16} /> },
+  { id: "tx_history",    label: "Transaction History", icon: <FiRepeat    size={16} /> },
+  { id: "analysis",      label: "Asset Analysis",      icon: <FiBarChart2 size={16} /> },
 ];
 
 const FAV_KEY = "korixa-spot-fav";
@@ -34,26 +33,27 @@ function loadFav(): string[] {
 function saveFav(ids: string[]) { localStorage.setItem(FAV_KEY, JSON.stringify(ids)); }
 
 function Skeleton({ cls = "" }: { cls?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-white/[0.06] ${cls}`} />;
+  return <div className={`rounded-lg bg-white/[0.06] ${cls}`} style={{ animation: "none" }} />;
 }
 
 export default function SpotAccountPage() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [holdings,       setHoldings]       = useState<SpotHolding[]>([]);
-  const [holdLoading,    setHoldLoading]     = useState(true);
-  const [coins,          setCoins]           = useState<MarketCoin[]>([]);
-  const [mktLoading,     setMktLoading]      = useState(true);
-  const [mktError,       setMktError]        = useState(false);
-  const [hideBalance,    setHideBalance]     = useState(false);
-  const [transferOpen,   setTransferOpen]    = useState(false);
-  const [refreshing,     setRefreshing]      = useState(false);
-  const [search,         setSearch]          = useState("");
-  const [hideSmall,      setHideSmall]       = useState(false);
-  const [activeTab,      setActiveTab]       = useState<OverviewTab>("open_orders");
-  const [favs,           setFavs]            = useState<string[]>([]);
-  const [promo,          setPromo]           = useState(true);
+  const [holdings,    setHoldings]    = useState<SpotHolding[]>([]);
+  const [holdLoading, setHoldLoading] = useState(true);
+  const [coins,       setCoins]       = useState<MarketCoin[]>([]);
+  const [mktLoading,  setMktLoading]  = useState(true);
+  const [mktError,    setMktError]    = useState(false);
+  const [hideBalance, setHideBalance] = useState(false);
+  const [transferOpen,setTransferOpen]= useState(false);
+  const [refreshing,  setRefreshing]  = useState(false);
+  const [search,      setSearch]      = useState("");
+  const [hideSmall,   setHideSmall]   = useState(false);
+  const [activeTab,   setActiveTab]   = useState<OverviewTab>("open_orders");
+  const [favs,        setFavs]        = useState<string[]>([]);
+  const [promo,       setPromo]       = useState(true);
+  const [mounted,     setMounted]     = useState(false);
 
   const fetchMkt = async (silent = false) => {
     if (!silent) setMktLoading(true);
@@ -68,6 +68,7 @@ export default function SpotAccountPage() {
   };
 
   useEffect(() => {
+    setMounted(true);
     if (!user?.uid) return;
     setHoldLoading(true);
     const unsub = subscribeSpotHoldings(user.uid, (d) => { setHoldings(d); setHoldLoading(false); });
@@ -89,11 +90,11 @@ export default function SpotAccountPage() {
       return { ...h, currentPrice: price, change24h: live?.change24h ?? 0, liveValue: h.amount * price };
     }), [holdings, coins]);
 
-  const totalValue   = enriched.reduce((s, h) => s + h.liveValue, 0);
-  const totalPnl     = enriched.reduce((s, h) => s + h.unrealizedPnl, 0);
-  const frozen       = enriched.reduce((s, h) => s + ((h as any).lockedBalance ?? 0) * h.currentPrice, 0);
-  const available    = totalValue - frozen;
-  const pnlPct       = totalValue > 0 ? (totalPnl / Math.max(1, totalValue - totalPnl)) * 100 : 0;
+  const totalValue = enriched.reduce((s, h) => s + h.liveValue, 0);
+  const totalPnl   = enriched.reduce((s, h) => s + h.unrealizedPnl, 0);
+  const frozen     = enriched.reduce((s, h) => s + ((h as any).lockedBalance ?? 0) * h.currentPrice, 0);
+  const available  = totalValue - frozen;
+  const pnlPct     = totalValue > 0 ? (totalPnl / Math.max(1, totalValue - totalPnl)) * 100 : 0;
 
   const filteredCoins = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -107,14 +108,16 @@ export default function SpotAccountPage() {
 
   const $ = (s: string) => hideBalance ? "••••" : s;
 
+  if (!mounted) return null;
+
   return (
     <div className="min-h-screen bg-[#0b0e11] text-[#eaecef] pb-24">
 
-      {/* HEADER */}
-      <div className="sticky top-0 z-40 bg-[#0b0e11]/95 backdrop-blur-md border-b border-white/[0.05] px-4 py-3 flex items-center justify-between">
+      {/* HEADER — solid background, NO backdrop-blur to prevent scroll glitch */}
+      <div className="sticky top-0 z-40 bg-[#0b0e11] border-b border-white/[0.05] px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button onClick={() => router.push("/dashboard?profile=open")}
-            className="p-1.5 -ml-1 rounded-full hover:bg-white/[0.07] transition active:scale-95">
+            className="p-1.5 -ml-1 rounded-full hover:bg-white/[0.07] transition">
             <FiArrowLeft size={20} />
           </button>
           <h1 className="text-base font-bold text-white">Spot Account</h1>
@@ -135,9 +138,9 @@ export default function SpotAccountPage() {
 
       <div className="px-3 pt-4 space-y-3">
 
-        {/* BALANCE CARD */}
+        {/* BALANCE CARD — plain div, no Framer Motion */}
         <div className="rounded-2xl border border-white/[0.07] bg-[#161a1e] p-4">
-          {/* Top row: label + sparkline */}
+          {/* Label row */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] text-[#848e9c] font-medium">Total Spot Balance</span>
@@ -145,24 +148,25 @@ export default function SpotAccountPage() {
                 {hideBalance ? <FiEyeOff size={12} /> : <FiEye size={12} />}
               </button>
             </div>
-            {/* Mini sparkline */}
+            {/* Static sparkline bars */}
             <div className="flex items-end gap-[2px] h-6">
               {[3, 5, 4, 7, 5, 9, 7, 10, 8, 12].map((v, i) => (
-                <div key={i} style={{ height: `${v * 8}%` }}
-                  className="w-[3px] rounded-sm bg-green-500/70 min-h-[2px]" />
+                <div key={i}
+                  style={{ height: `${v * 8}%` }}
+                  className="w-[3px] rounded-sm bg-green-500/60 min-h-[2px]"
+                />
               ))}
             </div>
           </div>
 
           {/* Main balance */}
-          {holdLoading ? <Skeleton cls="h-7 w-32 mb-1" /> : (
-            <p className="text-[20px] font-bold text-white leading-tight mb-0.5">
-              {$(formatUsd(totalValue))}
-            </p>
-          )}
+          {holdLoading
+            ? <div className="h-7 w-32 rounded-lg bg-white/[0.06] mb-1" />
+            : <p className="text-[20px] font-bold text-white leading-tight mb-0.5">{$(formatUsd(totalValue))}</p>
+          }
           <p className="text-[10px] text-[#848e9c] mb-3">≈ {$(`${(totalValue / 65000).toFixed(6)} BTC`)}</p>
 
-          {/* PnL + balances 2x2 grid */}
+          {/* 2×2 PnL / balance grid */}
           <div className="grid grid-cols-2 gap-y-2 gap-x-4 pb-3 border-b border-white/[0.05] mb-3">
             <div>
               <p className="text-[10px] text-[#848e9c]">Today&apos;s PnL</p>
@@ -192,51 +196,45 @@ export default function SpotAccountPage() {
             </div>
           </div>
 
-          {/* Action buttons — 4 equal columns, icon + label */}
+          {/* 4-column action grid */}
           <div className="grid grid-cols-4 gap-2">
             <Link href="/p2p/buy"
-              className="flex flex-col items-center gap-1 py-2.5 px-1 bg-primary text-[#0b0e11] rounded-xl active:scale-95 transition">
+              className="flex flex-col items-center gap-1 py-2.5 bg-primary text-[#0b0e11] rounded-xl transition">
               <FiRepeat size={13} />
               <span className="text-[10px] font-bold leading-none">Trade</span>
             </Link>
             <Link href="/deposit"
-              className="flex flex-col items-center gap-1 py-2.5 px-1 bg-white/[0.06] text-white border border-white/[0.07] rounded-xl active:scale-95 transition">
+              className="flex flex-col items-center gap-1 py-2.5 bg-white/[0.06] text-white border border-white/[0.07] rounded-xl transition">
               <FiDownload size={13} />
               <span className="text-[10px] font-medium leading-none">Deposit</span>
             </Link>
-            <button
-              className="flex flex-col items-center gap-1 py-2.5 px-1 bg-white/[0.06] text-white border border-white/[0.07] rounded-xl active:scale-95 transition">
+            <button className="flex flex-col items-center gap-1 py-2.5 bg-white/[0.06] text-white border border-white/[0.07] rounded-xl transition">
               <FiUpload size={13} />
               <span className="text-[10px] font-medium leading-none">Withdraw</span>
             </button>
             <button onClick={() => setTransferOpen(true)}
-              className="flex flex-col items-center gap-1 py-2.5 px-1 bg-white/[0.06] text-white border border-white/[0.07] rounded-xl active:scale-95 transition">
+              className="flex flex-col items-center gap-1 py-2.5 bg-white/[0.06] text-white border border-white/[0.07] rounded-xl transition">
               <FiRepeat size={13} />
               <span className="text-[10px] font-medium leading-none">Transfer</span>
             </button>
           </div>
         </div>
 
-        {/* PROMO BANNER */}
-        <AnimatePresence>
-          {promo && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              <div className="rounded-xl border border-white/[0.06] bg-[#161a1e] px-4 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-white font-bold text-sm leading-tight">Start Trading Now</p>
-                  <p className="text-[#848e9c] text-[11px] mt-0.5">Trade 100+ pairs with low fees</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">₿</span>
-                  <button onClick={() => setPromo(false)} className="text-[#848e9c] hover:text-white p-1">
-                    <FiX size={16} />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* PROMO BANNER — plain conditional render, no Framer Motion */}
+        {promo && (
+          <div className="rounded-xl border border-white/[0.06] bg-[#161a1e] px-4 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-white font-bold text-sm leading-tight">Start Trading Now</p>
+              <p className="text-[#848e9c] text-[11px] mt-0.5">Trade 100+ pairs with low fees</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl opacity-70">₿</span>
+              <button onClick={() => setPromo(false)} className="text-[#848e9c] hover:text-white p-1">
+                <FiX size={16} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ASSET HOLDINGS */}
         <div>
@@ -256,7 +254,6 @@ export default function SpotAccountPage() {
               className="w-full bg-[#161a1e] border border-white/[0.05] rounded-xl py-2 pl-8 pr-3 text-xs text-white placeholder:text-[#848e9c] focus:outline-none focus:border-primary/50 transition" />
           </div>
 
-          {/* Table header */}
           <div className="grid grid-cols-[1.4fr_1fr_0.7fr_0.9fr] px-2 mb-1 text-[9px] text-[#848e9c] uppercase tracking-wide">
             <span>Asset</span>
             <span className="text-right">Available</span>
@@ -266,29 +263,33 @@ export default function SpotAccountPage() {
 
           {holdLoading ? (
             <div className="space-y-2">
-              {[1, 2, 3].map(i => <Skeleton key={i} cls="h-14" />)}
+              {[1, 2, 3].map(i => <div key={i} className="h-14 rounded-lg bg-white/[0.06]" />)}
             </div>
           ) : enriched.length === 0 ? (
             <div className="py-10 flex flex-col items-center text-center bg-[#161a1e] rounded-2xl border border-white/[0.05]">
               <FiActivity className="text-[#848e9c] mb-2" size={24} />
               <p className="text-white font-bold text-sm mb-1">Your Spot Wallet is Empty</p>
-              <p className="text-[#848e9c] text-[11px] max-w-[200px] mb-4">Deposit or buy crypto to start building your portfolio.</p>
+              <p className="text-[#848e9c] text-[11px] max-w-[200px] mb-4">
+                Deposit or buy crypto to start building your portfolio.
+              </p>
               <div className="flex gap-2">
-                <Link href="/deposit" className="px-4 py-2 bg-white/[0.06] border border-white/[0.05] rounded-lg text-[11px] font-bold text-white">Deposit</Link>
-                <Link href="/p2p/buy" className="px-4 py-2 bg-primary rounded-lg text-[11px] font-bold text-[#0b0e11]">Buy Crypto</Link>
+                <Link href="/deposit" className="px-4 py-2 bg-white/[0.06] border border-white/[0.05] rounded-lg text-[11px] font-bold text-white">
+                  Deposit
+                </Link>
+                <Link href="/p2p/buy" className="px-4 py-2 bg-primary rounded-lg text-[11px] font-bold text-[#0b0e11]">
+                  Buy Crypto
+                </Link>
               </div>
             </div>
           ) : (
             <div className="rounded-xl border border-white/[0.05] bg-[#161a1e] overflow-hidden">
-              {enriched.map((h, idx) => {
+              {enriched.map((h) => {
                 const live = coins.find(c => c.symbol.toUpperCase() === h.coin.toUpperCase());
-                const pos = (h.change24h ?? 0) >= 0;
+                const pos  = (h.change24h ?? 0) >= 0;
                 if (hideSmall && h.liveValue < 1) return null;
                 return (
                   <Link key={h.id} href={`/profile/spot/${h.coin.toLowerCase()}`}>
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.03 }}
-                      className="grid grid-cols-[1.4fr_1fr_0.7fr_0.9fr] items-center px-2 py-3 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] active:bg-white/[0.04] transition">
-                      {/* Coin */}
+                    <div className="grid grid-cols-[1.4fr_1fr_0.7fr_0.9fr] items-center px-2 py-3 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition">
                       <div className="flex items-center gap-2">
                         {live?.image ? (
                           <div className="relative w-7 h-7 shrink-0">
@@ -304,24 +305,21 @@ export default function SpotAccountPage() {
                           <p className="text-[9px] text-[#848e9c] leading-tight truncate">{live?.name ?? h.coin}</p>
                         </div>
                       </div>
-                      {/* Available */}
                       <div className="text-right">
-                        <p className="text-[10px] font-medium text-[#eaecef] leading-tight">{$(h.amount.toFixed(4))}</p>
-                        <p className="text-[9px] text-[#848e9c] leading-tight">{$(formatUsd(h.liveValue))}</p>
+                        <p className="text-[10px] font-medium text-[#eaecef]">{$(h.amount.toFixed(4))}</p>
+                        <p className="text-[9px] text-[#848e9c]">{$(formatUsd(h.liveValue))}</p>
                       </div>
-                      {/* Frozen */}
                       <div className="text-right">
-                        <p className="text-[10px] font-medium text-[#eaecef] leading-tight">{$(((h as any).lockedBalance ?? 0).toFixed(4))}</p>
-                        <p className="text-[9px] text-[#848e9c] leading-tight">{$(formatUsd(((h as any).lockedBalance ?? 0) * h.currentPrice))}</p>
+                        <p className="text-[10px] font-medium text-[#eaecef]">{$(((h as any).lockedBalance ?? 0).toFixed(4))}</p>
+                        <p className="text-[9px] text-[#848e9c]">{$(formatUsd(((h as any).lockedBalance ?? 0) * h.currentPrice))}</p>
                       </div>
-                      {/* USD + change */}
                       <div className="text-right">
-                        <p className="text-[10px] font-bold text-white leading-tight">{$(formatUsd(h.liveValue))}</p>
-                        <p className={`text-[9px] font-semibold leading-tight ${pos ? "text-green-400" : "text-red-400"}`}>
+                        <p className="text-[10px] font-bold text-white">{$(formatUsd(h.liveValue))}</p>
+                        <p className={`text-[9px] font-semibold ${pos ? "text-green-400" : "text-red-400"}`}>
                           {formatPercent(h.change24h)}
                         </p>
                       </div>
-                    </motion.div>
+                    </div>
                   </Link>
                 );
               })}
@@ -353,7 +351,7 @@ export default function SpotAccountPage() {
           </div>
         </div>
 
-        {/* LIVE MARKETS */}
+        {/* LIVE MARKETS — no Framer Motion on rows */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-bold text-white">Markets</h3>
@@ -369,28 +367,31 @@ export default function SpotAccountPage() {
 
           <div className="flex items-center justify-between px-2 mb-1 text-[9px] text-[#848e9c] uppercase tracking-wide">
             <span>Trading Pairs</span>
-            <span>Price / 24H Change</span>
+            <span>Price / 24H</span>
           </div>
 
           {mktError ? (
             <div className="py-8 flex flex-col items-center bg-[#161a1e] rounded-xl border border-white/[0.05]">
               <p className="text-[#848e9c] text-xs mb-3">Failed to load market data.</p>
-              <button onClick={() => fetchMkt()} className="px-4 py-2 bg-primary text-[#0b0e11] rounded-lg font-bold text-xs">Retry</button>
+              <button onClick={() => fetchMkt()} className="px-4 py-2 bg-primary text-[#0b0e11] rounded-lg font-bold text-xs">
+                Retry
+              </button>
             </div>
           ) : mktLoading ? (
             <div className="space-y-1.5">
-              {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} cls="h-12" />)}
+              {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-12 rounded-lg bg-white/[0.06]" />)}
             </div>
           ) : (
             <div className="rounded-xl border border-white/[0.05] bg-[#161a1e] overflow-hidden">
-              {(filteredCoins.length > 0 ? filteredCoins : coins).slice(0, 20).map((coin, idx) => {
-                const pos = (coin.change24h ?? 0) >= 0;
+              {(filteredCoins.length > 0 ? filteredCoins : coins).slice(0, 20).map((coin) => {
+                const pos    = (coin.change24h ?? 0) >= 0;
                 const starred = favs.includes(coin.id);
                 return (
                   <div key={coin.id}
-                    className="flex items-center gap-2 px-3 py-2.5 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] active:bg-white/[0.04] transition cursor-pointer"
+                    className="flex items-center gap-2 px-3 py-2.5 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition cursor-pointer"
                     onClick={() => router.push(`/trade/${coin.symbol.toLowerCase()}`)}>
-                    <button type="button" onClick={e => { e.stopPropagation(); toggleFav(coin.id); }}
+                    <button type="button"
+                      onClick={e => { e.stopPropagation(); toggleFav(coin.id); }}
                       className="shrink-0 text-[#848e9c] hover:text-primary transition">
                       <FiStar size={12} className={starred ? "fill-primary text-primary" : ""} />
                     </button>
