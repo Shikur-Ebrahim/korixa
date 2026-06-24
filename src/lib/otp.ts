@@ -333,6 +333,47 @@ export async function createAuthTokenForEmail(
       emailVerified: true,
       displayName: displayName || normalized.split("@")[0],
     });
+
+    try {
+      const adminDb = getAdminDb();
+      const batch = adminDb.batch();
+
+      const defaultAssets = [
+        { coin: "USDT", name: "Tether US" },
+        { coin: "BTC", name: "Bitcoin" },
+        { coin: "ETH", name: "Ethereum" },
+        { coin: "SOL", name: "Solana" },
+        { coin: "BNB", name: "BNB" },
+      ];
+
+      for (const asset of defaultAssets) {
+        const fundingRef = adminDb.collection("wallets").doc();
+        batch.set(fundingRef, {
+          userId: user.uid,
+          type: "funding",
+          coin: asset.coin,
+          name: asset.name,
+          balance: 0,
+          availableBalance: 0,
+          lockedBalance: 0,
+        });
+
+        const spotRef = adminDb.collection("wallets").doc();
+        batch.set(spotRef, {
+          userId: user.uid,
+          type: "spot",
+          coin: asset.coin,
+          amount: 0,
+          avgBuyPrice: 0,
+          updatedAt: Date.now(),
+        });
+      }
+
+      await batch.commit();
+    } catch (dbErr) {
+      console.error("Failed to initialize wallets for new user:", dbErr);
+      // Don't throw, we still want to return the token so they can log in
+    }
   }
 
   return getAdminAuth().createCustomToken(user.uid);

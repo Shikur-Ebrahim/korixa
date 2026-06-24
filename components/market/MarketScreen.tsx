@@ -8,6 +8,7 @@ import { MarketHighlights } from "@/components/market/MarketHighlights";
 import { MarketKeyMetrics, type MetricsFocus } from "@/components/market/MarketKeyMetrics";
 import { MarketSentimentCard } from "@/components/market/MarketSentimentCard";
 import { TrendingSectorsCard } from "@/components/market/TrendingSectorsCard";
+import Link from "next/link";
 
 type MarketScreenProps = {
   data: AppMarketPageData;
@@ -52,6 +53,12 @@ export function MarketScreen({ data }: MarketScreenProps) {
             )}
           </button>
         ))}
+        <Link
+          href="/p2p/buy"
+          className="relative pb-2.5 text-sm font-medium text-[#848e9c] hover:text-white transition"
+        >
+          P2P
+        </Link>
       </div>
 
       {topTab === "overview" ? (
