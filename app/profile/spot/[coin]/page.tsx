@@ -98,7 +98,8 @@ export default function AssetDetailsPage() {
 
   const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === coinParam);
   const currentPrice = marketCoin?.price || asset?.currentPrice || 0;
-  const usdValue = asset ? (asset.value !== undefined ? asset.value : asset.amount * currentPrice) : 0;
+  const amount = asset ? (asset.amount ?? (asset as any).balance ?? 0) : 0;
+  const usdValue = asset ? (asset.value !== undefined ? asset.value : amount * currentPrice) : 0;
 
   const formatUsd = (val: number) => `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -138,7 +139,7 @@ export default function AssetDetailsPage() {
             <h2 className="text-[32px] font-bold text-white tracking-tight leading-none mb-1">
               {formatUsd(usdValue)}
             </h2>
-            <p className="text-[#848e9c] text-sm font-medium">{asset ? asset.amount : "0"} {coinParam}</p>
+            <p className="text-[#848e9c] text-sm font-medium">{amount} {coinParam}</p>
             
             {asset && asset.unrealizedPnl !== 0 && (
               <div className="mt-4 pt-4 border-t border-white/[0.04] grid grid-cols-2 gap-4">

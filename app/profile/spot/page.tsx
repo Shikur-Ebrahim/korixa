@@ -75,11 +75,11 @@ export default function SpotAccountPage() {
     fetchMarket();
   }, []);
 
-  // Calculate fiat value dynamically using market data
   const totalUsd = assets.reduce((sum, asset) => {
     const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
     const currentPrice = marketCoin?.price || asset.currentPrice || 0;
-    const assetValue = asset.value !== undefined ? asset.value : asset.amount * currentPrice;
+    const amount = asset.amount ?? (asset as any).balance ?? 0;
+    const assetValue = asset.value !== undefined ? asset.value : amount * currentPrice;
     return sum + assetValue;
   }, 0);
 
@@ -221,7 +221,8 @@ export default function SpotAccountPage() {
               {assets.map((asset) => {
                 const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
                 const currentPrice = marketCoin?.price || asset.currentPrice || 0;
-                const usdValue = asset.value !== undefined ? asset.value : asset.amount * currentPrice;
+                const amount = asset.amount ?? (asset as any).balance ?? 0;
+                const usdValue = asset.value !== undefined ? asset.value : amount * currentPrice;
                 const change24h = marketCoin?.change24h ?? 0;
                 
                 return (
@@ -252,7 +253,7 @@ export default function SpotAccountPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-[#eaecef] leading-tight">{formatCrypto(asset.amount)}</p>
+                      <p className="font-bold text-[#eaecef] leading-tight">{formatCrypto(amount)}</p>
                       <div className="flex items-center justify-end gap-1 text-xs">
                         <span className="text-[#848e9c]">{formatUsd(usdValue)}</span>
                         {change24h !== 0 && (
