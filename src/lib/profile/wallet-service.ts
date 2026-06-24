@@ -119,6 +119,23 @@ export function subscribeSpotHoldings(uid: string, callback: (holdings: SpotHold
   });
 }
 
+export function subscribeFundingWallets(uid: string, callback: (wallets: WalletAsset[]) => void): Unsubscribe {
+  const db = getClientFirestore();
+  const q = query(collection(db, "wallets"), where("userId", "==", uid), where("type", "==", "funding"));
+  
+  return onSnapshot(q, (snapshot) => {
+    if (snapshot.empty) {
+      callback(EMPTY_ASSETS);
+      return;
+    }
+    const wallets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WalletAsset));
+    callback(wallets);
+  }, (error) => {
+    console.error("Failed to subscribe to funding wallets", error);
+    callback(EMPTY_ASSETS);
+  });
+}
+
 export function subscribeTransactions(uid: string, txType: TransactionType | undefined, limitCount: number, callback: (transactions: TransactionRecord[]) => void): Unsubscribe {
   const db = getClientFirestore();
   let q = query(collection(db, "transactions"), where("userId", "==", uid), orderBy("timestamp", "desc"), limit(limitCount));

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiArrowLeft, FiEye, FiEyeOff, FiDownload, FiUpload, FiRepeat, FiArrowDownLeft, FiUsers } from "react-icons/fi";
 import { motion } from "framer-motion";
-import { getFundingWallets, WalletAsset } from "@/lib/profile/wallet-service";
+import { subscribeFundingWallets, WalletAsset } from "@/lib/profile/wallet-service";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { MarketTable } from "@/components/landing/market/MarketTable";
 import { GlobalStatsBar } from "@/components/landing/market/GlobalStatsBar";
@@ -41,10 +41,11 @@ export default function FundingAccountPage() {
 
   useEffect(() => {
     if (user?.uid) {
-      getFundingWallets(user.uid).then((data) => {
+      const unsub = subscribeFundingWallets(user.uid, (data) => {
         setAssets(data);
         setLoading(false);
       });
+      return () => unsub();
     }
   }, [user]);
 
@@ -65,7 +66,11 @@ export default function FundingAccountPage() {
     fetchMarket();
   }, []);
 
-  const totalUsd = assets.reduce((sum, asset) => sum + (asset.usdValue || 0), 0);
+  const totalUsd = assets.reduce((sum, asset) => {
+    const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
+    const currentPrice = marketCoin?.price || 0;
+    return sum + (asset.balance || 0) * currentPrice;
+  }, 0);
 
   const formatUsd = (val: number) => {
     return hideBalances ? "******" : `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
