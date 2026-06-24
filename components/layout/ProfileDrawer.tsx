@@ -46,9 +46,9 @@ const MENU_GROUPS = [
   {
     title: "Assets & Finance",
     items: [
-      { label: "Funding Account", href: "/wallet", icon: FiBriefcase },
-      { label: "Spot Account", href: "#", icon: FiBriefcase },
-      { label: "Transaction History", href: "#", icon: FiFileText },
+      { label: "Funding Account", href: "/profile/funding", icon: FiBriefcase },
+      { label: "Spot Account", href: "/profile/spot", icon: FiBriefcase },
+      { label: "Transaction History", href: "/profile/history", icon: FiFileText },
     ],
   },
   {
@@ -80,6 +80,9 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
     if (open) {
       router.prefetch("/profile/security");
       router.prefetch("/kyc");
+      router.prefetch("/profile/funding");
+      router.prefetch("/profile/spot");
+      router.prefetch("/profile/history");
     }
   }, [open, router]);
 
