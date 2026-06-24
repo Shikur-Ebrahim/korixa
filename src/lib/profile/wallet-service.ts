@@ -1,5 +1,5 @@
 import { getClientFirestore } from "@/lib/firebase";
-import { collection, getDocs, query, where, orderBy, limit, onSnapshot, Unsubscribe } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit, onSnapshot, Unsubscribe, writeBatch, doc } from "firebase/firestore";
 
 export type AssetType = "BTC" | "ETH" | "USDT" | "SOL" | "BNB" | string;
 
@@ -138,4 +138,57 @@ export function subscribeTransactions(uid: string, txType: TransactionType | und
     console.error("Failed to subscribe to transactions", error);
     callback([]);
   });
+}
+
+export async function ensureUserWallets(uid: string): Promise<void> {
+  try {
+    const db = getClientFirestore();
+    const q = query(collection(db, "wallets"), where("userId", "==", uid), limit(1));
+    const snapshot = await getDocs(q);
+
+    // If user already has wallets, do nothing
+    if (!snapshot.empty) return;
+
+    // Create batch
+    const batch = writeBatch(db);
+    const walletsRef = collection(db, "wallets");
+
+    const defaultAssets = [
+      { coin: "USDT", name: "Tether US" },
+      { coin: "BTC", name: "Bitcoin" },
+      { coin: "ETH", name: "Ethereum" },
+      { coin: "SOL", name: "Solana" },
+      { coin: "BNB", name: "BNB" },
+    ];
+
+    for (const asset of defaultAssets) {
+      // Funding Wallet
+      const fundingRef = doc(walletsRef);
+      batch.set(fundingRef, {
+        userId: uid,
+        type: "funding",
+        coin: asset.coin,
+        name: asset.name,
+        balance: 0,
+        availableBalance: 0,
+        lockedBalance: 0,
+      });
+
+      // Spot Wallet
+      const spotRef = doc(walletsRef);
+      batch.set(spotRef, {
+        userId: uid,
+        type: "spot",
+        coin: asset.coin,
+        amount: 0,
+        avgBuyPrice: 0,
+        updatedAt: Date.now(),
+      });
+    }
+
+    await batch.commit();
+    console.log("Initialized default wallets for new user.");
+  } catch (error) {
+    console.error("Failed to ensure user wallets:", error);
+  }
 }

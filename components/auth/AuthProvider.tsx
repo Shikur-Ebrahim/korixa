@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { getClientAuth, initClientAuth } from "@/lib/firebase";
 import type { KycStatus, UserKycRecord } from "@/lib/kyc/types";
 import { getUserSecurity } from "@/lib/profile/service";
+import { ensureUserWallets } from "@/lib/profile/wallet-service";
 import { MfaVerificationScreen } from "./MfaVerificationScreen";
 
 export type UserRole = "admin" | "user" | null;
@@ -121,6 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
               await refreshRole(nextUser);
               setUser(nextUser);
+              // Ensure wallets exist for ALL sign-in methods (email OTP, Google, Facebook)
+              void ensureUserWallets(nextUser.uid);
             } catch (err) {
               console.error("MFA Check failed", err);
               setUser(nextUser); // Default to letting them in, or handle error
