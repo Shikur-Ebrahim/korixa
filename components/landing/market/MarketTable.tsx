@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { ChangeBadge } from "@/components/landing/market/ChangeBadge";
 import { CoinAvatar } from "@/components/landing/market/CoinAvatar";
@@ -10,6 +13,15 @@ type MarketTableProps = {
 };
 
 export function MarketTable({ coins }: MarketTableProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(coins.length / itemsPerPage);
+  
+  const paginatedCoins = coins.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <Card className="overflow-hidden p-0">
       <div className="border-b border-border px-3 py-3 sm:px-4">
@@ -35,7 +47,7 @@ export function MarketTable({ coins }: MarketTableProps) {
             </tr>
           </thead>
           <tbody>
-            {coins.map((coin) => {
+            {paginatedCoins.map((coin) => {
               const positive24h = (coin.change24h ?? 0) >= 0;
 
               return (
@@ -81,6 +93,25 @@ export function MarketTable({ coins }: MarketTableProps) {
             })}
           </tbody>
         </table>
+      </div>
+      <div className="border-t border-border/60 px-4 py-3 flex items-center justify-between text-xs sm:text-sm">
+        <button
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="px-3 py-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Previous
+        </button>
+        <span className="text-muted">
+          Page {currentPage} of {totalPages || 1}
+        </span>
+        <button
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          disabled={currentPage >= totalPages}
+          className="px-3 py-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Next
+        </button>
       </div>
     </Card>
   );

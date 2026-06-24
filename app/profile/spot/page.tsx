@@ -25,6 +25,14 @@ const getCoinColor = (coin: string) => {
   }
 };
 
+const EMPTY_SPOT_ASSETS: SpotHolding[] = [
+  { id: "1", coin: "USDT" as any, amount: 0, avgBuyPrice: 0, currentPrice: 1, unrealizedPnl: 0, value: 0 },
+  { id: "2", coin: "BTC" as any, amount: 0, avgBuyPrice: 0, currentPrice: 65000, unrealizedPnl: 0, value: 0 },
+  { id: "3", coin: "ETH" as any, amount: 0, avgBuyPrice: 0, currentPrice: 3500, unrealizedPnl: 0, value: 0 },
+  { id: "4", coin: "SOL" as any, amount: 0, avgBuyPrice: 0, currentPrice: 150, unrealizedPnl: 0, value: 0 },
+  { id: "5", coin: "BNB" as any, amount: 0, avgBuyPrice: 0, currentPrice: 600, unrealizedPnl: 0, value: 0 },
+];
+
 export default function SpotAccountPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -38,7 +46,7 @@ export default function SpotAccountPage() {
   useEffect(() => {
     if (user?.uid) {
       const unsub = subscribeSpotHoldings(user.uid, (data) => {
-        setAssets(data);
+        setAssets(data.length > 0 ? data : EMPTY_SPOT_ASSETS);
         setLoading(false);
       });
       return () => unsub();
