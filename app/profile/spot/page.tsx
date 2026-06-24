@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiArrowLeft, FiEye, FiEyeOff, FiDownload, FiUpload, FiRepeat } from "react-icons/fi";
 import { motion } from "framer-motion";
@@ -8,7 +8,6 @@ import { subscribeSpotHoldings, SpotHolding } from "@/lib/profile/wallet-service
 import { useAuth } from "@/components/auth/AuthProvider";
 import { TransferModal } from "@/components/profile/TransferModal";
 import { useBinanceTickers } from "@/hooks/useBinanceMarket";
-import { useEffect } from "react";
 import Link from "next/link";
 
 const COIN_COLORS: Record<string, string> = {

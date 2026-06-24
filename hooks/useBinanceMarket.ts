@@ -30,8 +30,8 @@ function usePollingJson<T>(url: string | null, intervalMs: number) {
   useEffect(() => {
     setIsLoading(true);
     void refresh();
-    const timer = window.setInterval(() => void refresh(), intervalMs);
-    return () => window.clearInterval(timer);
+    const timer = setInterval(() => void refresh(), intervalMs);
+    return () => clearInterval(timer);
   }, [refresh, intervalMs]);
 
   return { data, error, isLoading, mutate: refresh };
