@@ -97,7 +97,17 @@ export default function FundingAccountPage() {
         </div>
       </div>
 
-      <div className="px-4 pt-6 pb-8">
+      <div className="px-4 pt-4 pb-8">
+        {/* Account Tabs */}
+        <div className="flex gap-1 rounded-xl bg-[#1e2329] p-1 mb-6">
+          <button className="flex-1 rounded-lg py-2 text-xs font-semibold capitalize transition bg-[#2b3139] text-white shadow cursor-default">
+            Funding
+          </button>
+          <button onClick={() => router.push("/profile/spot")} className="flex-1 rounded-lg py-2 text-xs font-semibold capitalize transition text-[#848e9c] hover:text-white">
+            Spot
+          </button>
+        </div>
+
         {/* Total Balance Card */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
@@ -233,8 +243,8 @@ export default function FundingAccountPage() {
             </div>
           )}
         </div>
-        </div>
       </div>
+
       <TransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} defaultFrom="funding" />
     </div>
   );
