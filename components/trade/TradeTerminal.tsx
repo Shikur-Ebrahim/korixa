@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { P2PTradePanel } from "@/components/trade/P2PTradePanel";
+import { SpotTradePanel } from "@/components/trade/SpotTradePanel";
 import { MarketOverviewStrip } from "@/components/trade/MarketOverviewStrip";
 import { OrderBook } from "@/components/trade/OrderBook";
 import { RecentTrades } from "@/components/trade/RecentTrades";
@@ -62,7 +62,7 @@ function TradeTerminalContent() {
         </div>
       </div>
 
-      <P2PTradePanel />
+      <SpotTradePanel />
     </div>
   );
 }

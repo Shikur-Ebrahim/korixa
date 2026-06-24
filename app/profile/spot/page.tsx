@@ -139,7 +139,7 @@ export default function SpotAccountPage() {
 
           {/* Quick Actions Row */}
           <div className="grid grid-cols-4 gap-3 mt-8 relative z-10">
-            <Link href="/p2p/buy" className="flex flex-col items-center gap-2 group cursor-pointer">
+            <Link href="/trade" className="flex flex-col items-center gap-2 group cursor-pointer">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
                 <FiRepeat size={20} />
               </div>
