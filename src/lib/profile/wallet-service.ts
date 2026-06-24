@@ -172,6 +172,8 @@ export async function ensureUserWallets(uid: string): Promise<void> {
         balance: 0,
         availableBalance: 0,
         lockedBalance: 0,
+        usdValue: 0,
+        change24h: 0,
       });
 
       // Spot Wallet

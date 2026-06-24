@@ -65,7 +65,7 @@ export default function FundingAccountPage() {
     fetchMarket();
   }, []);
 
-  const totalUsd = assets.reduce((sum, asset) => sum + asset.usdValue, 0);
+  const totalUsd = assets.reduce((sum, asset) => sum + (asset.usdValue || 0), 0);
 
   const formatUsd = (val: number) => {
     return hideBalances ? "******" : `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -211,8 +211,8 @@ export default function FundingAccountPage() {
                   <div className="text-right">
                     <p className="font-bold text-[#eaecef] leading-tight">{formatCrypto(asset.balance)}</p>
                     <div className="flex items-center justify-end gap-1 text-xs">
-                      <span className="text-[#848e9c]">{formatUsd(asset.usdValue)}</span>
-                      {asset.change24h !== 0 && (
+                      <span className="text-[#848e9c]">{formatUsd(asset.usdValue || 0)}</span>
+                      {asset.change24h !== undefined && asset.change24h !== 0 && (
                         <span className={asset.change24h > 0 ? "text-green-500" : "text-red-500"}>
                           {asset.change24h > 0 ? "+" : ""}{asset.change24h}%
                         </span>
