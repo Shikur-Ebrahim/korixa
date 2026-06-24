@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { FiCheckCircle, FiArrowLeft, FiClock } from "react-icons/fi";
+import { FiCheckCircle, FiArrowLeft, FiClock, FiShield, FiAlertTriangle } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
+import { useAuth } from "@/components/auth/AuthProvider";
 import type { P2PAdvertisement, PaymentMethod } from "@/lib/p2p/types";
 
 const PAYMENT_METHODS: PaymentMethod[] = [
@@ -17,6 +18,8 @@ const PAYMENT_METHODS: PaymentMethod[] = [
 
 export default function P2PMarketplace() {
   const router = useRouter();
+  const { kycStatus, user } = useAuth();
+  const isVerified = kycStatus === "verified";
   const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
   const [ads, setAds] = useState<P2PAdvertisement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +53,25 @@ export default function P2PMarketplace() {
 
   return (
     <div className="min-h-screen bg-[#0b0e11] pb-24 text-white">
+
+      {/* KYC Verification Banner */}
+      {!isVerified && (
+        <div className="mx-4 mt-4 flex items-start gap-3 rounded-xl border border-orange-500/30 bg-orange-500/[0.08] px-4 py-3">
+          <FiAlertTriangle size={18} className="mt-0.5 shrink-0 text-orange-400" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-white">KYC Verification Required</p>
+            <p className="mt-0.5 text-xs text-[#848e9c]">
+              Complete identity verification to trade on P2P marketplace.
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/kyc?start=1")}
+            className="shrink-0 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition"
+          >
+            Verify
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[#0b0e11]/95 backdrop-blur-md">
@@ -198,14 +220,23 @@ export default function P2PMarketplace() {
                   ))}
                 </div>
                 <button
-                  onClick={() => router.push(`/p2p/${activeTab}/${ad.id}`)}
-                  className={`rounded-lg px-5 py-1.5 text-xs font-bold transition ${
-                    activeTab === "buy"
-                      ? "bg-green-500 text-white hover:bg-green-600"
-                      : "bg-red-500 text-white hover:bg-red-600"
+                  onClick={() => {
+                    if (!isVerified) {
+                      router.push("/kyc?start=1");
+                    } else {
+                      router.push(`/p2p/${activeTab}/${ad.id}`);
+                    }
+                  }}
+                  className={`rounded-lg px-5 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${
+                    !isVerified
+                      ? "bg-[#2b3139] text-[#848e9c] border border-white/10"
+                      : activeTab === "buy"
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : "bg-red-500 text-white hover:bg-red-600"
                   }`}
                 >
-                  {activeTab === "buy" ? "Buy" : "Sell"}
+                  {!isVerified && <FiShield size={12} />}
+                  {!isVerified ? "Verify" : activeTab === "buy" ? "Buy" : "Sell"}
                 </button>
               </div>
             </div>
