@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { getClientAuth, initClientAuth } from "@/lib/firebase";
 import type { KycStatus, UserKycRecord } from "@/lib/kyc/types";
 import { getUserSecurity } from "@/lib/profile/service";
-import { ensureUserWallets } from "@/lib/profile/wallet-service";
+// Wallet initialization is handled server-side via /api/auth/init-wallets
 import { MfaVerificationScreen } from "./MfaVerificationScreen";
 
 export type UserRole = "admin" | "user" | null;
@@ -122,8 +122,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
               await refreshRole(nextUser);
               setUser(nextUser);
-              // Ensure wallets exist for ALL sign-in methods (email OTP, Google, Facebook)
-              void ensureUserWallets(nextUser.uid);
+              // Ensure wallets exist for ALL sign-in methods — call server endpoint
+              // which uses Firebase Admin SDK to bypass Firestore security rules.
+              void nextUser.getIdToken().then((token) =>
+                fetch("/api/auth/init-wallets", {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${token}` },
+                }).catch(() => {
+                  /* non-fatal — wallets created on next auth if needed */
+                })
+              );
             } catch (err) {
               console.error("MFA Check failed", err);
               setUser(nextUser); // Default to letting them in, or handle error

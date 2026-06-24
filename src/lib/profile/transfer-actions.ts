@@ -14,7 +14,6 @@ export async function executeTransfer(token: string, asset: string, amount: numb
 
   const db = getAdminDb();
   
-  // To keep it simple and fast, we'll try to find the wallet documents for the user
   const walletsRef = db.collection("wallets");
   
   const sourceSnapshot = await walletsRef.where("userId", "==", uid).where("type", "==", from).where("coin", "==", asset).limit(1).get();
@@ -27,48 +26,76 @@ export async function executeTransfer(token: string, asset: string, amount: numb
   const sourceDoc = sourceSnapshot.docs[0];
   const sourceData = sourceDoc.data();
 
-  if (sourceData.availableBalance < amount) {
-    throw new Error(`Insufficient ${asset} balance. Available: ${sourceData.availableBalance}`);
+  // Funding wallets use availableBalance, Spot wallets use amount
+  const sourceAvailable = from === "funding" ? (sourceData.availableBalance || 0) : (sourceData.amount || 0);
+
+  if (sourceAvailable < amount) {
+    throw new Error(`Insufficient ${asset} balance. Available: ${sourceAvailable}`);
   }
 
-  // Calculate proportional USD value to move (assuming usdValue scales linearly with balance)
-  const usdValueToMove = (amount / sourceData.balance) * sourceData.usdValue;
+  let usdValueToMove = 0;
+  if (from === "funding") {
+    const currentBalance = sourceData.balance || 0;
+    const currentUsdValue = sourceData.usdValue || 0;
+    usdValueToMove = currentBalance > 0 ? (amount / currentBalance) * currentUsdValue : 0;
+  }
 
   const batch = db.batch();
 
   // Deduct from source
-  batch.update(sourceDoc.ref, {
-    balance: FieldValue.increment(-amount),
-    availableBalance: FieldValue.increment(-amount),
-    usdValue: FieldValue.increment(-usdValueToMove)
-  });
+  if (from === "funding") {
+    batch.update(sourceDoc.ref, {
+      balance: FieldValue.increment(-amount),
+      availableBalance: FieldValue.increment(-amount),
+      usdValue: FieldValue.increment(-usdValueToMove)
+    });
+  } else {
+    batch.update(sourceDoc.ref, {
+      amount: FieldValue.increment(-amount),
+      updatedAt: Timestamp.now().toMillis()
+    });
+  }
 
   // Add to destination
   if (!destSnapshot.empty) {
     const destDoc = destSnapshot.docs[0];
-    batch.update(destDoc.ref, {
-      balance: FieldValue.increment(amount),
-      availableBalance: FieldValue.increment(amount),
-      usdValue: FieldValue.increment(usdValueToMove)
-    });
+    if (to === "funding") {
+      batch.update(destDoc.ref, {
+        balance: FieldValue.increment(amount),
+        availableBalance: FieldValue.increment(amount),
+        usdValue: FieldValue.increment(usdValueToMove)
+      });
+    } else {
+      batch.update(destDoc.ref, {
+        amount: FieldValue.increment(amount),
+        updatedAt: Timestamp.now().toMillis()
+      });
+    }
   } else {
     // Create destination wallet if it doesn't exist
     const newDestRef = walletsRef.doc();
-    batch.set(newDestRef, {
-      userId: uid,
-      type: to,
-      coin: asset,
-      name: sourceData.name || asset, // Fallback name
-      balance: amount,
-      availableBalance: amount,
-      lockedBalance: 0,
-      usdValue: usdValueToMove,
-      change24h: sourceData.change24h || 0,
-      avgBuyPrice: sourceData.currentPrice || 0,
-      currentPrice: sourceData.currentPrice || 0,
-      unrealizedPnl: 0,
-      value: usdValueToMove
-    });
+    if (to === "funding") {
+      batch.set(newDestRef, {
+        userId: uid,
+        type: "funding",
+        coin: asset,
+        name: sourceData.name || asset, // Fallback name
+        balance: amount,
+        availableBalance: amount,
+        lockedBalance: 0,
+        usdValue: usdValueToMove,
+        change24h: 0,
+      });
+    } else {
+      batch.set(newDestRef, {
+        userId: uid,
+        type: "spot",
+        coin: asset,
+        amount: amount,
+        avgBuyPrice: 0,
+        updatedAt: Timestamp.now().toMillis(),
+      });
+    }
   }
 
   // Create transaction record

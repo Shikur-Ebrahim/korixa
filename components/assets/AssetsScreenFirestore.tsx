@@ -240,7 +240,7 @@ export function AssetsScreenFirestore() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => router.push("/trade/BTCUSDT")}
+                onClick={() => router.push("/trade")}
                 className="text-[11px] font-semibold text-primary"
               >
                 Trade →
@@ -325,7 +325,7 @@ export function AssetsScreenFirestore() {
       {/* ── Quick Links ── */}
       <div className="grid grid-cols-2 gap-3">
         <Link
-          href="/trade/BTCUSDT"
+          href="/trade"
           className="flex items-center gap-3 rounded-xl border border-green-500/20 bg-green-500/[0.06] px-4 py-3 transition hover:bg-green-500/[0.1]"
         >
           <FiTrendingUp size={18} className="text-green-400 shrink-0" />

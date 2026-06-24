@@ -1,5 +1,12 @@
 import { getClientFirestore } from "@/lib/firebase";
-import { doc, runTransaction, collection, query, where, getDocs } from "firebase/firestore";
+import {
+  doc,
+  runTransaction,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import type { SpotHolding, TransactionRecord } from "@/lib/profile/wallet-service";
 
 export type TradeResult = { success: boolean; message?: string };
@@ -16,101 +23,122 @@ export async function executeSpotTrade(
   const totalQuote = amountBase * priceQuote;
 
   try {
+    // ─── Step 1: Fetch document references OUTSIDE the transaction ──────────
+    const walletsRef = collection(db, "wallets");
+
+    const qBase = query(
+      walletsRef,
+      where("userId", "==", uid),
+      where("type", "==", "spot"),
+      where("coin", "==", baseCoin)
+    );
+    const qQuote = query(
+      walletsRef,
+      where("userId", "==", uid),
+      where("type", "==", "spot"),
+      where("coin", "==", quoteCoin)
+    );
+
+    const [baseDocs, quoteDocs] = await Promise.all([
+      getDocs(qBase),
+      getDocs(qQuote),
+    ]);
+
+    // Resolve (or create) document refs for each coin
+    const baseDocRef = baseDocs.empty
+      ? doc(walletsRef)
+      : baseDocs.docs[0].ref;
+
+    const quoteDocRef = quoteDocs.empty
+      ? doc(walletsRef)
+      : quoteDocs.docs[0].ref;
+
+    const baseExists = !baseDocs.empty;
+    const quoteExists = !quoteDocs.empty;
+
+    // ─── Step 2: Run the atomic transaction ─────────────────────────────────
     await runTransaction(db, async (transaction) => {
-      // 1. Fetch user's spot wallets
-      const walletsRef = collection(db, "wallets");
-      const qBase = query(walletsRef, where("userId", "==", uid), where("type", "==", "spot"), where("coin", "==", baseCoin));
-      const qQuote = query(walletsRef, where("userId", "==", uid), where("type", "==", "spot"), where("coin", "==", quoteCoin));
-      
-      const baseDocs = await getDocs(qBase);
-      const quoteDocs = await getDocs(qQuote);
-      
-      let baseDocRef = null;
-      let quoteDocRef = null;
-      let baseData: Partial<SpotHolding> = { amount: 0, avgBuyPrice: 0 };
-      let quoteData: Partial<SpotHolding> = { amount: 0, avgBuyPrice: 0 };
+      // Re-read using transaction.get() for consistent snapshot
+      const [baseSnap, quoteSnap] = await Promise.all([
+        transaction.get(baseDocRef),
+        transaction.get(quoteDocRef),
+      ]);
 
-      if (!baseDocs.empty) {
-        baseDocRef = baseDocs.docs[0].ref;
-        baseData = baseDocs.docs[0].data();
-      } else {
-        baseDocRef = doc(walletsRef); // new doc
+      const currentBaseAmount: number = (baseSnap.exists() ? (baseSnap.data() as Partial<SpotHolding>).amount : 0) ?? 0;
+      const currentQuoteAmount: number = (quoteSnap.exists() ? (quoteSnap.data() as Partial<SpotHolding>).amount : 0) ?? 0;
+
+      // Validate balances
+      if (side === "buy" && currentQuoteAmount < totalQuote) {
+        throw new Error(`Insufficient ${quoteCoin} balance. Need ${totalQuote.toFixed(2)} but have ${currentQuoteAmount.toFixed(2)}`);
+      }
+      if (side === "sell" && currentBaseAmount < amountBase) {
+        throw new Error(`Insufficient ${baseCoin} balance. Need ${amountBase} but have ${currentBaseAmount}`);
       }
 
-      if (!quoteDocs.empty) {
-        quoteDocRef = quoteDocs.docs[0].ref;
-        quoteData = quoteDocs.docs[0].data();
+      // Calculate new balances
+      const newBaseAmount =
+        side === "buy"
+          ? currentBaseAmount + amountBase
+          : currentBaseAmount - amountBase;
+
+      const newQuoteAmount =
+        side === "buy"
+          ? currentQuoteAmount - totalQuote
+          : currentQuoteAmount + totalQuote;
+
+      const now = Date.now();
+
+      // Apply base coin update/create
+      if (baseExists || baseSnap.exists()) {
+        transaction.update(baseDocRef, { amount: newBaseAmount, updatedAt: now });
       } else {
-        quoteDocRef = doc(walletsRef); // new doc
-      }
-
-      const currentBaseAmount = baseData.amount || 0;
-      const currentQuoteAmount = quoteData.amount || 0;
-
-      // 2. Validate balances & Calculate new balances
-      let newBaseAmount = currentBaseAmount;
-      let newQuoteAmount = currentQuoteAmount;
-
-      if (side === "buy") {
-        if (currentQuoteAmount < totalQuote) throw new Error("Insufficient USDT balance");
-        newQuoteAmount -= totalQuote;
-        newBaseAmount += amountBase;
-      } else {
-        if (currentBaseAmount < amountBase) throw new Error(`Insufficient ${baseCoin} balance`);
-        newBaseAmount -= amountBase;
-        newQuoteAmount += totalQuote;
-      }
-
-      // 3. Apply updates
-      if (baseDocs.empty) {
         transaction.set(baseDocRef, {
           userId: uid,
           type: "spot",
           coin: baseCoin,
           amount: newBaseAmount,
           avgBuyPrice: side === "buy" ? priceQuote : 0,
-          updatedAt: Date.now()
+          updatedAt: now,
         });
-      } else {
-        transaction.update(baseDocRef, { amount: newBaseAmount, updatedAt: Date.now() });
       }
 
-      if (quoteDocs.empty) {
+      // Apply quote coin update/create
+      if (quoteExists || quoteSnap.exists()) {
+        transaction.update(quoteDocRef, { amount: newQuoteAmount, updatedAt: now });
+      } else {
         transaction.set(quoteDocRef, {
           userId: uid,
           type: "spot",
           coin: quoteCoin,
           amount: newQuoteAmount,
-          updatedAt: Date.now()
+          avgBuyPrice: 0,
+          updatedAt: now,
         });
-      } else {
-        transaction.update(quoteDocRef, { amount: newQuoteAmount, updatedAt: Date.now() });
       }
 
-      // 4. Record the trade
+      // Record the trade in transactions collection
       const tradeRef = doc(collection(db, "transactions"));
-      const tradeRecord: Partial<TransactionRecord> = {
+      const tradeRecord: Partial<TransactionRecord> & Record<string, unknown> = {
+        userId: uid,
         type: "trade",
         status: "completed",
-        coin: baseCoin, // Represents the primary coin traded
-        amount: side === "buy" ? amountBase : -amountBase, // positive means we bought it, negative means sold
+        coin: baseCoin,
+        amount: side === "buy" ? amountBase : -amountBase,
         usdValue: totalQuote,
-        timestamp: Date.now(),
-        fee: 0, // No fee currently
-      };
-      
-      transaction.set(tradeRef, {
-        userId: uid,
-        ...tradeRecord,
+        timestamp: now,
+        fee: 0,
         tradeSide: side,
         tradePrice: priceQuote,
-        quoteCoin: quoteCoin
-      });
+        quoteCoin: quoteCoin,
+      };
+
+      transaction.set(tradeRef, tradeRecord);
     });
 
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Trade execution failed:", err);
-    return { success: false, message: err.message || "Failed to execute trade" };
+    const message = err instanceof Error ? err.message : "Failed to execute trade";
+    return { success: false, message };
   }
 }

@@ -27,6 +27,28 @@ function getSocialAuthErrorMessage(error: unknown, provider: "google" | "faceboo
   return error instanceof Error ? error.message : "Social sign-up failed.";
 }
 
+/**
+ * Calls the server-side init-wallets endpoint after social sign-in.
+ * This uses Firebase Admin SDK on the server to bypass Firestore security rules,
+ * ensuring wallets are always created regardless of client-side rule restrictions.
+ */
+async function initWalletsForUser(): Promise<void> {
+  try {
+    const auth = getClientAuth();
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    const token = await currentUser.getIdToken();
+    await fetch("/api/auth/init-wallets", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (err) {
+    // Non-fatal — wallets can be created on next login attempt too
+    console.warn("Could not initialize wallets after social sign-in:", err);
+  }
+}
+
 export function SocialAuthButtons() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -38,6 +60,10 @@ export function SocialAuthButtons() {
 
     try {
       await signInWithPopup(getClientAuth(), getSocialAuthProvider(provider));
+
+      // Initialize Firestore wallets via server (uses Admin SDK — bypasses security rules)
+      await initWalletsForUser();
+
       router.push("/dashboard");
     } catch (err) {
       setError(getSocialAuthErrorMessage(err, provider));
