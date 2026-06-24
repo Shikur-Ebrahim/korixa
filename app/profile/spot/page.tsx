@@ -1,449 +1,210 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  FiArrowLeft, FiRefreshCw, FiEye, FiEyeOff, FiRepeat,
-  FiDownload, FiUpload, FiTrendingUp, FiSearch, FiStar,
-  FiActivity, FiClock, FiBarChart2, FiList, FiX
-} from "react-icons/fi";
-import Image from "next/image";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { FiArrowLeft, FiEye, FiEyeOff, FiDownload, FiUpload, FiRepeat } from "react-icons/fi";
+import { motion } from "framer-motion";
 import { subscribeSpotHoldings, SpotHolding } from "@/lib/profile/wallet-service";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { TransferModal } from "@/components/profile/TransferModal";
-import { formatUsd, formatPercent } from "@/lib/format";
-import type { MarketCoin } from "@/lib/coingecko";
 import Link from "next/link";
 
-type OverviewTab = "open_orders" | "order_history" | "trade_history" | "tx_history" | "analysis";
-
-const OVERVIEW_TABS: { id: OverviewTab; label: string; icon: React.ReactNode }[] = [
-  { id: "open_orders",   label: "Open Orders",         icon: <FiList      size={16} /> },
-  { id: "order_history", label: "Order History",       icon: <FiClock     size={16} /> },
-  { id: "trade_history", label: "Trade History",       icon: <FiActivity  size={16} /> },
-  { id: "tx_history",    label: "Transaction History", icon: <FiRepeat    size={16} /> },
-  { id: "analysis",      label: "Asset Analysis",      icon: <FiBarChart2 size={16} /> },
-];
-
-const FAV_KEY = "korixa-spot-fav";
-function loadFav(): string[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(FAV_KEY) ?? "[]"); } catch { return []; }
-}
-function saveFav(ids: string[]) { localStorage.setItem(FAV_KEY, JSON.stringify(ids)); }
-
-function Skeleton({ cls = "" }: { cls?: string }) {
-  return <div className={`rounded-lg bg-white/[0.06] ${cls}`} style={{ animation: "none" }} />;
-}
+const getCoinColor = (coin: string) => {
+  switch (coin) {
+    case "BTC": return "bg-[#F7931A] text-white";
+    case "ETH": return "bg-[#627EEA] text-white";
+    case "USDT": return "bg-[#26A17B] text-white";
+    case "SOL": return "bg-[#14F195] text-[#0b0e11]";
+    case "BNB": return "bg-[#F3BA2F] text-[#0b0e11]";
+    default: return "bg-gray-700 text-white";
+  }
+};
 
 export default function SpotAccountPage() {
   const router = useRouter();
   const { user } = useAuth();
-
-  const [holdings,    setHoldings]    = useState<SpotHolding[]>([]);
-  const [holdLoading, setHoldLoading] = useState(true);
-  const [coins,       setCoins]       = useState<MarketCoin[]>([]);
-  const [mktLoading,  setMktLoading]  = useState(true);
-  const [mktError,    setMktError]    = useState(false);
-  const [hideBalance, setHideBalance] = useState(false);
-  const [transferOpen,setTransferOpen]= useState(false);
-  const [refreshing,  setRefreshing]  = useState(false);
-  const [search,      setSearch]      = useState("");
-  const [hideSmall,   setHideSmall]   = useState(false);
-  const [activeTab,   setActiveTab]   = useState<OverviewTab>("open_orders");
-  const [favs,        setFavs]        = useState<string[]>([]);
-  const [promo,       setPromo]       = useState(true);
-  const [mounted,     setMounted]     = useState(false);
-  const [mktPage,     setMktPage]     = useState(1);
-  const MKT_PAGE_SIZE = 20;
-
-  const fetchMkt = async (silent = false) => {
-    if (!silent) setMktLoading(true);
-    setMktError(false);
-    try {
-      const r = await fetch("/api/market", { cache: "no-store" });
-      if (!r.ok) throw new Error();
-      const d = await r.json();
-      setCoins(d.coins ?? []);
-    } catch { setMktError(true); }
-    finally   { setMktLoading(false); }
-  };
+  const [assets, setAssets] = useState<SpotHolding[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hideBalances, setHideBalances] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    if (!user?.uid) return;
-    setHoldLoading(true);
-    const unsub = subscribeSpotHoldings(user.uid, (d) => { setHoldings(d); setHoldLoading(false); });
-    return () => unsub();
+    if (user?.uid) {
+      const unsub = subscribeSpotHoldings(user.uid, (data) => {
+        setAssets(data);
+        setLoading(false);
+      });
+      return () => unsub();
+    }
   }, [user]);
 
-  useEffect(() => { fetchMkt(); setFavs(loadFav()); }, []);
+  // Use the pre-calculated fiat value if available, or fallback to amount * currentPrice
+  const totalUsd = assets.reduce((sum, asset) => {
+    const assetValue = asset.value !== undefined ? asset.value : asset.amount * (asset.currentPrice || 0);
+    return sum + assetValue;
+  }, 0);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchMkt(true);
-    setTimeout(() => setRefreshing(false), 700);
+  const formatUsd = (val: number) => {
+    return hideBalances ? "******" : `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+  const formatCrypto = (val: number) => {
+    return hideBalances ? "******" : val.toLocaleString(undefined, { maximumFractionDigits: 6 });
   };
 
-  const enriched = useMemo(() =>
-    holdings.map(h => {
-      const live = coins.find(c => c.symbol.toUpperCase() === h.coin.toUpperCase());
-      const price = live?.price ?? h.currentPrice ?? 0;
-      return { ...h, currentPrice: price, change24h: live?.change24h ?? 0, liveValue: h.amount * price };
-    }), [holdings, coins]);
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.05 }
+    }
+  };
 
-  const totalValue = enriched.reduce((s, h) => s + h.liveValue, 0);
-  const totalPnl   = enriched.reduce((s, h) => s + h.unrealizedPnl, 0);
-  const frozen     = enriched.reduce((s, h) => s + ((h as any).lockedBalance ?? 0) * h.currentPrice, 0);
-  const available  = totalValue - frozen;
-  const pnlPct     = totalValue > 0 ? (totalPnl / Math.max(1, totalValue - totalPnl)) * 100 : 0;
-
-  const filteredCoins = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    return q ? coins.filter(c => c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q)) : coins;
-  }, [coins, search]);
-
-  const displayCoins = filteredCoins.length > 0 ? filteredCoins : coins;
-  const totalMktPages = Math.max(1, Math.ceil(displayCoins.length / MKT_PAGE_SIZE));
-  const paginatedCoins = displayCoins.slice((mktPage - 1) * MKT_PAGE_SIZE, mktPage * MKT_PAGE_SIZE);
-
-  // Reset page when search changes
-  useEffect(() => { setMktPage(1); }, [search]);
-
-  const toggleFav = (id: string) => setFavs(prev => {
-    const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-    saveFav(next); return next;
-  });
-
-  const $ = (s: string) => hideBalance ? "••••" : s;
-
-  if (!mounted) return null;
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 }
+  };
 
   return (
     <div className="min-h-screen bg-[#0b0e11] text-[#eaecef] pb-24">
-
-      {/* HEADER — solid background, NO backdrop-blur to prevent scroll glitch */}
-      <div className="sticky top-0 z-40 bg-[#0b0e11] border-b border-white/[0.05] px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button onClick={() => router.push("/dashboard?profile=open")}
-            className="p-1.5 -ml-1 rounded-full hover:bg-white/[0.07] transition">
-            <FiArrowLeft size={20} />
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-[#0b0e11]/90 backdrop-blur-md border-b border-white/[0.04] px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.push("/dashboard?profile=open")}
+            className="p-1.5 -ml-1.5 rounded-full hover:bg-white/[0.06] transition"
+          >
+            <FiArrowLeft size={22} className="text-[#eaecef]" />
           </button>
-          <h1 className="text-base font-bold text-white">Spot Account</h1>
-        </div>
-        <div className="flex items-center gap-1">
-          <button onClick={handleRefresh}
-            className={`p-2 rounded-full text-[#848e9c] hover:text-white transition ${refreshing ? "animate-spin" : ""}`}>
-            <FiRefreshCw size={16} />
-          </button>
-          <button className="p-2 rounded-full text-[#848e9c] hover:text-white transition">
-            <FiList size={16} />
-          </button>
-          <button className="p-2 rounded-full text-[#848e9c] hover:text-white transition">
-            <FiClock size={16} />
-          </button>
+          <h1 className="text-lg font-bold text-white">Spot Account</h1>
         </div>
       </div>
 
-      <div className="px-3 pt-4 space-y-3">
-
-        {/* BALANCE CARD — plain div, no Framer Motion */}
-        <div className="rounded-2xl border border-white/[0.07] bg-[#161a1e] p-4">
-          {/* Label row */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-[#848e9c] font-medium">Total Spot Balance</span>
-              <button onClick={() => setHideBalance(v => !v)} className="text-[#848e9c]">
-                {hideBalance ? <FiEyeOff size={12} /> : <FiEye size={12} />}
-              </button>
-            </div>
-            {/* Static sparkline bars */}
-            <div className="flex items-end gap-[2px] h-6">
-              {[3, 5, 4, 7, 5, 9, 7, 10, 8, 12].map((v, i) => (
-                <div key={i}
-                  style={{ height: `${v * 8}%` }}
-                  className="w-[3px] rounded-sm bg-green-500/60 min-h-[2px]"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Main balance */}
-          {holdLoading
-            ? <div className="h-7 w-32 rounded-lg bg-white/[0.06] mb-1" />
-            : <p className="text-[20px] font-bold text-white leading-tight mb-0.5">{$(formatUsd(totalValue))}</p>
-          }
-          <p className="text-[10px] text-[#848e9c] mb-3">≈ {$(`${(totalValue / 65000).toFixed(6)} BTC`)}</p>
-
-          {/* 2×2 PnL / balance grid */}
-          <div className="grid grid-cols-2 gap-y-2 gap-x-4 pb-3 border-b border-white/[0.05] mb-3">
-            <div>
-              <p className="text-[10px] text-[#848e9c]">Today&apos;s PnL</p>
-              <p className={`text-[12px] font-bold ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {$(`${totalPnl >= 0 ? "+" : ""}${formatUsd(totalPnl)}`)}
-              </p>
-              <p className={`text-[10px] ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {$(`(${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%)`)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-[#848e9c]">7D PnL</p>
-              <p className={`text-[12px] font-bold ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {$(`${totalPnl >= 0 ? "+" : ""}${formatUsd(totalPnl * 3.2)}`)}
-              </p>
-              <p className={`text-[10px] ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {$(`(+${(pnlPct * 2.8).toFixed(2)}%)`)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-[#848e9c]">Available Balance</p>
-              <p className="text-[12px] font-semibold text-white">{$(formatUsd(available))}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-[#848e9c]">Frozen Balance</p>
-              <p className="text-[12px] font-semibold text-white">{$(formatUsd(frozen))}</p>
-            </div>
-          </div>
-
-          {/* 4-column action grid */}
-          <div className="grid grid-cols-4 gap-2">
-            <Link href="/p2p/buy"
-              className="flex flex-col items-center gap-1 py-2.5 bg-primary text-[#0b0e11] rounded-xl transition">
-              <FiRepeat size={13} />
-              <span className="text-[10px] font-bold leading-none">Trade</span>
-            </Link>
-            <Link href="/deposit"
-              className="flex flex-col items-center gap-1 py-2.5 bg-white/[0.06] text-white border border-white/[0.07] rounded-xl transition">
-              <FiDownload size={13} />
-              <span className="text-[10px] font-medium leading-none">Deposit</span>
-            </Link>
-            <button className="flex flex-col items-center gap-1 py-2.5 bg-white/[0.06] text-white border border-white/[0.07] rounded-xl transition">
-              <FiUpload size={13} />
-              <span className="text-[10px] font-medium leading-none">Withdraw</span>
-            </button>
-            <button onClick={() => setTransferOpen(true)}
-              className="flex flex-col items-center gap-1 py-2.5 bg-white/[0.06] text-white border border-white/[0.07] rounded-xl transition">
-              <FiRepeat size={13} />
-              <span className="text-[10px] font-medium leading-none">Transfer</span>
+      <div className="px-4 pt-6 pb-8">
+        {/* Total Balance Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-gradient-to-br from-[#161a1e] to-[#0b0e11] p-6 shadow-xl border border-white/[0.04] relative overflow-hidden"
+        >
+          {/* Subtle glow */}
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="flex justify-between items-center mb-1 relative z-10">
+            <span className="text-[#848e9c] text-sm font-medium">Est. Total Balance</span>
+            <button onClick={() => setHideBalances(!hideBalances)} className="text-[#848e9c] hover:text-white transition p-1">
+              {hideBalances ? <FiEyeOff size={18} /> : <FiEye size={18} />}
             </button>
           </div>
-        </div>
-
-        {/* PROMO BANNER — plain conditional render, no Framer Motion */}
-        {promo && (
-          <div className="rounded-xl border border-white/[0.06] bg-[#161a1e] px-4 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-white font-bold text-sm leading-tight">Start Trading Now</p>
-              <p className="text-[#848e9c] text-[11px] mt-0.5">Trade 100+ pairs with low fees</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl opacity-70">₿</span>
-              <button onClick={() => setPromo(false)} className="text-[#848e9c] hover:text-white p-1">
-                <FiX size={16} />
-              </button>
-            </div>
+          <div className="flex items-baseline gap-2 relative z-10">
+            <h2 className="text-3xl font-bold text-white tracking-tight">
+              {formatUsd(totalUsd)}
+            </h2>
+            {!hideBalances && <span className="text-[#848e9c] font-medium">USD</span>}
           </div>
-        )}
-
-        {/* ASSET HOLDINGS */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-white">Asset Holdings</h3>
-            <label className="flex items-center gap-1 text-[10px] text-[#848e9c] cursor-pointer">
-              <input type="checkbox" checked={hideSmall} onChange={e => setHideSmall(e.target.checked)}
-                className="accent-primary w-3 h-3" />
-              Hide Small Balances
-            </label>
+          <div className="mt-1 relative z-10 text-sm">
+            <span className="text-[#848e9c]">≈ {formatCrypto(totalUsd / 65000)} BTC</span>
           </div>
 
-          <div className="relative mb-2">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#848e9c]" size={12} />
-            <input type="search" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search assets"
-              className="w-full bg-[#161a1e] border border-white/[0.05] rounded-xl py-2 pl-8 pr-3 text-xs text-white placeholder:text-[#848e9c] focus:outline-none focus:border-primary/50 transition" />
-          </div>
-
-          <div className="grid grid-cols-[1.4fr_1fr_0.7fr_0.9fr] px-2 mb-1 text-[9px] text-[#848e9c] uppercase tracking-wide">
-            <span>Asset</span>
-            <span className="text-right">Available</span>
-            <span className="text-right">Frozen</span>
-            <span className="text-right">USD Value</span>
-          </div>
-
-          {holdLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map(i => <div key={i} className="h-14 rounded-lg bg-white/[0.06]" />)}
-            </div>
-          ) : enriched.length === 0 ? (
-            <div className="py-10 flex flex-col items-center text-center bg-[#161a1e] rounded-2xl border border-white/[0.05]">
-              <FiActivity className="text-[#848e9c] mb-2" size={24} />
-              <p className="text-white font-bold text-sm mb-1">Your Spot Wallet is Empty</p>
-              <p className="text-[#848e9c] text-[11px] max-w-[200px] mb-4">
-                Deposit or buy crypto to start building your portfolio.
-              </p>
-              <div className="flex gap-2">
-                <Link href="/deposit" className="px-4 py-2 bg-white/[0.06] border border-white/[0.05] rounded-lg text-[11px] font-bold text-white">
-                  Deposit
-                </Link>
-                <Link href="/p2p/buy" className="px-4 py-2 bg-primary rounded-lg text-[11px] font-bold text-[#0b0e11]">
-                  Buy Crypto
-                </Link>
+          {/* Quick Actions Row */}
+          <div className="grid grid-cols-4 gap-3 mt-8 relative z-10">
+            <Link href="/p2p/buy" className="flex flex-col items-center gap-2 group cursor-pointer">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
+                <FiRepeat size={20} />
               </div>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-white/[0.05] bg-[#161a1e] overflow-hidden">
-              {enriched.map((h) => {
-                const live = coins.find(c => c.symbol.toUpperCase() === h.coin.toUpperCase());
-                const pos  = (h.change24h ?? 0) >= 0;
-                if (hideSmall && h.liveValue < 1) return null;
-                return (
-                  <Link key={h.id} href={`/profile/spot/${h.coin.toLowerCase()}`}>
-                    <div className="grid grid-cols-[1.4fr_1fr_0.7fr_0.9fr] items-center px-2 py-3 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition">
-                      <div className="flex items-center gap-2">
-                        {live?.image ? (
-                          <div className="relative w-7 h-7 shrink-0">
-                            <Image src={live.image} alt={h.coin} fill sizes="28px" className="rounded-full object-cover" />
-                          </div>
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
-                            {h.coin.slice(0, 2)}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-bold text-white leading-tight">{h.coin}</p>
-                          <p className="text-[9px] text-[#848e9c] leading-tight truncate">{live?.name ?? h.coin}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-medium text-[#eaecef]">{$(h.amount.toFixed(4))}</p>
-                        <p className="text-[9px] text-[#848e9c]">{$(formatUsd(h.liveValue))}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-medium text-[#eaecef]">{$(((h as any).lockedBalance ?? 0).toFixed(4))}</p>
-                        <p className="text-[9px] text-[#848e9c]">{$(formatUsd(((h as any).lockedBalance ?? 0) * h.currentPrice))}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold text-white">{$(formatUsd(h.liveValue))}</p>
-                        <p className={`text-[9px] font-semibold ${pos ? "text-green-400" : "text-red-400"}`}>
-                          {formatPercent(h.change24h)}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-              <button className="w-full py-2.5 text-[11px] text-[#848e9c] hover:text-white flex items-center justify-center gap-1 transition">
-                View All Assets <FiTrendingUp size={11} />
-              </button>
-            </div>
-          )}
-        </div>
+              <span className="text-xs font-semibold text-[#848e9c] group-hover:text-white transition">
+                Trade
+              </span>
+            </Link>
+            
+            <Link href="/deposit" className="flex flex-col items-center gap-2 group cursor-pointer">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
+                <FiDownload size={20} />
+              </div>
+              <span className="text-xs font-semibold text-[#848e9c] group-hover:text-white transition">
+                Deposit
+              </span>
+            </Link>
 
-        {/* OVERVIEW TABS */}
-        <div>
-          <h3 className="text-sm font-bold text-white mb-2">Spot Account Overview</h3>
-          <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-1 -mx-1 px-1">
-            {OVERVIEW_TABS.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border text-center transition ${
-                  activeTab === tab.id
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-white/[0.06] bg-[#161a1e] text-[#848e9c]"
-                }`}>
-                {tab.icon}
-                <span className="text-[10px] font-medium whitespace-nowrap leading-none">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="mt-2 rounded-xl border border-white/[0.05] bg-[#161a1e] px-4 py-6 text-center text-[11px] text-[#848e9c]">
-            No {OVERVIEW_TABS.find(t => t.id === activeTab)?.label} yet.
-          </div>
-        </div>
+            <button className="flex flex-col items-center gap-2 group cursor-pointer">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
+                <FiUpload size={20} />
+              </div>
+              <span className="text-xs font-semibold text-[#848e9c] group-hover:text-white transition">
+                Withdraw
+              </span>
+            </button>
 
-        {/* LIVE MARKETS — no Framer Motion on rows */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-white">Markets</h3>
-            <Link href="/market" className="text-primary text-[11px] font-medium">View All →</Link>
+            <button onClick={() => setTransferOpen(true)} className="flex flex-col items-center gap-2 group cursor-pointer">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
+                <FiRepeat size={20} />
+              </div>
+              <span className="text-xs font-semibold text-[#848e9c] group-hover:text-white transition">
+                Transfer
+              </span>
+            </button>
           </div>
+        </motion.div>
 
-          <div className="relative mb-2">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#848e9c]" size={12} />
-            <input type="search" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search coin"
-              className="w-full bg-[#161a1e] border border-white/[0.05] rounded-xl py-2 pl-8 pr-3 text-xs text-white placeholder:text-[#848e9c] focus:outline-none focus:border-primary/50 transition" />
-          </div>
-
-          <div className="flex items-center justify-between px-2 mb-1 text-[9px] text-[#848e9c] uppercase tracking-wide">
-            <span>Trading Pairs</span>
-            <span>Price / 24H</span>
-          </div>
-
-          {mktError ? (
-            <div className="py-8 flex flex-col items-center bg-[#161a1e] rounded-xl border border-white/[0.05]">
-              <p className="text-[#848e9c] text-xs mb-3">Failed to load market data.</p>
-              <button onClick={() => fetchMkt()} className="px-4 py-2 bg-primary text-[#0b0e11] rounded-lg font-bold text-xs">
-                Retry
-              </button>
-            </div>
-          ) : mktLoading ? (
-            <div className="space-y-1.5">
-              {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-12 rounded-lg bg-white/[0.06]" />)}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-white/[0.05] bg-[#161a1e] overflow-hidden">
-              {paginatedCoins.map((coin) => {
-                const pos    = (coin.change24h ?? 0) >= 0;
-                const starred = favs.includes(coin.id);
-                return (
-                  <div key={coin.id}
-                    className="flex items-center gap-2 px-3 py-2.5 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition cursor-pointer"
-                    onClick={() => router.push(`/trade/${coin.symbol.toLowerCase()}`)}>
-                    <button type="button"
-                      onClick={e => { e.stopPropagation(); toggleFav(coin.id); }}
-                      className="shrink-0 text-[#848e9c] hover:text-primary transition">
-                      <FiStar size={12} className={starred ? "fill-primary text-primary" : ""} />
-                    </button>
-                    <div className="relative w-7 h-7 shrink-0">
-                      <Image src={coin.image} alt={coin.symbol} fill sizes="28px" className="rounded-full object-cover" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-semibold text-white leading-tight">
-                        {coin.symbol}<span className="text-[#848e9c] font-normal text-[10px]">/USDT</span>
-                      </p>
-                      <p className="text-[10px] text-[#848e9c] truncate leading-tight">{coin.name}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-[12px] font-semibold text-white leading-tight">{formatUsd(coin.price)}</p>
-                      <p className={`text-[10px] font-semibold leading-tight ${pos ? "text-green-400" : "text-red-400"}`}>
-                        {formatPercent(coin.change24h)}
-                      </p>
+        {/* Asset List */}
+        <div className="mt-8">
+          <h3 className="text-lg font-bold text-white mb-4">Assets</h3>
+          
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="animate-pulse flex items-center justify-between py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/[0.04]" />
+                    <div className="space-y-2">
+                      <div className="w-16 h-4 rounded bg-white/[0.04]" />
+                      <div className="w-24 h-3 rounded bg-white/[0.04]" />
                     </div>
                   </div>
+                  <div className="space-y-2 items-end flex flex-col">
+                    <div className="w-20 h-4 rounded bg-white/[0.04]" />
+                    <div className="w-16 h-3 rounded bg-white/[0.04]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1">
+              {assets.map((asset) => {
+                const usdValue = asset.value !== undefined ? asset.value : asset.amount * (asset.currentPrice || 0);
+                
+                return (
+                  <motion.div 
+                    key={asset.id} 
+                    variants={itemVariants}
+                    onClick={() => router.push(`/profile/spot/${asset.coin.toLowerCase()}`)}
+                    className="flex items-center justify-between py-3.5 px-2 hover:bg-white/[0.02] rounded-xl transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-inner ${getCoinColor(asset.coin)}`}>
+                        {asset.coin.slice(0, 3)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-[#eaecef] leading-tight">{asset.coin}</p>
+                        <p className="text-xs text-[#848e9c]">{asset.coin}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-[#eaecef] leading-tight">{formatCrypto(asset.amount)}</p>
+                      <div className="flex items-center justify-end gap-1 text-xs">
+                        <span className="text-[#848e9c]">{formatUsd(usdValue)}</span>
+                        {/* Since it's a simple page, we don't fetch 24h change here, mirroring funding */}
+                      </div>
+                    </div>
+                  </motion.div>
                 );
               })}
-            </div>
-          )}
-
-          {/* Pagination controls */}
-          {!mktLoading && !mktError && totalMktPages > 1 && (
-            <div className="mt-2 flex items-center justify-between px-1">
-              <button 
-                disabled={mktPage === 1} 
-                onClick={() => setMktPage(p => Math.max(1, p - 1))}
-                className="px-3 py-2 rounded-xl bg-[#161a1e] border border-white/[0.05] text-[#848e9c] text-xs font-medium hover:text-white disabled:opacity-50 transition">
-                Previous
-              </button>
-              <span className="text-[10px] text-[#848e9c]">
-                Page {mktPage} of {totalMktPages}
-              </span>
-              <button 
-                disabled={mktPage === totalMktPages} 
-                onClick={() => setMktPage(p => Math.min(totalMktPages, p + 1))}
-                className="px-3 py-2 rounded-xl bg-[#161a1e] border border-white/[0.05] text-[#848e9c] text-xs font-medium hover:text-white disabled:opacity-50 transition">
-                Next
-              </button>
-            </div>
+              
+              {assets.length === 0 && (
+                <div className="py-12 text-center text-[#848e9c]">
+                  <p>No assets found.</p>
+                </div>
+              )}
+            </motion.div>
           )}
         </div>
       </div>
