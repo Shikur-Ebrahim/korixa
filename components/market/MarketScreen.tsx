@@ -54,7 +54,7 @@ export function MarketScreen({ data }: MarketScreenProps) {
           </button>
         ))}
         <Link
-          href="/p2p/buy"
+          href="/p2p"
           className="relative pb-2.5 text-sm font-medium text-[#848e9c] hover:text-white transition"
         >
           P2P
