@@ -35,10 +35,9 @@ export function SpotTradePanel() {
     }
   }, [user]);
 
-  // Auto-update market price if in market mode
   useEffect(() => {
     if (orderType === "market" && ticker) {
-      setPriceInput(ticker.lastPrice);
+      setPriceInput(parseFloat(ticker.lastPrice).toString());
     }
   }, [orderType, ticker, pair.symbol]);
 
@@ -46,7 +45,7 @@ export function SpotTradePanel() {
   useEffect(() => {
     setAmountInput("");
     if (ticker) {
-      setPriceInput(ticker.lastPrice);
+      setPriceInput(parseFloat(ticker.lastPrice).toString());
     }
   }, [pair.symbol]);
 
@@ -116,7 +115,7 @@ export function SpotTradePanel() {
   return (
     <div className={`${appTheme.card} p-0`}>
       {/* Header Tabs */}
-      <div className="flex border-b border-white/[0.06]">
+      <div className="flex border-b border-white/[0.06] relative">
         <button
           onClick={() => setActiveTab("buy")}
           className={`flex-1 py-3 text-sm font-bold transition-colors ${
@@ -133,6 +132,19 @@ export function SpotTradePanel() {
         >
           Sell
         </button>
+        <Link 
+          href="/trade/orders" 
+          className="absolute right-0 top-0 bottom-0 px-4 flex items-center justify-center text-[#848e9c] hover:text-white transition"
+          title="Orders & History"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </Link>
       </div>
 
       <div className="p-4 space-y-4">
