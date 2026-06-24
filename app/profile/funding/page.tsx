@@ -6,6 +6,8 @@ import { FiArrowLeft, FiEye, FiEyeOff, FiDownload, FiUpload, FiRepeat, FiArrowDo
 import { motion } from "framer-motion";
 import { getFundingWallets, WalletAsset } from "@/lib/profile/wallet-service";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { MarketTable } from "@/components/landing/market/MarketTable";
+import type { MarketCoin } from "@/lib/coingecko";
 
 const getCoinColor = (coin: string) => {
   switch (coin) {
@@ -22,7 +24,9 @@ export default function FundingAccountPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [assets, setAssets] = useState<WalletAsset[]>([]);
+  const [marketCoins, setMarketCoins] = useState<MarketCoin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [marketLoading, setMarketLoading] = useState(true);
   const [hideBalances, setHideBalances] = useState(false);
 
   useEffect(() => {
@@ -33,6 +37,23 @@ export default function FundingAccountPage() {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    const fetchMarket = async () => {
+      try {
+        const res = await fetch("/api/market", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setMarketCoins(data.coins ?? []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch market data:", err);
+      } finally {
+        setMarketLoading(false);
+      }
+    };
+    fetchMarket();
+  }, []);
 
   const totalUsd = assets.reduce((sum, asset) => sum + asset.usdValue, 0);
 
@@ -176,6 +197,20 @@ export default function FundingAccountPage() {
                 </div>
               )}
             </motion.div>
+          )}
+        </div>
+
+        {/* Market Overview Section */}
+        <div className="mt-8">
+          <h3 className="text-lg font-bold text-white mb-4">Market Overview</h3>
+          {marketLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="animate-pulse h-14 rounded-xl bg-white/[0.04]" />
+              ))}
+            </div>
+          ) : (
+            <MarketTable coins={marketCoins} />
           )}
         </div>
       </div>
