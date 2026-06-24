@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FiArrowLeft, FiEye, FiEyeOff, FiDownload, FiUpload, FiRepeat } from "react-icons/fi";
+import { FiArrowLeft, FiEye, FiEyeOff, FiDownload, FiUpload, FiRepeat, FiActivity } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { subscribeSpotHoldings, SpotHolding } from "@/lib/profile/wallet-service";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -173,42 +173,27 @@ export default function SpotAccountPage() {
           </div>
 
           {/* Quick Actions Row */}
-          <div className="grid grid-cols-4 gap-3 mt-8 relative z-10">
-            <Link href="/trade" className="flex flex-col items-center gap-2 group cursor-pointer">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
+          <div className="flex justify-between px-6 pt-8 max-w-sm mx-auto relative z-10">
+            <Link href="/trade" className="flex flex-col items-center gap-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white hover:bg-white/[0.08] transition">
                 <FiRepeat size={20} />
               </div>
-              <span className="text-xs font-semibold text-[#848e9c] group-hover:text-white transition">
-                Trade
-              </span>
+              <span className="text-xs font-medium text-[#848e9c]">Trade</span>
             </Link>
             
-            <Link href="/deposit" className="flex flex-col items-center gap-2 group cursor-pointer">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
-                <FiDownload size={20} />
-              </div>
-              <span className="text-xs font-semibold text-[#848e9c] group-hover:text-white transition">
-                Deposit
-              </span>
-            </Link>
-
-            <button className="flex flex-col items-center gap-2 group cursor-pointer">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
-                <FiUpload size={20} />
-              </div>
-              <span className="text-xs font-semibold text-[#848e9c] group-hover:text-white transition">
-                Withdraw
-              </span>
-            </button>
-
-            <button onClick={() => setTransferOpen(true)} className="flex flex-col items-center gap-2 group cursor-pointer">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
+            <button onClick={() => setTransferOpen(true)} className="flex flex-col items-center gap-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white hover:bg-white/[0.08] transition">
                 <FiRepeat size={20} />
               </div>
-              <span className="text-xs font-semibold text-[#848e9c] group-hover:text-white transition">
-                Transfer
-              </span>
+              <span className="text-xs font-medium text-[#848e9c]">Transfer</span>
             </button>
+
+            <Link href="/profile/orders" className="flex flex-col items-center gap-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white hover:bg-white/[0.08] transition">
+                <FiActivity size={20} />
+              </div>
+              <span className="text-xs font-medium text-[#848e9c]">Orders</span>
+            </Link>
           </div>
         </motion.div>
 
