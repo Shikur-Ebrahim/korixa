@@ -8,7 +8,10 @@ import { subscribeSpotHoldings, SpotHolding } from "@/lib/profile/wallet-service
 import { useAuth } from "@/components/auth/AuthProvider";
 import { TransferModal } from "@/components/profile/TransferModal";
 import { MarketTable } from "@/components/landing/market/MarketTable";
-import type { MarketCoin } from "@/lib/coingecko";
+import { GlobalStatsBar } from "@/components/landing/market/GlobalStatsBar";
+import { InsightList } from "@/components/landing/market/InsightList";
+import { TopGainersList } from "@/components/landing/market/TopGainersList";
+import type { AppMarketPageData } from "@/lib/coingecko";
 import Link from "next/link";
 
 const getCoinColor = (coin: string) => {
@@ -26,7 +29,7 @@ export default function SpotAccountPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [assets, setAssets] = useState<SpotHolding[]>([]);
-  const [marketCoins, setMarketCoins] = useState<MarketCoin[]>([]);
+  const [marketData, setMarketData] = useState<AppMarketPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [marketLoading, setMarketLoading] = useState(true);
   const [hideBalances, setHideBalances] = useState(false);
@@ -48,7 +51,7 @@ export default function SpotAccountPage() {
         const res = await fetch("/api/market", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          setMarketCoins(data.coins ?? []);
+          setMarketData(data);
         }
       } catch (err) {
         console.error("Failed to fetch market data:", err);
@@ -231,15 +234,30 @@ export default function SpotAccountPage() {
 
         {/* Market Overview Section */}
         <div className="mt-8">
-          <h3 className="text-lg font-bold text-white mb-4">Market Overview</h3>
-          {marketLoading ? (
+          <div className="mb-4 text-center sm:mb-6">
+            <h2 className="mb-1.5 text-lg font-bold sm:text-xl text-white">Market Overview</h2>
+            <p className="text-xs text-muted sm:text-sm">
+              Live cryptocurrency prices by market cap
+            </p>
+          </div>
+
+          {marketLoading || !marketData ? (
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="animate-pulse h-14 rounded-xl bg-white/[0.04]" />
               ))}
             </div>
           ) : (
-            <MarketTable coins={marketCoins} />
+            <div className="space-y-3 sm:space-y-4">
+              <GlobalStatsBar global={marketData.global} />
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <InsightList title="Trending Coins" coins={marketData.trending} accent="primary" />
+                <TopGainersList coins={marketData.topGainers} />
+              </div>
+
+              <MarketTable coins={marketData.coins} />
+            </div>
           )}
         </div>
       </div>
