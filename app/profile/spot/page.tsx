@@ -203,6 +203,8 @@ export default function SpotAccountPage() {
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1">
               {assets.map((asset) => {
                 const usdValue = asset.value !== undefined ? asset.value : asset.amount * (asset.currentPrice || 0);
+                const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
+                const change24h = marketCoin?.change24h ?? 0;
                 
                 return (
                   <motion.div 
@@ -224,7 +226,11 @@ export default function SpotAccountPage() {
                       <p className="font-bold text-[#eaecef] leading-tight">{formatCrypto(asset.amount)}</p>
                       <div className="flex items-center justify-end gap-1 text-xs">
                         <span className="text-[#848e9c]">{formatUsd(usdValue)}</span>
-                        {/* Since it's a simple page, we don't fetch 24h change here, mirroring funding */}
+                        {change24h !== 0 && (
+                          <span className={change24h > 0 ? "text-green-500" : "text-red-500"}>
+                            {change24h > 0 ? "+" : ""}{change24h.toFixed(2)}%
+                          </span>
+                        )}
                       </div>
                     </div>
                   </motion.div>

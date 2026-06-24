@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FiArrowLeft, FiEye, FiEyeOff, FiDownload, FiUpload, FiRepeat, FiArrowDownLeft } from "react-icons/fi";
+import { FiArrowLeft, FiEye, FiEyeOff, FiDownload, FiUpload, FiRepeat, FiArrowDownLeft, FiUsers } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { getFundingWallets, WalletAsset } from "@/lib/profile/wallet-service";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -127,7 +127,7 @@ export default function FundingAccountPage() {
               { icon: FiDownload, label: "Deposit" },
               { icon: FiUpload, label: "Withdraw" },
               { icon: FiRepeat, label: "Transfer" },
-              { icon: FiArrowDownLeft, label: "Receive" },
+              { icon: FiUsers, label: "P2P" },
             ].map((action, i) => (
               <button key={i} className="flex flex-col items-center gap-2 group">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-white transition group-hover:bg-primary group-hover:text-[#0b0e11]">
