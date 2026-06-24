@@ -226,11 +226,9 @@ export function SpotTradePanel() {
               <div>
                 <p className="text-xs font-semibold text-yellow-500">Trading Locked</p>
                 <p className="text-[10px] text-[#848e9c] mt-0.5">
-                  {kycStatus === "pending" 
-                    ? "Your KYC verification is under review. Trading will unlock once approved."
-                    : kycStatus === "rejected"
+                  {kycStatus === "rejected"
                     ? "Your verification was rejected. Please resubmit to unlock trading."
-                    : "Complete identity verification (KYC) to start trading."}
+                    : "Not Verified. Please complete the KYC verification step to start trading."}
                 </p>
               </div>
             </div>
