@@ -43,12 +43,14 @@ export default function FundingAccountPage() {
   };
 
   useEffect(() => {
-    if (user?.uid) {
-      getFundingWallets(user.uid).then((data) => {
-        setAssets(data);
-        setLoading(false);
-      }).catch(() => setLoading(false));
+    if (!user?.uid) {
+      setLoading(false);
+      return;
     }
+    getFundingWallets(user.uid).then((data) => {
+      setAssets(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, [user]);
 
   const totalUsd = useMemo(

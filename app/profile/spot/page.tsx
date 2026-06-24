@@ -52,13 +52,15 @@ export default function SpotAccountPage() {
   };
 
   useEffect(() => {
-    if (user?.uid) {
-      const unsub = subscribeSpotHoldings(user.uid, (data) => {
-        setAssets(data.length > 0 ? data : EMPTY_SPOT);
-        setLoading(false);
-      });
-      return () => unsub();
+    if (!user?.uid) {
+      setLoading(false);
+      return;
     }
+    const unsub = subscribeSpotHoldings(user.uid, (data) => {
+      setAssets(data.length > 0 ? data : EMPTY_SPOT);
+      setLoading(false);
+    });
+    return () => unsub();
   }, [user]);
 
   const totalUsd = useMemo(
