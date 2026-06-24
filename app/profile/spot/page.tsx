@@ -13,6 +13,7 @@ import { InsightList } from "@/components/landing/market/InsightList";
 import { TopGainersList } from "@/components/landing/market/TopGainersList";
 import type { AppMarketPageData } from "@/lib/coingecko";
 import Link from "next/link";
+import { useBinanceTickers } from "@/hooks/useBinanceMarket";
 
 const COIN_COLORS: Record<string, string> = {
   BTC: "#F7931A",
@@ -48,6 +49,21 @@ export default function SpotAccountPage() {
   const [hideBalances, setHideBalances] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
 
+  const COINS = ["USDT", "BTC", "ETH", "SOL", "BNB"];
+  const SYMBOLS = COINS.filter(c => c !== "USDT").map(c => `${c}USDT`);
+  const { data: tickers } = useBinanceTickers(SYMBOLS);
+
+  const getPrice = (coin: string) => {
+    if (coin === "USDT") return 1;
+    const t = (tickers ?? []).find(x => x.symbol === `${coin}USDT`);
+    return parseFloat(t?.lastPrice ?? "0") || 0;
+  };
+  const getChange = (coin: string) => {
+    if (coin === "USDT") return 0;
+    const t = (tickers ?? []).find(x => x.symbol === `${coin}USDT`);
+    return parseFloat(t?.priceChangePercent ?? "0");
+  };
+
   useEffect(() => {
     if (user?.uid) {
       const unsub = subscribeSpotHoldings(user.uid, (data) => {
@@ -75,12 +91,10 @@ export default function SpotAccountPage() {
     fetchMarket();
   }, []);
 
+  // Live totals using Binance prices
   const totalUsd = assets.reduce((sum, asset) => {
-    const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
-    const currentPrice = marketCoin?.price || asset.currentPrice || 0;
     const amount = asset.amount ?? (asset as any).balance ?? 0;
-    const assetValue = asset.value !== undefined ? asset.value : amount * currentPrice;
-    return sum + assetValue;
+    return sum + amount * getPrice(asset.coin);
   }, 0);
 
   const formatUsd = (val: number) => {
@@ -219,12 +233,12 @@ export default function SpotAccountPage() {
           ) : (
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1">
               {assets.map((asset) => {
-                const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
-                const currentPrice = marketCoin?.price || asset.currentPrice || 0;
+                const price = getPrice(asset.coin);
+                const change = getChange(asset.coin);
                 const amount = asset.amount ?? (asset as any).balance ?? 0;
-                const usdValue = asset.value !== undefined ? asset.value : amount * currentPrice;
-                const change24h = marketCoin?.change24h ?? 0;
-                
+                const usdVal = amount * price;
+                const positive = change >= 0;
+
                 return (
                   <motion.div 
                     key={asset.id} 
@@ -249,18 +263,20 @@ export default function SpotAccountPage() {
                       </div>
                       <div>
                         <p className="font-bold text-[#eaecef] leading-tight">{asset.coin}</p>
-                        <p className="text-xs text-[#848e9c]">{asset.coin}</p>
+                        <p className="text-xs text-[#848e9c]">Market rate</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-[#eaecef] leading-tight">{formatCrypto(amount)}</p>
-                      <div className="flex items-center justify-end gap-1 text-xs">
-                        <span className="text-[#848e9c]">{formatUsd(usdValue)}</span>
-                        {change24h !== 0 && (
-                          <span className={change24h > 0 ? "text-green-500" : "text-red-500"}>
-                            {change24h > 0 ? "+" : ""}{change24h.toFixed(2)}%
-                          </span>
-                        )}
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-bold text-[#eaecef] leading-tight">{formatCrypto(amount)}</p>
+                        <p className="text-xs text-[#848e9c]">≈ {formatUsd(usdVal)}</p>
+                      </div>
+                      <div className="text-right min-w-[60px]">
+                        <p className={`text-xs font-semibold ${positive ? "text-green-400" : "text-red-400"}`}>
+                          {positive ? "+" : ""}{change.toFixed(2)}%
+                        </p>
+                        <p className="text-[11px] text-[#848e9c]">${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: asset.coin === "BTC" ? 0 : 2 })}</p>
                       </div>
                     </div>
                   </motion.div>

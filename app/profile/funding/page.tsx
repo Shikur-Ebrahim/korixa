@@ -12,6 +12,7 @@ import { InsightList } from "@/components/landing/market/InsightList";
 import { TopGainersList } from "@/components/landing/market/TopGainersList";
 import type { AppMarketPageData } from "@/lib/coingecko";
 import { TransferModal } from "@/components/profile/TransferModal";
+import { useBinanceTickers } from "@/hooks/useBinanceMarket";
 
 const COIN_COLORS: Record<string, string> = {
   BTC: "#F7931A",
@@ -39,6 +40,21 @@ export default function FundingAccountPage() {
   const [hideBalances, setHideBalances] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
+  const COINS = ["USDT", "BTC", "ETH", "SOL", "BNB"];
+  const SYMBOLS = COINS.filter(c => c !== "USDT").map(c => `${c}USDT`);
+  const { data: tickers } = useBinanceTickers(SYMBOLS);
+
+  const getPrice = (coin: string) => {
+    if (coin === "USDT") return 1;
+    const t = (tickers ?? []).find(x => x.symbol === `${coin}USDT`);
+    return parseFloat(t?.lastPrice ?? "0") || 0;
+  };
+  const getChange = (coin: string) => {
+    if (coin === "USDT") return 0;
+    const t = (tickers ?? []).find(x => x.symbol === `${coin}USDT`);
+    return parseFloat(t?.priceChangePercent ?? "0");
+  };
+
   useEffect(() => {
     if (user?.uid) {
       getFundingWallets(user.uid).then((data) => {
@@ -65,7 +81,8 @@ export default function FundingAccountPage() {
     fetchMarket();
   }, []);
 
-  const totalUsd = assets.reduce((sum, asset) => sum + (asset.usdValue || 0), 0);
+  // Live totals using Binance prices
+  const totalUsd = assets.reduce((sum, asset) => sum + (asset.balance ?? 0) * getPrice(asset.coin), 0);
 
   const formatUsd = (val: number) => {
     return hideBalances ? "******" : `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -182,45 +199,54 @@ export default function FundingAccountPage() {
             </div>
           ) : (
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1">
-              {assets.map((asset) => (
-                <motion.div 
-                  key={asset.id} 
-                  variants={itemVariants}
-                  className="flex items-center justify-between py-3.5 px-2 hover:bg-white/[0.02] rounded-xl transition cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative h-10 w-10 shrink-0">
-                      <img
-                        src={COIN_LOGOS[asset.coin] ?? `https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png`}
-                        alt={asset.coin}
-                        className="h-10 w-10 rounded-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                      <div
-                        className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#161a1f]"
-                        style={{ background: COIN_COLORS[asset.coin] ?? "#848e9c" }}
-                      />
+              {assets.map((asset) => {
+                const price = getPrice(asset.coin);
+                const change = getChange(asset.coin);
+                const usdVal = (asset.balance ?? 0) * price;
+                const positive = change >= 0;
+
+                return (
+                  <motion.div 
+                    key={asset.id} 
+                    variants={itemVariants}
+                    className="flex items-center justify-between py-3.5 px-2 hover:bg-white/[0.02] rounded-xl transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-10 w-10 shrink-0">
+                        <img
+                          src={COIN_LOGOS[asset.coin] ?? `https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png`}
+                          alt={asset.coin}
+                          className="h-10 w-10 rounded-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                        <div
+                          className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#161a1f]"
+                          style={{ background: COIN_COLORS[asset.coin] ?? "#848e9c" }}
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-[#eaecef] leading-tight">{asset.coin}</p>
+                        <p className="text-xs text-[#848e9c]">{asset.name || asset.coin}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-[#eaecef] leading-tight">{asset.coin}</p>
-                      <p className="text-xs text-[#848e9c]">{asset.name || asset.coin}</p>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-bold text-[#eaecef] leading-tight">{formatCrypto(asset.balance ?? 0)}</p>
+                        <p className="text-xs text-[#848e9c]">≈ {formatUsd(usdVal)}</p>
+                      </div>
+                      <div className="text-right min-w-[60px]">
+                        <p className={`text-xs font-semibold ${positive ? "text-green-400" : "text-red-400"}`}>
+                          {positive ? "+" : ""}{change.toFixed(2)}%
+                        </p>
+                        <p className="text-[11px] text-[#848e9c]">${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: asset.coin === "BTC" ? 0 : 2 })}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-[#eaecef] leading-tight">{formatCrypto(asset.balance)}</p>
-                    <div className="flex items-center justify-end gap-1 text-xs">
-                      <span className="text-[#848e9c]">{formatUsd(asset.usdValue || 0)}</span>
-                      {asset.change24h !== undefined && asset.change24h !== 0 && (
-                        <span className={asset.change24h > 0 ? "text-green-500" : "text-red-500"}>
-                          {asset.change24h > 0 ? "+" : ""}{asset.change24h}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
               
               {assets.length === 0 && (
                 <div className="py-12 text-center text-[#848e9c]">
