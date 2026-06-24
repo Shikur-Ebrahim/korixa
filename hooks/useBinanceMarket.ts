@@ -48,7 +48,7 @@ export function useBinanceTickers(symbols?: string[], all = false) {
       ? `/api/binance/ticker?symbols=${symbols.join(",")}`
       : "/api/binance/ticker";
 
-  return usePollingJson<BinanceTicker[]>(url, 10000);
+  return usePollingJson<BinanceTicker[]>(url, 3000);
 }
 
 export function useBinanceDepth(symbol: string) {

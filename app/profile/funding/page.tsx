@@ -12,6 +12,7 @@ import { InsightList } from "@/components/landing/market/InsightList";
 import { TopGainersList } from "@/components/landing/market/TopGainersList";
 import type { AppMarketPageData } from "@/lib/coingecko";
 import { TransferModal } from "@/components/profile/TransferModal";
+import { useBinanceTickers } from "@/hooks/useBinanceMarket";
 
 const COIN_COLORS: Record<string, string> = {
   BTC: "#F7931A",
@@ -66,10 +67,27 @@ export default function FundingAccountPage() {
     fetchMarket();
   }, []);
 
+  const SYMBOLS = assets.map(a => a.coin === "USDT" ? null : `${a.coin}USDT`).filter(Boolean) as string[];
+  const { data: binanceTickers } = useBinanceTickers(SYMBOLS);
+
+  const getLivePrice = (coin: string) => {
+    if (coin === "USDT") return 1;
+    const t = (binanceTickers ?? []).find(x => x.symbol === `${coin}USDT`);
+    if (t) return parseFloat(t.lastPrice);
+    const cg = marketData?.coins.find(c => c.symbol.toUpperCase() === coin.toUpperCase());
+    return cg?.price || 0;
+  };
+
+  const getLiveChange = (coin: string) => {
+    if (coin === "USDT") return 0;
+    const t = (binanceTickers ?? []).find(x => x.symbol === `${coin}USDT`);
+    if (t) return parseFloat(t.priceChangePercent);
+    const cg = marketData?.coins.find(c => c.symbol.toUpperCase() === coin.toUpperCase());
+    return cg?.change24h || 0;
+  };
+
   const totalUsd = assets.reduce((sum, asset) => {
-    const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
-    const currentPrice = marketCoin?.price || 0;
-    return sum + (asset.balance || 0) * currentPrice;
+    return sum + (asset.balance || 0) * getLivePrice(asset.coin);
   }, 0);
 
   const formatUsd = (val: number) => {
@@ -188,9 +206,8 @@ export default function FundingAccountPage() {
           ) : (
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1">
               {assets.map((asset) => {
-                const marketCoin = marketData?.coins.find(c => c.symbol.toUpperCase() === asset.coin.toUpperCase());
-                const currentPrice = marketCoin?.price || 0;
-                const change24h = marketCoin?.change24h ?? 0;
+                const currentPrice = getLivePrice(asset.coin);
+                const change24h = getLiveChange(asset.coin);
                 const usdValue = (asset.balance || 0) * currentPrice;
                 const positive = change24h >= 0;
 
