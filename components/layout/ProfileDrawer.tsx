@@ -18,7 +18,8 @@ import {
   FiFileText,
   FiCopy,
   FiCheck,
-  FiDollarSign
+  FiDollarSign,
+  FiSmartphone
 } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { appTheme } from "@/components/layout/app-theme";
@@ -67,6 +68,7 @@ const MENU_GROUPS = [
     items: [
       { label: "Rewards & Referral", href: "/profile/rewards", icon: FiGift },
       { label: "Support & FAQ", href: "/profile/support", icon: FiHelpCircle },
+      { label: "Mobile App", href: "/profile/mobile-app", icon: FiSmartphone },
       { label: "Privacy Policy", href: "/profile/privacy", icon: FiFileText },
     ],
   },

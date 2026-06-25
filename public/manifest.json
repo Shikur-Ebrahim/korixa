@@ -1,0 +1,26 @@
+{
+  "name": "Korixa",
+  "short_name": "Korixa",
+  "description": "Buy, sell and track digital assets with a secure and modern trading experience.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0b0e11",
+  "theme_color": "#0b0e11",
+  "orientation": "portrait",
+  "scope": "/",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "/korixa-logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/korixa-logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
