@@ -18,9 +18,10 @@ export function AppMobileHeader({ onProfileClick, onNotificationsClick }: AppMob
           type="button"
           onClick={onProfileClick}
           aria-label="Open profile"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-[#161a1e] text-[#eaecef] transition hover:bg-white/[0.06]"
+          className="flex h-9 w-9 items-center justify-center rounded-full overflow-hidden border border-white/[0.08] bg-[#161a1e] transition hover:bg-white/[0.06]"
         >
-          <FiUser className="text-base" />
+          {/* Using standard img tag without loading="lazy" for instant display as requested */}
+          <img src="/profile.png" alt="Profile" className="h-full w-full object-cover" />
         </button>
 
         <Link href="/dashboard" className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2">
