@@ -72,3 +72,19 @@ export interface UserReferralStat {
   totalRewardsUSDT: number;
   tier: "standard" | "bronze" | "silver" | "gold";
 }
+
+export type PaymentMethodType = "telebirr" | "cbe" | "awash" | "dashen" | "abyssinia" | "other" | "visa" | "mastercard" | "intl_bank";
+
+export interface PaymentMethod {
+  id: string; // The firestore document ID
+  uid: string; // User ID
+  type: PaymentMethodType;
+  bankName: string; // Important for "other" banks
+  accountHolderName: string;
+  accountNumber?: string;
+  phoneNumber?: string; // For Telebirr
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
