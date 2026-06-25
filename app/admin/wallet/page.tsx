@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import {
-  FiDollarSign, FiRefreshCw, FiAlertTriangle, FiArrowUpRight,
-  FiLock, FiCheck, FiX, FiExternalLink, FiShield, FiInfo,
-  FiChevronDown, FiChevronUp, FiCopy
+  FiDollarSign, FiRefreshCw, FiAlertTriangle,
+  FiArrowUpRight, FiCheck, FiX, FiExternalLink,
+  FiShield, FiChevronDown, FiChevronUp, FiLock
 } from "react-icons/fi";
 
 type WalletAddress = {
@@ -15,25 +15,24 @@ type WalletAddress = {
   lastDepositAt: string;
 };
 
-type ModalState = "none" | "withdraw-direct" | "withdraw-address" | "resetPin";
+type ModalState = "none" | "withdraw" | "resetPin";
 
 export default function AdminWalletPage() {
   const { getIdToken } = useAuth();
   const [data, setData] = useState<{ totalUsdt: number; addresses: WalletAddress[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<ModalState>("none");
-  const [selectedAddr, setSelectedAddr] = useState<WalletAddress | null>(null);
-  const [showGuide, setShowGuide] = useState(false);
+  const [selected, setSelected] = useState<WalletAddress | null>(null);
+  const [showGasInfo, setShowGasInfo] = useState(false);
 
-  // Withdraw state
-  const [withdrawDest, setWithdrawDest] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawPin, setWithdrawPin] = useState("");
-  const [withdrawPrivKey, setWithdrawPrivKey] = useState(""); // for direct withdrawal
+  // Withdraw form
+  const [dest, setDest] = useState("");
+  const [amount, setAmount] = useState("");
+  const [pin, setPin] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
-  const [withdrawResult, setWithdrawResult] = useState<{ success: boolean; txId?: string; error?: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; txId?: string; error?: string } | null>(null);
 
-  // Reset PIN state
+  // Change PIN form
   const [oldPin, setOldPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -58,74 +57,44 @@ export default function AdminWalletPage() {
 
   useEffect(() => { loadData(); }, []);
 
-  const openDirectWithdraw = () => {
-    setWithdrawDest(""); setWithdrawAmount(""); setWithdrawPin("");
-    setWithdrawPrivKey(""); setWithdrawResult(null);
-    setModal("withdraw-direct");
+  const openWithdraw = (addr: WalletAddress) => {
+    setSelected(addr);
+    setDest(""); setAmount(""); setPin(""); setResult(null);
+    setModal("withdraw");
   };
 
-  const openAddressWithdraw = (addr: WalletAddress) => {
-    setSelectedAddr(addr);
-    setWithdrawDest(""); setWithdrawAmount(""); setWithdrawPin("");
-    setWithdrawResult(null);
-    setModal("withdraw-address");
-  };
-
-  const handleDirectWithdraw = async () => {
-    if (!withdrawPrivKey || !withdrawDest || !withdrawAmount || !withdrawPin) return;
-    setWithdrawing(true);
-    setWithdrawResult(null);
-    try {
-      const token = await getIdToken();
-      const res = await fetch("/api/admin/wallet/withdraw-direct", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          privateKey: withdrawPrivKey,
-          destinationAddress: withdrawDest,
-          amount: parseFloat(withdrawAmount),
-          pin: withdrawPin,
-        }),
-      });
-      const d = await res.json();
-      setWithdrawResult(res.ok ? { success: true, txId: d.txId } : { success: false, error: d.error });
-      if (res.ok) loadData();
-    } catch (e: any) {
-      setWithdrawResult({ success: false, error: e.message || "Connection error" });
-    } finally {
-      setWithdrawing(false);
-    }
-  };
-
-  const handleAddressWithdraw = async () => {
-    if (!selectedAddr || !withdrawDest || !withdrawAmount || !withdrawPin) return;
-    setWithdrawing(true);
-    setWithdrawResult(null);
+  const handleWithdraw = async () => {
+    if (!selected || !dest || !amount || !pin) return;
+    setWithdrawing(true); setResult(null);
     try {
       const token = await getIdToken();
       const res = await fetch("/api/admin/wallet/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          sourceAddress: selectedAddr.address,
-          destinationAddress: withdrawDest,
-          amount: parseFloat(withdrawAmount),
-          pin: withdrawPin,
+          sourceAddress: selected.address,
+          destinationAddress: dest,
+          amount: parseFloat(amount),
+          pin,
         }),
       });
       const d = await res.json();
-      setWithdrawResult(res.ok ? { success: true, txId: d.txId } : { success: false, error: d.error });
-      if (res.ok) loadData();
+      if (res.ok) {
+        setResult({ success: true, txId: d.txId });
+        loadData();
+      } else {
+        setResult({ success: false, error: d.error });
+      }
     } catch (e: any) {
-      setWithdrawResult({ success: false, error: e.message || "Connection error" });
+      setResult({ success: false, error: "Connection error. Please try again." });
     } finally {
       setWithdrawing(false);
     }
   };
 
   const handleResetPin = async () => {
-    if (newPin !== confirmPin) { setPinMsg({ ok: false, text: "New PINs do not match." }); return; }
-    if (newPin.length < 4) { setPinMsg({ ok: false, text: "New PIN must be at least 4 characters." }); return; }
+    if (newPin !== confirmPin) { setPinMsg({ ok: false, text: "PINs do not match." }); return; }
+    if (newPin.length < 4) { setPinMsg({ ok: false, text: "PIN must be at least 4 digits." }); return; }
     setSavingPin(true); setPinMsg(null);
     try {
       const token = await getIdToken();
@@ -135,304 +104,294 @@ export default function AdminWalletPage() {
         body: JSON.stringify({ action: "update", pin: oldPin, newPin }),
       });
       const d = await res.json();
-      if (res.ok) { setPinMsg({ ok: true, text: "PIN updated successfully!" }); setOldPin(""); setNewPin(""); setConfirmPin(""); }
+      if (res.ok) { setPinMsg({ ok: true, text: "PIN updated!" }); setOldPin(""); setNewPin(""); setConfirmPin(""); }
       else setPinMsg({ ok: false, text: d.error || "Failed." });
     } catch { setPinMsg({ ok: false, text: "Connection error." }); }
     finally { setSavingPin(false); }
   };
 
-  const closeModal = () => { setModal("none"); setWithdrawResult(null); setPinMsg(null); setSelectedAddr(null); };
+  const closeModal = () => { setModal("none"); setResult(null); setSelected(null); setPinMsg(null); };
 
-  const ResultScreen = () => (
-    <div className="text-center space-y-4 py-2">
-      {withdrawResult?.success ? (
-        <>
-          <div className="flex justify-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10 text-green-400">
-              <FiCheck size={26} />
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-white">Withdrawal Sent!</p>
-            <p className="text-[10px] text-[#848e9c] mt-1">Broadcast on TRON blockchain</p>
-          </div>
-          <div className="rounded-xl bg-white/[0.04] p-3 text-left">
-            <p className="text-[10px] text-[#848e9c] mb-1">Transaction ID (TXID)</p>
-            <p className="text-[10px] font-mono text-primary break-all">{withdrawResult.txId}</p>
-          </div>
-          <a href={`https://tronscan.org/#/transaction/${withdrawResult.txId}`} target="_blank" rel="noreferrer"
-            className="flex items-center justify-center gap-1 text-xs text-primary underline">
-            Verify on TronScan <FiExternalLink size={11} />
-          </a>
-        </>
-      ) : (
-        <>
-          <div className="flex justify-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10 text-red-400">
-              <FiX size={26} />
-            </div>
-          </div>
-          <p className="text-sm font-bold text-white">Withdrawal Failed</p>
-          <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-3 text-left">
-            <p className="text-[10px] text-red-400 font-medium mb-1">Error:</p>
-            <p className="text-[10px] text-red-300">{withdrawResult?.error}</p>
-          </div>
-          {withdrawResult?.error?.toLowerCase().includes("trx") || withdrawResult?.error?.toLowerCase().includes("energy") ||
-           withdrawResult?.error?.toLowerCase().includes("balance") || withdrawResult?.error?.toLowerCase().includes("fee") ? (
-            <div className="rounded-xl bg-yellow-500/5 border border-yellow-500/20 p-3 text-left space-y-1">
-              <p className="text-[10px] font-bold text-yellow-400 flex items-center gap-1"><FiAlertTriangle size={10} /> Gas Fee Fix:</p>
-              <p className="text-[10px] text-yellow-300">The source wallet has no TRX for gas. Do this:</p>
-              <ol className="text-[10px] text-yellow-200 space-y-0.5 list-decimal list-inside">
-                <li>Go to your exchange (Binance/Bybit)</li>
-                <li>Withdraw exactly <strong>20 TRX</strong> to this source address</li>
-                <li>Wait 1–2 minutes for it to arrive</li>
-                <li>Come back and try the withdrawal again</li>
-              </ol>
-            </div>
-          ) : null}
-        </>
-      )}
-      <button onClick={closeModal} className="w-full rounded-xl bg-white/[0.06] py-3 text-xs font-bold text-white hover:bg-white/[0.1]">
-        Close
-      </button>
-    </div>
-  );
-
-  const WithdrawForm = ({ onSubmit, maxBalance }: { onSubmit: () => void; maxBalance?: number }) => (
-    <div className="space-y-3">
-      {modal === "withdraw-direct" && (
-        <div>
-          <label className="block text-[10px] text-[#848e9c] mb-1">Source Private Key</label>
-          <textarea
-            value={withdrawPrivKey}
-            onChange={(e) => setWithdrawPrivKey(e.target.value)}
-            placeholder="Paste the private key of the TRC20 wallet you want to withdraw from"
-            rows={2}
-            className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-2.5 text-[10px] text-white outline-none focus:border-primary/50 font-mono resize-none"
-          />
-          <p className="text-[10px] text-[#848e9c] mt-1">This key is never stored. It is only used once to sign this transaction.</p>
-        </div>
-      )}
-      <div>
-        <label className="block text-[10px] text-[#848e9c] mb-1">Destination Address (TRC20)</label>
-        <input
-          type="text"
-          value={withdrawDest}
-          onChange={(e) => setWithdrawDest(e.target.value)}
-          placeholder="T... (your Binance/Bybit TRC20 deposit address)"
-          className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-2.5 text-[10px] text-white outline-none focus:border-primary/50 font-mono"
-        />
-      </div>
-      <div>
-        <label className="block text-[10px] text-[#848e9c] mb-1">Amount (USDT)</label>
-        <div className="relative">
-          <input
-            type="number"
-            value={withdrawAmount}
-            onChange={(e) => setWithdrawAmount(e.target.value)}
-            placeholder="0.00"
-            step="0.01"
-            className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-2.5 text-xs text-white outline-none focus:border-primary/50"
-          />
-          {maxBalance !== undefined && (
-            <button onClick={() => setWithdrawAmount(maxBalance.toFixed(6))}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary">MAX</button>
-          )}
-        </div>
-      </div>
-      <div>
-        <label className="block text-[10px] text-[#848e9c] mb-1">Admin PIN</label>
-        <input
-          type="password"
-          value={withdrawPin}
-          onChange={(e) => setWithdrawPin(e.target.value)}
-          placeholder="Enter PIN to confirm"
-          className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-2.5 text-xs text-white outline-none focus:border-primary/50 text-center tracking-widest"
-        />
-      </div>
-      <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-2.5">
-        <p className="text-[10px] text-yellow-300 leading-relaxed">
-          <FiAlertTriangle size={10} className="inline mr-1" />
-          This sends <strong>real USDT</strong> on TRON blockchain. Cannot be reversed. Requires ~20 TRX for gas in the source wallet.
-        </p>
-      </div>
-      <div className="flex gap-2 pt-1">
-        <button onClick={closeModal} className="flex-1 rounded-xl bg-white/[0.04] py-3 text-xs font-bold text-white hover:bg-white/[0.08]">
-          Cancel
-        </button>
-        <button
-          onClick={onSubmit}
-          disabled={withdrawing || !withdrawDest || !withdrawAmount || !withdrawPin || (modal === "withdraw-direct" && !withdrawPrivKey)}
-          className="flex-1 rounded-xl bg-primary py-3 text-xs font-bold text-[#0b0e11] hover:bg-primary/90 disabled:opacity-40"
-        >
-          {withdrawing ? "Sending..." : "Confirm Withdraw"}
-        </button>
-      </div>
-    </div>
-  );
+  const isGasError = (msg: string) =>
+    ["resource", "bandwidth", "energy", "trx", "fee", "balance"].some(w => msg.toLowerCase().includes(w));
 
   return (
     <div className="space-y-4 pb-24">
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-bold text-white">Platform Wallet</h1>
-          <p className="text-[11px] text-[#848e9c] mt-0.5">Real TRC20 USDT control</p>
+          <p className="text-[11px] text-[#848e9c] mt-0.5">Real TRC20 USDT balances</p>
         </div>
-        <button onClick={loadData} className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2 text-xs font-medium text-white transition hover:bg-white/[0.08]">
-          <FiRefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setPinMsg(null); setOldPin(""); setNewPin(""); setConfirmPin(""); setModal("resetPin"); }}
+            className="flex items-center gap-1 rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-white transition hover:bg-white/[0.08]"
+          >
+            <FiShield size={11} className="text-primary" /> PIN
+          </button>
+          <button
+            onClick={loadData}
+            className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2 text-xs font-medium text-white transition hover:bg-white/[0.08]"
+          >
+            <FiRefreshCw size={11} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {/* Total USDT Card */}
+      {/* Total Balance */}
       <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#1a2035] to-[#0d1017] p-4">
         <div className="flex items-center gap-2 mb-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/20 text-primary">
             <FiDollarSign size={14} />
           </div>
-          <p className="text-[11px] text-[#848e9c] font-medium">Total Real USDT Collected</p>
+          <p className="text-[11px] text-[#848e9c]">Total Real USDT Collected</p>
         </div>
         <p className="text-2xl font-bold text-white">{loading ? "..." : `$${(data?.totalUsdt ?? 0).toFixed(4)}`}</p>
         <p className="text-[10px] text-[#848e9c] mt-1">Across all user deposit addresses</p>
       </div>
 
-      {/* ── DIRECT WITHDRAW BUTTON ── */}
-      <button
-        onClick={openDirectWithdraw}
-        className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90 active:scale-95"
-      >
-        <FiArrowUpRight size={16} />
-        Withdraw USDT Now
-      </button>
-
-      {/* How to Withdraw Guide */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] overflow-hidden">
+      {/* Gas Fee Info */}
+      <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 overflow-hidden">
         <button
-          onClick={() => setShowGuide(!showGuide)}
-          className="w-full flex items-center justify-between px-4 py-3"
+          className="w-full flex items-center justify-between px-3 py-3"
+          onClick={() => setShowGasInfo(!showGasInfo)}
         >
           <div className="flex items-center gap-2">
-            <FiInfo size={13} className="text-primary" />
-            <span className="text-xs font-semibold text-white">How to Withdraw — Full Guide</span>
+            <FiAlertTriangle size={12} className="text-yellow-400 shrink-0" />
+            <p className="text-[10px] font-bold text-yellow-400">About TRX Gas Fees</p>
           </div>
-          {showGuide ? <FiChevronUp size={13} className="text-[#848e9c]" /> : <FiChevronDown size={13} className="text-[#848e9c]" />}
+          {showGasInfo ? <FiChevronUp size={12} className="text-yellow-400" /> : <FiChevronDown size={12} className="text-yellow-400" />}
         </button>
-
-        {showGuide && (
-          <div className="px-4 pb-4 space-y-3">
-            <div className="rounded-xl bg-[#0b0e11] p-3 space-y-2.5">
-              <p className="text-[10px] font-bold text-primary uppercase tracking-wide">Step-by-Step Withdrawal Process</p>
-
-              {[
-                { step: "1", title: "Find the source private key", desc: "When a user generates a crypto deposit address in the app, their private key is stored securely in Firestore. Go to Firebase Console → Firestore → users → [user ID] → deposit_addresses to find the private key, or use the 'Withdraw' button on the address card below." },
-                { step: "2", title: "Check TRX gas balance", desc: "The source TRC20 wallet needs ~20 TRX for gas. Go to TronScan.org, paste the source address, and check the TRX balance. If it shows 0 TRX — you MUST send 20 TRX to it first before withdrawing USDT." },
-                { step: "3", title: "Send TRX for gas (if needed)", desc: "Go to Binance or Bybit → Withdraw → Select TRX → Network: TRC20 → Paste the source address → Send exactly 20 TRX. Wait 1-3 minutes for it to arrive." },
-                { step: "4", title: "Click 'Withdraw USDT Now'", desc: "Click the orange button above. Paste the private key of the source wallet, enter your Binance/Bybit TRC20 deposit address as destination, enter the amount, and confirm with your Admin PIN." },
-                { step: "5", title: "Confirm on TronScan", desc: "After success, you get a Transaction ID (TXID). Click the TronScan link to verify the transaction is confirmed on-chain. USDT typically arrives in your exchange in 1-5 minutes." },
-              ].map(({ step, title, desc }) => (
-                <div key={step} className="flex gap-2.5">
-                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-bold mt-0.5">{step}</div>
-                  <div>
-                    <p className="text-[10px] font-bold text-white">{title}</p>
-                    <p className="text-[10px] text-[#848e9c] leading-relaxed mt-0.5">{desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Gas fee explainer */}
-            <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 space-y-1.5">
-              <p className="text-[10px] font-bold text-yellow-400 flex items-center gap-1">
-                <FiAlertTriangle size={10} /> What is TRX Gas & Why Do I Need It?
-              </p>
-              <p className="text-[10px] text-yellow-200 leading-relaxed">
-                TRON blockchain charges a small fee called "energy/bandwidth" for every transaction. This fee is paid in TRX (TRON's native coin). USDT itself cannot pay for this fee — only TRX can. Without TRX in the source wallet, the withdrawal will fail with an error like "Account does not have enough resources".
-              </p>
-              <p className="text-[10px] text-yellow-300 font-semibold">
-                Fix: Send 20 TRX to the source address → Wait 2 min → Retry withdrawal.
-              </p>
-            </div>
+        {showGasInfo && (
+          <div className="px-3 pb-3 space-y-2">
+            <p className="text-[10px] text-yellow-200 leading-relaxed">
+              <strong>Why does withdrawal need TRX?</strong> The TRON blockchain requires a small fee called "energy" to process every TRC20 transaction. This fee is paid in TRX (TRON coin) — not USDT. There is no way to bypass this. It is a TRON network rule.
+            </p>
+            <p className="text-[10px] text-yellow-200 leading-relaxed">
+              <strong>How much TRX do I need?</strong> Around 15–30 TRX per withdrawal (roughly $1–2). This is a one-time per-withdrawal cost.
+            </p>
+            <p className="text-[10px] text-yellow-200 leading-relaxed">
+              <strong>What if withdrawal fails?</strong> It means the source address has 0 TRX. Go to your Binance/Bybit → Withdraw → TRX → Network: TRC20 → paste the source address → send 20 TRX → wait 2 min → retry.
+            </p>
+            <p className="text-[10px] text-yellow-300 font-semibold">
+              If a user deposited $100 USDT, you will receive ~$98–99 after the TRX gas cost. The TRX is NOT deducted from USDT — it is a separate coin fee.
+            </p>
           </div>
         )}
       </div>
 
-      {/* Change PIN */}
-      <button
-        onClick={() => { setPinMsg(null); setOldPin(""); setNewPin(""); setConfirmPin(""); setModal("resetPin"); }}
-        className="w-full flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#161a1e] px-4 py-3 transition hover:bg-white/[0.04]"
-      >
-        <div className="flex items-center gap-2">
-          <FiShield size={13} className="text-primary" />
-          <span className="text-xs font-semibold text-white">Change Wallet PIN</span>
-        </div>
-        <span className="text-[10px] text-[#848e9c]">→</span>
-      </button>
-
       {/* User Deposit Addresses */}
       <div>
-        <p className="text-[10px] font-semibold text-[#848e9c] mb-2 uppercase tracking-wider">User Deposit Addresses</p>
+        <p className="text-[10px] font-semibold text-[#848e9c] uppercase tracking-wider mb-2">User Deposit Addresses</p>
+
         {loading ? (
-          <div className="text-center py-8 text-[11px] text-[#848e9c]">Loading...</div>
+          <div className="text-center py-8 text-[11px] text-[#848e9c]">Loading addresses...</div>
         ) : !data?.addresses || data.addresses.length === 0 ? (
-          <div className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-4 text-center">
-            <p className="text-[11px] text-[#848e9c]">No user crypto deposits yet.</p>
-            <p className="text-[10px] text-[#636d79] mt-1">When users deposit via TRC20, their addresses appear here with a Withdraw button.</p>
+          <div className="rounded-xl border border-dashed border-white/[0.08] p-6 text-center">
+            <p className="text-[11px] text-[#848e9c]">No crypto deposits yet.</p>
+            <p className="text-[10px] text-[#636d79] mt-1">When a user deposits via crypto, their wallet appears here with a Withdraw button.</p>
           </div>
         ) : (
           <div className="space-y-2">
             {data.addresses.map((addr) => (
-              <div key={addr.address} className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-[#848e9c]">User</p>
-                    <p className="text-[10px] font-mono text-white">{addr.uid.slice(0, 12)}...</p>
+              <div key={addr.address} className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-3 space-y-2.5">
+                {/* User + Balance row */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-[#848e9c]">User ID</p>
+                    <p className="text-[10px] font-mono text-white">{addr.uid.slice(0, 16)}...</p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[10px] text-[#848e9c]">Balance</p>
-                    <p className="text-xs font-bold text-primary">{addr.balance.toFixed(4)} USDT</p>
+                  <div className="text-right">
+                    <p className="text-[10px] text-[#848e9c]">USDT Balance</p>
+                    <p className="text-sm font-bold text-primary">{addr.balance.toFixed(4)}</p>
                   </div>
                 </div>
-                <p className="text-[10px] font-mono text-white/60 break-all">{addr.address}</p>
+
+                {/* Address */}
+                <div className="rounded-lg bg-[#0b0e11] px-2.5 py-2">
+                  <p className="text-[10px] text-[#848e9c] mb-0.5">TRC20 Deposit Address</p>
+                  <p className="text-[10px] font-mono text-white/70 break-all">{addr.address}</p>
+                </div>
+
+                {/* Last deposit */}
+                {addr.lastDepositAt && (
+                  <p className="text-[9px] text-[#636d79]">
+                    Last deposit: {new Date(addr.lastDepositAt).toLocaleDateString()}
+                  </p>
+                )}
+
+                {/* Withdraw Button */}
                 <button
-                  onClick={() => openAddressWithdraw(addr)}
-                  className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-primary/10 py-2 text-[11px] font-bold text-primary transition hover:bg-primary/20"
+                  onClick={() => openWithdraw(addr)}
+                  disabled={addr.balance <= 0}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-[#0b0e11] transition hover:bg-primary/90 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <FiArrowUpRight size={12} />
-                  Withdraw from This Address
+                  <FiArrowUpRight size={13} />
+                  Withdraw {addr.balance.toFixed(2)} USDT
                 </button>
+
+                {addr.balance <= 0 && (
+                  <p className="text-[9px] text-[#636d79] text-center">Balance is zero — nothing to withdraw</p>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* ── MODALS ── */}
-      {(modal === "withdraw-direct" || modal === "withdraw-address") && (
+      {/* ── WITHDRAW MODAL ── */}
+      {modal === "withdraw" && selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm" onClick={closeModal}>
-          <div className="w-full max-w-sm rounded-t-3xl border-t border-white/[0.08] bg-[#0b0e11] p-5 shadow-2xl space-y-4" onClick={(e) => e.stopPropagation()}>
-            {withdrawResult ? <ResultScreen /> : (
+          <div
+            className="w-full max-w-sm rounded-t-3xl border-t border-white/[0.08] bg-[#0b0e11] p-5 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {result ? (
+              /* Result Screen */
+              <div className="text-center space-y-4 py-2">
+                {result.success ? (
+                  <>
+                    <div className="flex justify-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10 text-green-400">
+                        <FiCheck size={28} />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Withdrawal Successful!</p>
+                      <p className="text-[10px] text-[#848e9c] mt-1">USDT sent on TRON network</p>
+                    </div>
+                    <div className="rounded-xl bg-white/[0.04] p-3 text-left">
+                      <p className="text-[10px] text-[#848e9c] mb-1">Transaction ID</p>
+                      <p className="text-[10px] font-mono text-primary break-all">{result.txId}</p>
+                    </div>
+                    <a
+                      href={`https://tronscan.org/#/transaction/${result.txId}`}
+                      target="_blank" rel="noreferrer"
+                      className="flex items-center justify-center gap-1 text-xs text-primary underline"
+                    >
+                      Verify on TronScan <FiExternalLink size={10} />
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+                        <FiX size={28} />
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold text-white">Withdrawal Failed</p>
+                    <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-3 text-left">
+                      <p className="text-[10px] text-red-300">{result.error}</p>
+                    </div>
+                    {result.error && isGasError(result.error) && (
+                      <div className="rounded-xl bg-yellow-500/5 border border-yellow-500/20 p-3 text-left space-y-1.5">
+                        <p className="text-[10px] font-bold text-yellow-400">Fix: Send TRX for Gas</p>
+                        <ol className="text-[10px] text-yellow-200 space-y-1 list-decimal list-inside">
+                          <li>Open Binance or Bybit</li>
+                          <li>Withdraw → Select <strong>TRX</strong> → Network: <strong>TRC20</strong></li>
+                          <li>Paste this address:<br /><span className="font-mono text-yellow-300 break-all">{selected.address}</span></li>
+                          <li>Send <strong>20 TRX</strong></li>
+                          <li>Wait 2 minutes, then try again</li>
+                        </ol>
+                      </div>
+                    )}
+                  </>
+                )}
+                <button onClick={closeModal} className="w-full rounded-xl bg-white/[0.06] py-3 text-xs font-bold text-white hover:bg-white/[0.08]">
+                  Close
+                </button>
+              </div>
+            ) : (
+              /* Withdrawal Form */
               <>
                 <div>
-                  <h3 className="text-sm font-bold text-white">
-                    {modal === "withdraw-direct" ? "Withdraw USDT (Any Wallet)" : "Withdraw USDT"}
-                  </h3>
-                  {modal === "withdraw-address" && selectedAddr && (
-                    <p className="text-[10px] text-primary mt-0.5">
-                      From: {selectedAddr.address.slice(0, 14)}... · {selectedAddr.balance.toFixed(4)} USDT available
-                    </p>
-                  )}
+                  <h3 className="text-sm font-bold text-white">Withdraw USDT</h3>
+                  <div className="mt-2 rounded-lg bg-white/[0.03] p-2.5 space-y-0.5">
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-[#848e9c]">From</span>
+                      <span className="text-[10px] font-mono text-white">{selected.address.slice(0, 10)}...{selected.address.slice(-6)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-[#848e9c]">Available</span>
+                      <span className="text-[10px] font-bold text-primary">{selected.balance.toFixed(4)} USDT</span>
+                    </div>
+                  </div>
                 </div>
-                <WithdrawForm
-                  onSubmit={modal === "withdraw-direct" ? handleDirectWithdraw : handleAddressWithdraw}
-                  maxBalance={modal === "withdraw-address" ? selectedAddr?.balance : undefined}
-                />
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] text-[#848e9c] mb-1.5">Destination Address (TRC20)</label>
+                    <input
+                      type="text"
+                      value={dest}
+                      onChange={(e) => setDest(e.target.value)}
+                      placeholder="T... (your Binance/Bybit TRC20 address)"
+                      className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-3 text-xs text-white outline-none focus:border-primary/50 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#848e9c] mb-1.5">Amount (USDT)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        step="0.01"
+                        max={selected.balance}
+                        className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-3 text-sm text-white outline-none focus:border-primary/50"
+                      />
+                      <button
+                        onClick={() => setAmount(selected.balance.toFixed(6))}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary hover:text-primary/80"
+                      >
+                        MAX
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-[#848e9c] mb-1.5">Admin PIN</label>
+                    <input
+                      type="password"
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value)}
+                      placeholder="Enter PIN to confirm"
+                      className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-3 text-sm text-white outline-none focus:border-primary/50 text-center tracking-[0.3em]"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-2.5">
+                  <p className="text-[10px] text-yellow-300 leading-relaxed">
+                    <FiAlertTriangle size={9} className="inline mr-1" />
+                    Sends real USDT on TRON. Cannot be reversed. Source address must have ~20 TRX for gas.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={closeModal} className="flex-1 rounded-xl bg-white/[0.04] py-3.5 text-xs font-bold text-white hover:bg-white/[0.08]">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleWithdraw}
+                    disabled={withdrawing || !dest || !amount || !pin}
+                    className="flex-1 rounded-xl bg-primary py-3.5 text-xs font-bold text-[#0b0e11] hover:bg-primary/90 disabled:opacity-40"
+                  >
+                    {withdrawing ? "Sending..." : "Confirm Withdraw"}
+                  </button>
+                </div>
               </>
             )}
           </div>
         </div>
       )}
 
+      {/* ── CHANGE PIN MODAL ── */}
       {modal === "resetPin" && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm" onClick={closeModal}>
           <div className="w-full max-w-sm rounded-t-3xl border-t border-white/[0.08] bg-[#0b0e11] p-5 shadow-2xl space-y-4" onClick={(e) => e.stopPropagation()}>
@@ -440,7 +399,7 @@ export default function AdminWalletPage() {
               <FiLock size={15} className="text-primary" />
               <h3 className="text-sm font-bold text-white">Change Wallet PIN</h3>
             </div>
-            <p className="text-[10px] text-[#848e9c]">Default PIN is <strong className="text-white">123456</strong>. Enter it as the current PIN if you haven't changed it yet.</p>
+            <p className="text-[10px] text-[#848e9c]">Default PIN is <strong className="text-white">123456</strong>.</p>
             <div className="space-y-2">
               {[
                 { label: "Current PIN", val: oldPin, set: setOldPin },
@@ -450,15 +409,15 @@ export default function AdminWalletPage() {
                 <div key={label}>
                   <label className="block text-[10px] text-[#848e9c] mb-1">{label}</label>
                   <input type="password" value={val} onChange={(e) => set(e.target.value)} placeholder="••••••"
-                    className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-3 text-xs text-white outline-none focus:border-primary/50 text-center tracking-widest" />
+                    className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-3 text-sm text-white outline-none focus:border-primary/50 text-center tracking-[0.3em]" />
                 </div>
               ))}
             </div>
             {pinMsg && <p className={`text-[10px] ${pinMsg.ok ? "text-green-400" : "text-red-400"}`}>{pinMsg.text}</p>}
             <div className="flex gap-2">
-              <button onClick={closeModal} className="flex-1 rounded-xl bg-white/[0.04] py-3 text-xs font-bold text-white">Cancel</button>
+              <button onClick={closeModal} className="flex-1 rounded-xl bg-white/[0.04] py-3.5 text-xs font-bold text-white">Cancel</button>
               <button onClick={handleResetPin} disabled={savingPin || !oldPin || !newPin || !confirmPin}
-                className="flex-1 rounded-xl bg-primary py-3 text-xs font-bold text-[#0b0e11] disabled:opacity-40">
+                className="flex-1 rounded-xl bg-primary py-3.5 text-xs font-bold text-[#0b0e11] disabled:opacity-40">
                 {savingPin ? "Saving..." : "Update PIN"}
               </button>
             </div>
