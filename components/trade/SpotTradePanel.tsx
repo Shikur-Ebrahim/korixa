@@ -34,6 +34,7 @@ export function SpotTradePanel() {
   
   const [holdings, setHoldings] = useState<SpotHolding[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(false);
 
   useEffect(() => {
     if (user?.uid) {
@@ -92,34 +93,26 @@ export function SpotTradePanel() {
   };
 
   const handleTrade = async () => {
-    if (!user?.uid) {
-      router.push("/sign-in");
-      return;
-    }
+    if (!user?.uid) { router.push("/sign-in"); return; }
     if (!isKycVerified) return;
     if (currentAmount <= 0 || currentPrice <= 0) return;
 
     // Order Confirmation (from Trading Settings)
     if (tradeSettings.requireOrderConfirmation) {
-      const action = activeTab === "buy" ? "Buy" : "Sell";
-      const confirmed = window.confirm(
-        `Confirm ${action} Order\n\n${action} ${currentAmount.toFixed(6)} ${baseCoin} at ${currentPrice} ${quoteCoin}\nTotal: ${totalQuote.toFixed(2)} ${quoteCoin}\n\nProceed?`
-      );
-      if (!confirmed) return;
+      setConfirmModal(true);
+      return;
     }
+    await executeTrade();
+  };
 
+  const executeTrade = async () => {
+    setConfirmModal(false);
     setIsSubmitting(true);
     setNotification(null);
     try {
       const res = await executeSpotTrade(
-        user.uid,
-        baseCoin,
-        quoteCoin,
-        activeTab,
-        currentAmount,
-        currentPrice
+        user!.uid, baseCoin, quoteCoin, activeTab, currentAmount, currentPrice
       );
-      
       if (res.success) {
         setAmountInput("");
         showToast("success", `Successfully ${activeTab === "buy" ? "bought" : "sold"} ${currentAmount} ${baseCoin}!`);
@@ -296,7 +289,79 @@ export function SpotTradePanel() {
           </button>
         )}
       </div>
+
+      {/* ── CONFIRMATION MODAL ── */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setConfirmModal(false)}>
+          <div
+            className="w-full max-w-sm rounded-t-3xl border-t border-white/[0.08] bg-[#0b0e11] p-5 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <div className="flex justify-center">
+              <div className={`flex h-14 w-14 items-center justify-center rounded-full ${
+                activeTab === "buy" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+              }`}>
+                {activeTab === "buy" ? (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+                )}
+              </div>
+            </div>
+
+            {/* Title */}
+            <div className="text-center">
+              <h3 className="text-base font-bold text-white">
+                Confirm {activeTab === "buy" ? "Buy" : "Sell"} Order
+              </h3>
+              <p className="text-[11px] text-[#848e9c] mt-1">Review your order before placing</p>
+            </div>
+
+            {/* Order details */}
+            <div className="rounded-2xl bg-[#161a1e] border border-white/[0.06] divide-y divide-white/[0.05]">
+              <div className="flex justify-between px-4 py-3">
+                <span className="text-xs text-[#848e9c]">Action</span>
+                <span className={`text-xs font-bold ${activeTab === "buy" ? "text-green-400" : "text-red-400"}`}>
+                  {activeTab === "buy" ? "BUY" : "SELL"} {baseCoin}
+                </span>
+              </div>
+              <div className="flex justify-between px-4 py-3">
+                <span className="text-xs text-[#848e9c]">Amount</span>
+                <span className="text-xs font-semibold text-white">{currentAmount.toFixed(6)} {baseCoin}</span>
+              </div>
+              <div className="flex justify-between px-4 py-3">
+                <span className="text-xs text-[#848e9c]">Price</span>
+                <span className="text-xs font-semibold text-white">{currentPrice.toLocaleString()} {quoteCoin}</span>
+              </div>
+              <div className="flex justify-between px-4 py-3">
+                <span className="text-xs text-[#848e9c]">Total</span>
+                <span className="text-xs font-bold text-white">{totalQuote.toFixed(2)} {quoteCoin}</span>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmModal(false)}
+                className="flex-1 rounded-2xl bg-white/[0.06] py-4 text-sm font-bold text-white hover:bg-white/[0.1] active:scale-95 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeTrade}
+                className={`flex-1 rounded-2xl py-4 text-sm font-bold text-white active:scale-95 transition ${
+                  activeTab === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"
+                }`}
+              >
+                {activeTab === "buy" ? "Confirm Buy" : "Confirm Sell"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 

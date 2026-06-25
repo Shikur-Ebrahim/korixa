@@ -120,6 +120,28 @@ function OrderCard({ order }: { order: P2POrder }) {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [hasUnread, setHasUnread] = useState(false);
+
+  // Listen for new messages to show the unread dot
+  useEffect(() => {
+    const q = query(
+      collection(getClientFirestore(), `p2pOrders/${order.id}/messages`),
+      orderBy("createdAt", "desc")
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      if (snap.empty) return;
+      // If chat is closed and there is at least one buyer message, show dot
+      if (!chatOpen) {
+        const latestMsg = snap.docs[0].data();
+        // Show dot if message is from the buyer (not from admin)
+        const isFromBuyer = latestMsg.senderId === order.buyerId;
+        setHasUnread(isFromBuyer);
+      } else {
+        setHasUnread(false);
+      }
+    });
+    return () => unsub();
+  }, [order.id, order.buyerId, chatOpen]);
 
   const callOrderAction = async (action: "release" | "reject") => {
     const confirmMsg = action === "release"
@@ -242,13 +264,19 @@ function OrderCard({ order }: { order: P2POrder }) {
             </div>
           )}
 
-          {/* Chat toggle */}
+          {/* Chat toggle with unread dot */}
           <button
             onClick={() => setChatOpen(!chatOpen)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/[0.06] py-2 text-xs font-medium text-[#848e9c] transition hover:border-primary hover:text-primary"
+            className="relative flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/[0.06] py-2 text-xs font-medium text-[#848e9c] transition hover:border-primary hover:text-primary"
           >
             <FiMessageSquare size={13} />
             {chatOpen ? "Close Chat" : "Open Chat"}
+            {hasUnread && !chatOpen && (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <span className="animate-pulse flex h-2 w-2 rounded-full bg-red-500" />
+                <span className="text-[9px] font-bold text-red-400">New</span>
+              </span>
+            )}
           </button>
 
           {chatOpen && <ChatPanel order={order} onClose={() => setChatOpen(false)} />}
