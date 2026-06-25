@@ -13,6 +13,7 @@ import {
   FiLogOut,
   FiRepeat,
   FiList,
+  FiDollarSign,
 } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/admin/kyc", label: "KYC", icon: FiShield },
   { href: "/admin/orders", label: "Orders", icon: FiList },
   { href: "/admin/p2p", label: "P2P", icon: FiRepeat },
+  { href: "/admin/wallet", label: "Wallet", icon: FiDollarSign },
   { href: "/admin/settings", label: "Settings", icon: FiSettings },
 ];
 

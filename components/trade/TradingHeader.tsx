@@ -90,8 +90,10 @@ export function TradingHeader() {
       )}
 
       {selectorOpen && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-2xl border border-white/[0.08] bg-[#161a1e] shadow-2xl">
-          <div className="border-b border-white/[0.06] p-3">
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setSelectorOpen(false)} />
+          <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-2xl border border-white/[0.08] bg-[#161a1e] shadow-2xl">
+            <div className="border-b border-white/[0.06] p-3">
             <div className="relative">
               <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#848e9c]" />
               <input
@@ -142,6 +144,7 @@ export function TradingHeader() {
             ))}
           </div>
         </div>
+        </>
       )}
     </div>
   );
