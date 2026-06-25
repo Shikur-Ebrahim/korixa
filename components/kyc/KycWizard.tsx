@@ -161,19 +161,75 @@ function KycWizardContent() {
 
   if (!showWizard) {
     return (
-      <div className={`${appTheme.card} mx-auto max-w-md text-center`}>
-        <p className="text-sm text-[#848e9c]">
-          Complete identity verification to unlock trading and wallet features.
-        </p>
+      <div className="mx-auto max-w-lg">
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-xl md:rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#161a1e] via-[#0f1923] to-[#0b0e11] p-6 mb-5 text-center">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 ring-2 ring-primary/25">
+              <FiCheck className="text-primary" size={28} />
+            </div>
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Identity Verification</h1>
+            <p className="text-[10px] md:text-xs text-[#848e9c] max-w-xs mx-auto leading-relaxed">
+              Verify your identity once to unlock the full power of Korixa — secure P2P trading, crypto deposits, and withdrawals.
+            </p>
+          </div>
+        </div>
+
+        {/* What you unlock */}
+        <div className="rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5 mb-5">
+          <h2 className="text-xs md:text-sm font-bold text-white mb-4">What you unlock after verification</h2>
+          <div className="space-y-3">
+            {[
+              { icon: "💸", title: "P2P Trading", desc: "Buy and sell USDT directly with verified merchants." },
+              { icon: "🏦", title: "Crypto Deposits", desc: "Receive USDT to your personal wallet address." },
+              { icon: "🔒", title: "Secure Account", desc: "Your account is protected under KYC compliance." },
+            ].map((item) => (
+              <div key={item.title} className="flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0b0e11] text-base">
+                  {item.icon}
+                </div>
+                <div>
+                  <p className="text-xs md:text-sm font-semibold text-white">{item.title}</p>
+                  <p className="text-[10px] md:text-xs text-[#848e9c]">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* What you need */}
+        <div className="rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5 mb-6">
+          <h2 className="text-xs md:text-sm font-bold text-white mb-4">What you will need</h2>
+          <div className="space-y-2">
+            {[
+              "A valid national ID, passport, or driver's license",
+              "A clear photo of both front and back of your document",
+              "A quick selfie photo for face matching",
+              "Good lighting and a steady hand — takes under 3 minutes",
+            ].map((item, idx) => (
+              <div key={idx} className="flex items-start gap-2.5">
+                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                <p className="text-[10px] md:text-xs text-[#848e9c] leading-relaxed">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA */}
         <Link
           href="/kyc?start=1"
-          className={`${appTheme.btnPrimary} mt-4 inline-flex px-5 py-2.5`}
+          className="flex w-full items-center justify-center rounded-xl bg-primary py-4 text-xs md:text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90 active:scale-[0.98] shadow-lg shadow-primary/20"
         >
-          Verify now
+          Start Verification
         </Link>
+        <p className="mt-3 text-center text-[9px] md:text-[10px] text-[#848e9c]">
+          Your data is encrypted and handled securely. We do not share your information with third parties.
+        </p>
       </div>
     );
   }
+
 
   return (
     <div className="mx-auto max-w-2xl">
