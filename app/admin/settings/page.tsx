@@ -16,6 +16,8 @@ export default function AdminSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState("");
+  
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const cliCommand = `node set-admin.js ${user?.email ?? "user@email.com"}`;
 
@@ -96,7 +98,7 @@ export default function AdminSettingsPage() {
             </div>
             <h3 className="mb-2 text-center text-xl font-bold text-white">Enter Admin PIN</h3>
             <p className="mb-6 text-center text-xs text-[#848e9c]">
-              Please enter the master admin PIN to access the Platform Wallet. (Default is 123456)
+              Please enter the master admin PIN to access the Platform Wallet.
             </p>
             
             <input
@@ -125,17 +127,36 @@ export default function AdminSettingsPage() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  if (pin === "123456") {
-                    setShowPinModal(false);
-                    router.push("/admin/wallet");
-                  } else {
-                    setPinError("Invalid PIN. Please try again.");
+                disabled={isVerifying || !pin}
+                onClick={async () => {
+                  setIsVerifying(true);
+                  setPinError("");
+                  try {
+                    const token = await getIdToken();
+                    const res = await fetch("/api/admin/wallet/pin", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ action: "verify", pin })
+                    });
+                    if (res.ok) {
+                      setShowPinModal(false);
+                      router.push("/admin/wallet");
+                    } else {
+                      const d = await res.json();
+                      setPinError(d.error || "Invalid PIN. Please try again.");
+                    }
+                  } catch (e) {
+                    setPinError("Connection error.");
+                  } finally {
+                    setIsVerifying(false);
                   }
                 }}
-                className="flex-1 rounded-xl bg-primary py-3.5 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
+                className="flex-1 rounded-xl bg-primary py-3.5 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90 disabled:opacity-50"
               >
-                Verify & Open
+                {isVerifying ? "Verifying..." : "Verify & Open"}
               </button>
             </div>
           </div>

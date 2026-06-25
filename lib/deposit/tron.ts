@@ -62,3 +62,30 @@ export async function getIncomingUsdtTransfers(address: string) {
     return [];
   }
 }
+
+/**
+ * Send TRC20 USDT from a user deposit address to a destination (e.g. Binance/Bybit).
+ * Requires the private key of the source address and enough TRX for gas (~15-30 TRX).
+ * Amount should be in USDT decimal format (e.g. 10.5 = 10.5 USDT).
+ */
+export async function sendUsdtTrc20(
+  fromPrivateKey: string,
+  toAddress: string,
+  amount: number
+): Promise<{ txId: string }> {
+  const web = new TronWeb({
+    fullHost: "https://api.trongrid.io",
+    headers: { "TRON-PRO-API-KEY": TRONGRID_API_KEY },
+    privateKey: fromPrivateKey,
+  });
+
+  // Amount must be in raw units (6 decimals)
+  const amountRaw = Math.floor(amount * 1_000_000);
+  
+  if (amountRaw <= 0) throw new Error("Amount must be greater than 0");
+
+  const contract = await web.contract().at(USDT_TRC20_CONTRACT);
+  const txId = await contract.transfer(toAddress, amountRaw).send();
+  
+  return { txId };
+}
