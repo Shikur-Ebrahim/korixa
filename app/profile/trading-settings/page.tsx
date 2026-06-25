@@ -44,7 +44,7 @@ function Toggle({
   );
 }
 
-// ─── Reusable Select ────────────────────────────────────────────────────────
+// ─── Reusable Custom Dropdown ────────────────────────────────────────────────
 function Select({
   value,
   onChange,
@@ -54,20 +54,57 @@ function Select({
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
 }) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.value === value);
+
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="rounded-xl border border-white/[0.08] bg-[#1e2329] px-3 py-2 text-xs md:text-sm font-semibold text-white focus:border-primary focus:outline-none transition-all"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-[#1e2329] px-3 py-2 text-[10px] md:text-xs font-semibold text-white focus:border-primary focus:outline-none transition-all whitespace-nowrap"
+      >
+        {selected?.label ?? value}
+        <svg
+          className={`h-3 w-3 text-[#848e9c] transition-transform ${open ? "rotate-180" : ""}`}
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          {/* Dropdown list */}
+          <div className="absolute right-0 top-full z-50 mt-1.5 min-w-[140px] rounded-xl border border-white/[0.08] bg-[#1e2329] shadow-2xl overflow-hidden">
+            {options.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                className={`flex w-full items-center justify-between px-4 py-3 text-[10px] md:text-xs font-semibold transition-colors ${
+                  o.value === value
+                    ? "bg-primary/10 text-primary"
+                    : "text-white hover:bg-white/[0.06]"
+                }`}
+              >
+                {o.label}
+                {o.value === value && (
+                  <svg className="h-3 w-3 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
+
 
 // ─── Row Component ───────────────────────────────────────────────────────────
 function SettingRow({
