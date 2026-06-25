@@ -28,6 +28,7 @@ export function AddEditPaymentMethodModal({ isOpen, onClose, onSave, initialData
   const [accountNumber, setAccountNumber] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -98,16 +99,39 @@ export function AddEditPaymentMethodModal({ isOpen, onClose, onSave, initialData
               {/* Payment Type */}
               <div className="space-y-1.5">
                 <label className="text-[10px] md:text-xs font-semibold text-[#848e9c]">Payment Type</label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as PaymentMethodType)}
-                  className="w-full rounded-xl border border-white/[0.06] bg-[#0b0e11] px-3 py-3 text-xs md:text-sm font-medium text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                  required
-                >
-                  {PAYMENT_TYPES.map(pt => (
-                    <option key={pt.id} value={pt.id}>{pt.label}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setTypeDropdownOpen(p => !p)}
+                    className="w-full flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#0b0e11] px-4 py-3 text-xs md:text-sm font-medium text-white focus:border-primary focus:outline-none transition-all"
+                  >
+                    <span>{PAYMENT_TYPES.find(pt => pt.id === type)?.label ?? type}</span>
+                    <svg className={`h-4 w-4 text-[#848e9c] transition-transform ${typeDropdownOpen ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+                  </button>
+
+                  {typeDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setTypeDropdownOpen(false)} />
+                      <div className="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-xl border border-white/[0.08] bg-[#1e2329] shadow-2xl overflow-hidden">
+                        {PAYMENT_TYPES.map(pt => (
+                          <button
+                            key={pt.id}
+                            type="button"
+                            onClick={() => { setType(pt.id); setTypeDropdownOpen(false); }}
+                            className={`flex w-full items-center justify-between px-4 py-3.5 text-xs md:text-sm font-medium transition-colors border-b border-white/[0.04] last:border-0 ${
+                              pt.id === type ? "bg-primary/10 text-primary" : "text-white hover:bg-white/[0.06]"
+                            }`}
+                          >
+                            {pt.label}
+                            {pt.id === type && (
+                              <svg className="h-3.5 w-3.5 text-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Bank Name (only for 'other') */}

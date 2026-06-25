@@ -143,7 +143,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e] overflow-hidden">
+    <div className="rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e]">
       <div className="px-4 pt-4 pb-1">
         <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-[#848e9c]">{title}</p>
       </div>
