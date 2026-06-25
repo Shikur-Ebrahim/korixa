@@ -55,7 +55,7 @@ const MENU_GROUPS = [
     title: "Preferences",
     items: [
       { label: "Payment Methods", href: "/profile/payment-methods", icon: FiCreditCard },
-      { label: "Trading Settings", href: "#", icon: FiSettings },
+      { label: "Trading Settings", href: "/profile/trading-settings", icon: FiSettings },
       { label: "Notifications", href: "#", icon: FiBell },
       { label: "Language & Currency", href: "#", icon: FiGlobe },
     ],

@@ -10,17 +10,24 @@ import { appTheme } from "@/components/layout/app-theme";
 import { FiClock, FiLock, FiShield } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTradingSettings } from "@/hooks/useTradingSettings";
 
 export function SpotTradePanel() {
   const { pair } = useTrade();
   const { user, kycStatus, kycLoading } = useAuth();
   const router = useRouter();
   const { data: ticker } = useBinanceTicker(pair.symbol);
+  const { settings: tradeSettings } = useTradingSettings();
 
   const isKycVerified = kycStatus === "verified";
 
   const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
-  const [orderType, setOrderType] = useState<"limit" | "market">("market");
+  const [orderType, setOrderType] = useState<"limit" | "market">(tradeSettings.defaultOrderType ?? "market");
+
+  // Sync orderType with settings change (only if user hasn't manually changed it)
+  useEffect(() => {
+    setOrderType(tradeSettings.defaultOrderType ?? "market");
+  }, [tradeSettings.defaultOrderType]);
   
   const [priceInput, setPriceInput] = useState("");
   const [amountInput, setAmountInput] = useState("");
@@ -89,9 +96,18 @@ export function SpotTradePanel() {
       router.push("/sign-in");
       return;
     }
-    if (!isKycVerified) return; // Extra guard
+    if (!isKycVerified) return;
     if (currentAmount <= 0 || currentPrice <= 0) return;
-    
+
+    // Order Confirmation (from Trading Settings)
+    if (tradeSettings.requireOrderConfirmation) {
+      const action = activeTab === "buy" ? "Buy" : "Sell";
+      const confirmed = window.confirm(
+        `Confirm ${action} Order\n\n${action} ${currentAmount.toFixed(6)} ${baseCoin} at ${currentPrice} ${quoteCoin}\nTotal: ${totalQuote.toFixed(2)} ${quoteCoin}\n\nProceed?`
+      );
+      if (!confirmed) return;
+    }
+
     setIsSubmitting(true);
     setNotification(null);
     try {
