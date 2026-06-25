@@ -17,7 +17,8 @@ import {
   FiBell,
   FiFileText,
   FiCopy,
-  FiCheck
+  FiCheck,
+  FiDollarSign
 } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { appTheme } from "@/components/layout/app-theme";
@@ -57,7 +58,8 @@ const MENU_GROUPS = [
       { label: "Payment Methods", href: "/profile/payment-methods", icon: FiCreditCard },
       { label: "Trading Settings", href: "/profile/trading-settings", icon: FiSettings },
       { label: "Notifications", href: "#", icon: FiBell },
-      { label: "Language & Currency", href: "#", icon: FiGlobe },
+      { label: "Language", href: "/profile/preferences/language", icon: FiGlobe },
+      { label: "Currency", href: "/profile/preferences/currency", icon: FiDollarSign },
     ],
   },
   {
