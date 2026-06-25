@@ -65,9 +65,9 @@ const MENU_GROUPS = [
   {
     title: "More",
     items: [
-      { label: "Rewards & Referral", href: "#", icon: FiGift },
-      { label: "Support & FAQ", href: "#", icon: FiHelpCircle },
-      { label: "Legal & Privacy", href: "#", icon: FiFileText },
+      { label: "Rewards & Referral", href: "/profile/rewards", icon: FiGift },
+      { label: "Support & FAQ", href: "/profile/support", icon: FiHelpCircle },
+      { label: "Privacy Policy", href: "/profile/privacy", icon: FiFileText },
     ],
   },
 ];
