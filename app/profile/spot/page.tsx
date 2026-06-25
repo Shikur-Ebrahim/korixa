@@ -169,7 +169,7 @@ export default function SpotAccountPage() {
             {!hideBalances && <span className="text-[#848e9c] font-medium">USD</span>}
           </div>
           <div className="mt-1 relative z-10 text-sm">
-            <span className="text-[#848e9c]">≈ {formatCrypto(totalUsd / 65000)} BTC</span>
+            <span className="text-[#848e9c]">≈ {formatCrypto(totalUsd / (getLivePrice("BTC") || 65000))} BTC</span>
           </div>
 
           {/* Quick Actions Row */}
