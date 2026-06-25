@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { verifyAuthToken } from "@/lib/auth/verify-token";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const adminUser = await verifyAuthToken(req);
+    
     const db = getAdminDb();
+    
+    // Ensure caller is admin
+    const adminDoc = await db.doc(`users/${adminUser.uid}`).get();
+    if (adminDoc.data()?.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    
     const snapshot = await db.collectionGroup("deposit_addresses").where("chain", "==", "TRC20").get();
 
     const addresses = [];

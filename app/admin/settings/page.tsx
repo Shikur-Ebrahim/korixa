@@ -1,12 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { FiShield, FiTerminal, FiInfo } from "react-icons/fi";
+import { FiShield, FiTerminal, FiInfo, FiLock, FiDollarSign, FiArrowRight } from "react-icons/fi";
 
 export default function AdminSettingsPage() {
   const { user, logout } = useAuth();
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
 
   const cliCommand = `node set-admin.js ${user?.email ?? "user@email.com"}`;
 
@@ -43,6 +48,86 @@ export default function AdminSettingsPage() {
             <span className="font-semibold text-primary">admin</span>
           </div>
         </div>
+      </div>
+
+      {/* PIN Verification Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-white/[0.08] bg-[#0b0e11] p-6 shadow-2xl">
+            <div className="mb-6 flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <FiLock size={28} />
+              </div>
+            </div>
+            <h3 className="mb-2 text-center text-xl font-bold text-white">Enter Admin PIN</h3>
+            <p className="mb-6 text-center text-xs text-[#848e9c]">
+              Please enter the master admin PIN to access the Platform Wallet. (Default is 123456)
+            </p>
+            
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => {
+                setPin(e.target.value);
+                setPinError("");
+              }}
+              placeholder="••••••"
+              className="mb-4 w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-4 py-4 text-center text-xl tracking-widest text-white outline-none focus:border-primary/50"
+              autoFocus
+            />
+            
+            {pinError && <p className="mb-4 text-center text-xs text-red-400">{pinError}</p>}
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowPinModal(false);
+                  setPin("");
+                  setPinError("");
+                }}
+                className="flex-1 rounded-xl bg-white/[0.04] py-3.5 text-sm font-bold text-white transition hover:bg-white/[0.08]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (pin === "123456") {
+                    setShowPinModal(false);
+                    router.push("/admin/wallet");
+                  } else {
+                    setPinError("Invalid PIN. Please try again.");
+                  }
+                }}
+                className="flex-1 rounded-xl bg-primary py-3.5 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
+              >
+                Verify & Open
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Platform Wallet - Protected */}
+      <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4 space-y-3 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-4 opacity-5">
+          <FiDollarSign size={80} />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
+            <FiLock size={16} />
+          </div>
+          <p className="text-sm font-semibold text-white">Platform Wallet</p>
+        </div>
+        <p className="text-xs text-[#848e9c] relative z-10 leading-relaxed pr-8">
+          Access the master wallet, manage user deposits, and sweep real TRC20 USDT funds. This area is highly restricted.
+        </p>
+        <button
+          onClick={() => setShowPinModal(true)}
+          className="relative z-10 mt-2 flex w-full items-center justify-between rounded-xl bg-primary/10 px-4 py-3 text-sm font-bold text-primary transition hover:bg-primary/20"
+        >
+          <span>Open Secure Wallet</span>
+          <FiArrowRight />
+        </button>
       </div>
 
       {/* CLI tool */}

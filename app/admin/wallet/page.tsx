@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { FiDollarSign, FiRefreshCw, FiAlertTriangle, FiArrowUpRight, FiHardDrive } from "react-icons/fi";
 import { formatUsd } from "@/lib/format";
 
@@ -12,22 +13,25 @@ type WalletAddress = {
 };
 
 export default function AdminWalletPage() {
+  const { getIdToken } = useAuth();
   const [data, setData] = useState<{ totalUsdt: number; addresses: WalletAddress[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [sweepingAddress, setSweepingAddress] = useState<string | null>(null);
 
-  const loadData = () => {
+  const loadData = async () => {
     setLoading(true);
-    fetch("/api/admin/wallet")
-      .then((res) => res.json())
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch((e) => {
-        console.error(e);
-        setLoading(false);
+    try {
+      const token = await getIdToken();
+      const res = await fetch("/api/admin/wallet", {
+        headers: { Authorization: `Bearer ${token}` }
       });
+      const d = await res.json();
+      setData(d);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -104,12 +108,12 @@ export default function AdminWalletPage() {
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-[#848e9c]">Loading addresses...</td>
                 </tr>
-              ) : data?.addresses.length === 0 ? (
+              ) : !data?.addresses || data.addresses.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-[#848e9c]">No active deposit addresses found.</td>
                 </tr>
               ) : (
-                data?.addresses.map((addr) => (
+                data.addresses.map((addr) => (
                   <tr key={addr.address} className="hover:bg-white/[0.02]">
                     <td className="px-6 py-4 text-white">
                       <span className="font-mono text-xs">{addr.uid.slice(0, 8)}...</span>
