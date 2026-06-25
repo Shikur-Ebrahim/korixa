@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 import { FiArrowLeft, FiCheck, FiChevronDown, FiCopy, FiInfo } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { appTheme } from "@/components/layout/app-theme";
-import { authFetch } from "@/lib/auth/auth-fetch";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function CryptoDepositPage() {
   const router = useRouter();
+  const { getIdToken } = useAuth();
   const [address, setAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -20,32 +21,40 @@ export default function CryptoDepositPage() {
 
   useEffect(() => {
     // Generate or fetch TRC20 address
-    authFetch("/api/deposit/tron/address")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.address) setAddress(data.address);
-        setLoading(false);
+    getIdToken().then(token => {
+      fetch("/api/deposit/tron/address", {
+        headers: { Authorization: `Bearer ${token}` }
       })
-      .catch((err) => {
-        console.error("Failed to load address", err);
-        setLoading(false);
-      });
-  }, []);
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.address) setAddress(data.address);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Failed to load address", err);
+          setLoading(false);
+        });
+    });
+  }, [getIdToken]);
 
   useEffect(() => {
     if (!address) return;
 
     // Poll for balance updates every 10 seconds
     const interval = setInterval(() => {
-      authFetch("/api/deposit/tron/check")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.newDeposit) {
-            setSuccessMsg(`Deposit successful! ${data.amountAdded} USDT added to your wallet.`);
-            setTimeout(() => setSuccessMsg(null), 8000);
-          }
+      getIdToken().then(token => {
+        fetch("/api/deposit/tron/check", {
+          headers: { Authorization: `Bearer ${token}` }
         })
-        .catch(console.error);
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.newDeposit) {
+              setSuccessMsg(`Deposit successful! ${data.amountAdded} USDT added to your wallet.`);
+              setTimeout(() => setSuccessMsg(null), 8000);
+            }
+          })
+          .catch(console.error);
+      });
     }, 10000);
 
     return () => clearInterval(interval);

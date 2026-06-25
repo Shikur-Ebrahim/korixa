@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth/get-auth-user";
+import { verifyAuthToken } from "@/lib/auth/verify-token";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
   try {
-    const adminUser = await getAuthUser();
-    if (!adminUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const adminUser = await verifyAuthToken(req);
 
     // Ensure the caller is an admin
     const adminDoc = await getAdminDb().doc(`users/${adminUser.uid}`).get();

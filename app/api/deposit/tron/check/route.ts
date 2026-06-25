@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth/get-auth-user";
+import { verifyAuthToken } from "@/lib/auth/verify-token";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getTronUsdtBalance } from "@/lib/deposit/tron";
 import { FieldValue } from "firebase-admin/firestore";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const user = await verifyAuthToken(req);
 
     const db = getAdminDb();
     const addressRef = db.doc(`users/${user.uid}/deposit_addresses/TRC20`);
