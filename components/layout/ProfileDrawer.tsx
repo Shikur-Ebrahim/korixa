@@ -165,7 +165,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
 
             {kycStatus !== "verified" && (
               <Link
-                href="/kyc?start=1"
+                href="/kyc"
                 onClick={onClose}
                 className="mt-4 flex w-full items-center justify-center rounded-xl bg-primary py-2.5 text-xs font-bold text-[#0b0e11] transition hover:bg-primary/90 shadow-lg shadow-primary/20"
               >
