@@ -138,18 +138,30 @@ export function subscribeFundingWallets(uid: string, callback: (wallets: WalletA
 
 export function subscribeTransactions(uid: string, txType: TransactionType | undefined, limitCount: number, callback: (transactions: TransactionRecord[]) => void): Unsubscribe {
   const db = getClientFirestore();
-  let q = query(collection(db, "transactions"), where("userId", "==", uid), orderBy("timestamp", "desc"), limit(limitCount));
-  
-  if (txType) {
-    q = query(collection(db, "transactions"), where("userId", "==", uid), where("type", "==", txType), orderBy("timestamp", "desc"), limit(limitCount));
-  }
+  // Only query by userId to avoid requiring a composite index in Firestore
+  const q = query(collection(db, "transactions"), where("userId", "==", uid));
   
   return onSnapshot(q, (snapshot) => {
     if (snapshot.empty) {
       callback([]);
       return;
     }
-    const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TransactionRecord));
+    
+    // Filter and sort in memory
+    let txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TransactionRecord));
+    
+    if (txType) {
+      txs = txs.filter(tx => tx.type === txType);
+    }
+    
+    // Sort descending by timestamp
+    txs.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Apply limit
+    if (limitCount > 0) {
+      txs = txs.slice(0, limitCount);
+    }
+    
     callback(txs);
   }, (error) => {
     console.error("Failed to subscribe to transactions", error);
