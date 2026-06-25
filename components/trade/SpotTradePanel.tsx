@@ -77,6 +77,13 @@ export function SpotTradePanel() {
     }
   };
 
+  const [notification, setNotification] = useState<{type: "success" | "error", message: string} | null>(null);
+
+  const showToast = (type: "success" | "error", message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
   const handleTrade = async () => {
     if (!user?.uid) {
       router.push("/sign-in");
@@ -85,10 +92,8 @@ export function SpotTradePanel() {
     if (!isKycVerified) return; // Extra guard
     if (currentAmount <= 0 || currentPrice <= 0) return;
     
-    // In market mode, we always execute immediately at the displayed market price
-    // Limit orders are not fully supported without a matching engine, so we just execute them immediately too for this MVP.
-    
     setIsSubmitting(true);
+    setNotification(null);
     try {
       const res = await executeSpotTrade(
         user.uid,
@@ -101,12 +106,12 @@ export function SpotTradePanel() {
       
       if (res.success) {
         setAmountInput("");
-        // Success feedback could be added here
+        showToast("success", `Successfully ${activeTab === "buy" ? "bought" : "sold"} ${currentAmount} ${baseCoin}!`);
       } else {
-        alert(res.message);
+        showToast("error", res.message || "Trade failed");
       }
     } catch (err: any) {
-      alert(err.message || "Trade failed");
+      showToast("error", err.message || "Trade failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -229,6 +234,17 @@ export function SpotTradePanel() {
             {availableBalance.toFixed(availableAsset === "USDT" ? 2 : 6)} {availableAsset}
           </span>
         </div>
+
+        {/* Notification Toast */}
+        {notification && (
+          <div className={`px-4 py-3 rounded-xl border text-xs font-semibold text-center animate-in fade-in slide-in-from-bottom-2 ${
+            notification.type === "success" 
+              ? "bg-green-500/10 text-green-500 border-green-500/20" 
+              : "bg-red-500/10 text-red-500 border-red-500/20"
+          }`}>
+            {notification.message}
+          </div>
+        )}
 
         {/* Submit Button or KYC Lock */}
         {!isKycVerified ? (
