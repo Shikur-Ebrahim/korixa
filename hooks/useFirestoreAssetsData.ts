@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { getFundingWallets, getSpotHoldings } from "@/lib/profile/wallet-service";
+import { subscribeFundingWallets, subscribeSpotHoldings } from "@/lib/profile/wallet-service";
 import type { WalletAsset, SpotHolding } from "@/lib/profile/wallet-service";
 import { useBinanceTickers } from "@/hooks/useBinanceMarket";
 
@@ -23,14 +23,30 @@ export function useFirestoreAssetsData() {
       return;
     }
     setLoading(true);
-    Promise.all([
-      getFundingWallets(user.uid),
-      getSpotHoldings(user.uid),
-    ]).then(([fw, sh]) => {
-      setFundingWallets(fw);
-      setSpotHoldings(sh);
-    }).catch(console.error)
-      .finally(() => setLoading(false));
+
+    let fundingLoaded = false;
+    let spotLoaded = false;
+
+    const checkLoading = () => {
+      if (fundingLoaded && spotLoaded) setLoading(false);
+    };
+
+    const unsubFunding = subscribeFundingWallets(user.uid, (data) => {
+      setFundingWallets(data);
+      fundingLoaded = true;
+      checkLoading();
+    });
+
+    const unsubSpot = subscribeSpotHoldings(user.uid, (data) => {
+      setSpotHoldings(data);
+      spotLoaded = true;
+      checkLoading();
+    });
+
+    return () => {
+      unsubFunding();
+      unsubSpot();
+    };
   }, [user?.uid]);
 
   const tickerMap = new Map(
