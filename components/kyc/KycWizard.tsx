@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { FiCheck, FiUpload } from "react-icons/fi";
+import { useRouter } from "next/navigation";
+import { FiCheck, FiUpload, FiArrowLeft } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { appTheme } from "@/components/layout/app-theme";
 import { LivenessWebcam } from "@/components/kyc/LivenessWebcam";
@@ -35,6 +36,7 @@ function KycWizardContent() {
   const started = searchParams.get("start") === "1";
 
   const { user, getIdToken, refreshKyc, kyc, kycStatus } = useAuth();
+  const router = useRouter();
   const [step, setStep] = useState<WizardStep>("upload-id");
   const [documentType, setDocumentType] = useState<IdDocumentType>("national_id");
   const [idFrontPreview, setIdFrontPreview] = useState<string | null>(null);
@@ -234,11 +236,19 @@ function KycWizardContent() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className={appTheme.title}>Identity verification</h1>
-          <p className={appTheme.subtitle}>
-            Complete KYC to unlock trading, wallet, and advanced features.
-          </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push("/dashboard?profile=open")}
+            className="p-1.5 -ml-1.5 rounded-full hover:bg-white/[0.06] transition"
+          >
+            <FiArrowLeft size={20} className="text-[#848e9c]" />
+          </button>
+          <div>
+            <h1 className={appTheme.title}>Identity verification</h1>
+            <p className={appTheme.subtitle}>
+              Complete KYC to unlock trading, wallet, and advanced features.
+            </p>
+          </div>
         </div>
         <span className={`rounded-full border px-3 py-1 text-xs font-medium ${statusBadge.className}`}>
           {statusBadge.label}

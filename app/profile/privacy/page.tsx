@@ -78,7 +78,7 @@ KYC documents (ID images, selfie photos) are stored in a secure cloud environmen
 
 • Right to Object: Object to certain types of data processing.
 
-To exercise any of these rights, please contact us at privacy@korixapay.com.`,
+To exercise any of these rights, please contact us at Korixasupport@gmail.com.`,
   },
   {
     title: "7. Cookies & Tracking",
@@ -104,7 +104,7 @@ Continued use of the platform after changes are posted constitutes your acceptan
     title: "10. Contact Us",
     content: `If you have any questions, concerns, or requests regarding this Privacy Policy, please contact our Data Protection team:
 
-Email: privacy@korixapay.com
+Email: Korixasupport@gmail.com
 Platform: Use the Support & FAQ section in your profile menu.
 
 We aim to respond to all privacy inquiries within 5 business days.`,
@@ -167,7 +167,7 @@ export default function PrivacyPolicyPage() {
           <p className="text-[10px] md:text-xs text-[#848e9c] leading-relaxed">
             By using Korixa, you acknowledge that you have read and understood this Privacy Policy.
             <br />
-            <span className="text-blue-400 font-semibold">privacy@korixapay.com</span>
+            <span className="text-blue-400 font-semibold">Korixasupport@gmail.com</span>
           </p>
         </div>
       </main>
