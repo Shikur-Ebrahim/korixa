@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  collection, query, orderBy, onSnapshot, updateDoc, doc,
-  addDoc, serverTimestamp
+  collection, query, orderBy, onSnapshot,
+  addDoc
 } from "firebase/firestore";
 import {
-  FiMessageSquare, FiCheck, FiX, FiImage, FiSend,
-  FiClock, FiChevronDown, FiChevronUp
+  FiMessageSquare, FiCheck, FiX, FiSend,
+  FiChevronDown, FiChevronUp, FiAlertCircle
 } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import { getAuth } from "firebase/auth";
@@ -119,20 +119,46 @@ function OrderCard({ order }: { order: P2POrder }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [actionMsg, setActionMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const releaseUSDT = async () => {
-    if (!confirm(`Release ${order.amountUSDT} USDT for this order?`)) return;
+  const callOrderAction = async (action: "release" | "reject") => {
+    const confirmMsg = action === "release"
+      ? `Release ${order.amountUSDT} USDT to the buyer? This will credit their funding wallet.`
+      : "Reject this order? The buyer will be notified. No funds will be moved.";
+    if (!confirm(confirmMsg)) return;
+
     setLoading(true);
-    await updateDoc(doc(getClientFirestore(), "p2pOrders", order.id), { status: "completed" });
-    setLoading(false);
+    setActionMsg(null);
+    try {
+      const token = await getAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/admin/p2p/order-action", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ orderId: order.id, action }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setActionMsg({
+          ok: true,
+          text: action === "release"
+            ? `✓ ${order.amountUSDT} USDT released to buyer's wallet!`
+            : "✓ Order rejected. No funds moved.",
+        });
+      } else {
+        setActionMsg({ ok: false, text: data.error || "Action failed." });
+      }
+    } catch (e: any) {
+      setActionMsg({ ok: false, text: "Connection error. Try again." });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const rejectOrder = async () => {
-    if (!confirm("Reject this order? The buyer will be notified.")) return;
-    setLoading(true);
-    await updateDoc(doc(getClientFirestore(), "p2pOrders", order.id), { status: "cancelled" });
-    setLoading(false);
-  };
+  const releaseUSDT = () => callOrderAction("release");
+  const rejectOrder = () => callOrderAction("reject");
 
   return (
     <div className="rounded-xl border border-white/[0.06] bg-[#0b0e11] overflow-hidden">
@@ -186,8 +212,18 @@ function OrderCard({ order }: { order: P2POrder }) {
             </div>
           )}
 
-          {/* Action buttons */}
-          {order.status === "paid" && (
+          {/* Action result message */}
+          {actionMsg && (
+            <div className={`rounded-lg px-3 py-2 text-[11px] font-medium flex items-center gap-1.5 ${
+              actionMsg.ok ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+            }`}>
+              {actionMsg.ok ? <FiCheck size={12} /> : <FiAlertCircle size={12} />}
+              {actionMsg.text}
+            </div>
+          )}
+
+          {/* Action buttons — only show if order is still paid */}
+          {order.status === "paid" && !actionMsg?.ok && (
             <div className="flex gap-2">
               <button
                 onClick={rejectOrder}
