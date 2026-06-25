@@ -31,13 +31,13 @@ function Toggle({
   return (
     <button
       onClick={() => onChange(!value)}
-      className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
         value ? "bg-primary" : "bg-white/10"
       }`}
     >
       <span
-        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ${
-          value ? "translate-x-6" : "translate-x-0.5"
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ${
+          value ? "translate-x-5" : "translate-x-0.5"
         }`}
       />
     </button>
@@ -58,7 +58,7 @@ function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-xl border border-white/[0.08] bg-[#1e2329] px-3 py-2.5 text-[15px] font-semibold text-white focus:border-primary focus:outline-none transition-all"
+      className="rounded-xl border border-white/[0.08] bg-[#1e2329] px-3 py-2 text-xs md:text-sm font-semibold text-white focus:border-primary focus:outline-none transition-all"
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -82,14 +82,14 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-5">
+    <div className="flex items-center justify-between gap-4 py-4 md:py-5">
       <div className="flex items-start gap-3 flex-1 min-w-0">
-        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.04]">
-          <Icon size={17} className="text-[#848e9c]" />
+        <div className="mt-0.5 flex h-8 w-8 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.04]">
+          <Icon size={15} className="text-[#848e9c]" />
         </div>
         <div className="min-w-0">
-          <p className="text-[17px] font-semibold text-white leading-tight">{label}</p>
-          <p className="mt-1 text-[14px] text-[#848e9c] leading-snug">{description}</p>
+          <p className="text-xs md:text-sm font-bold text-white leading-tight">{label}</p>
+          <p className="mt-1 text-[10px] md:text-xs text-[#848e9c] leading-snug">{description}</p>
         </div>
       </div>
       <div className="shrink-0">{children}</div>
@@ -106,11 +106,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] overflow-hidden">
-      <div className="px-5 pt-5 pb-1">
-        <p className="text-[14px] font-bold uppercase tracking-widest text-[#848e9c]">{title}</p>
+    <div className="rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e] overflow-hidden">
+      <div className="px-4 pt-4 pb-1">
+        <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-[#848e9c]">{title}</p>
       </div>
-      <div className="divide-y divide-white/[0.04] px-5">{children}</div>
+      <div className="divide-y divide-white/[0.04] px-4">{children}</div>
     </div>
   );
 }
@@ -167,10 +167,10 @@ export default function TradingSettingsPage() {
               <FiArrowLeft size={22} className="text-[#eaecef]" />
             </button>
             <div>
-              <h1 className="text-[22px] font-bold text-white tracking-tight">
+              <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
                 Trading Settings
               </h1>
-              <p className="text-[14px] text-[#848e9c] mt-0.5">
+              <p className="text-[10px] md:text-xs text-[#848e9c] mt-0.5">
                 Customize your trading preferences.
               </p>
             </div>
@@ -183,9 +183,9 @@ export default function TradingSettingsPage() {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-1.5 rounded-full bg-green-500/15 px-3 py-1.5 text-[13px] font-semibold text-green-400"
+                className="flex items-center gap-1.5 rounded-full bg-green-500/15 px-3 py-1.5 text-[10px] md:text-xs font-semibold text-green-400"
               >
-                <FiCheckCircle size={14} /> Saved
+                <FiCheckCircle size={12} /> Saved
               </motion.div>
             )}
           </AnimatePresence>
@@ -350,10 +350,10 @@ export default function TradingSettingsPage() {
             </Section>
 
             {/* Info note */}
-            <div className="rounded-2xl border border-white/[0.04] bg-white/[0.02] p-5">
+            <div className="rounded-xl md:rounded-2xl border border-white/[0.04] bg-white/[0.02] p-4">
               <div className="flex items-start gap-3">
-                <FiShield size={18} className="mt-0.5 shrink-0 text-primary" />
-                <p className="text-[14px] text-[#848e9c] leading-relaxed">
+                <FiShield size={14} className="mt-0.5 shrink-0 text-primary" />
+                <p className="text-[10px] md:text-xs text-[#848e9c] leading-relaxed">
                   All settings are saved instantly to your account and will apply across all your devices in real time.
                 </p>
               </div>

@@ -39,66 +39,66 @@ export function PaymentMethodCard({ method, onEdit, onDelete, onSetDefault, onTo
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative overflow-hidden rounded-2xl border ${method.isDefault ? 'border-primary/50 bg-primary/5' : 'border-white/[0.06] bg-[#161a1e]'} p-5 transition-all`}
+      className={`relative overflow-hidden rounded-xl md:rounded-2xl border ${method.isDefault ? 'border-primary/50 bg-primary/5' : 'border-white/[0.06] bg-[#161a1e]'} p-4 md:p-5 transition-all`}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3 md:gap-4">
         {/* Bank Icon */}
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${getBankColor(method.type)} text-white font-bold text-xl shadow-lg`}>
+        <div className={`flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full ${getBankColor(method.type)} text-white font-bold text-sm md:text-base shadow-lg`}>
           {getBankName(method).charAt(0)}
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-[18px] font-bold text-white">{getBankName(method)}</h3>
+            <h3 className="text-xs md:text-sm font-bold text-white">{getBankName(method)}</h3>
             {method.isDefault && (
-              <span className="rounded-md bg-primary/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+              <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-primary">
                 Default
               </span>
             )}
             {!method.isActive && (
-              <span className="rounded-md bg-red-500/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-red-500">
+              <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-red-500">
                 Disabled
               </span>
             )}
           </div>
-          <p className="mt-1 text-[15px] text-[#848e9c]">{method.accountHolderName}</p>
-          <p className="text-[17px] font-semibold text-white tracking-widest mt-1">{maskedIdentifier}</p>
+          <p className="mt-1 text-[10px] md:text-xs text-[#848e9c]">{method.accountHolderName}</p>
+          <p className="text-xs md:text-sm font-semibold text-white tracking-widest mt-1">{maskedIdentifier}</p>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="mt-4 flex items-center gap-2 border-t border-white/[0.04] pt-4">
+      <div className="mt-3 md:mt-4 flex items-center gap-2 border-t border-white/[0.04] pt-3 md:pt-4">
         {!method.isDefault && method.isActive && (
-          <button 
+          <button
             onClick={() => onSetDefault(method)}
-            className="flex flex-1 min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-white/[0.04] px-2 text-[14px] font-semibold text-[#848e9c] hover:bg-white/[0.08] hover:text-white transition"
+            className="flex flex-1 min-h-[40px] md:min-h-[44px] items-center justify-center gap-1 rounded-lg md:rounded-xl bg-white/[0.04] px-2 text-[10px] md:text-xs font-semibold text-[#848e9c] hover:bg-white/[0.08] hover:text-white transition"
           >
-            <FiStar size={15} /> Default
+            <FiStar size={12} /> Default
           </button>
         )}
-        
-        <button 
+
+        <button
           onClick={() => onToggleActive(method)}
-          className={`flex flex-1 min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-white/[0.04] px-2 text-[14px] font-semibold transition ${method.isActive ? 'text-yellow-400 hover:bg-yellow-500/10' : 'text-green-400 hover:bg-green-500/10'}`}
+          className={`flex flex-1 min-h-[40px] md:min-h-[44px] items-center justify-center gap-1 rounded-lg md:rounded-xl bg-white/[0.04] px-2 text-[10px] md:text-xs font-semibold transition ${method.isActive ? 'text-yellow-400 hover:bg-yellow-500/10' : 'text-green-400 hover:bg-green-500/10'}`}
         >
-          <FiPower size={15} /> {method.isActive ? 'Disable' : 'Enable'}
+          <FiPower size={12} /> {method.isActive ? 'Disable' : 'Enable'}
         </button>
 
-        <button 
+        <button
           onClick={() => onEdit(method)}
-          className="flex flex-1 min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-white/[0.04] px-2 text-[14px] font-semibold text-blue-400 hover:bg-blue-400/10 transition"
+          className="flex flex-1 min-h-[40px] md:min-h-[44px] items-center justify-center gap-1 rounded-lg md:rounded-xl bg-white/[0.04] px-2 text-[10px] md:text-xs font-semibold text-blue-400 hover:bg-blue-400/10 transition"
         >
-          <FiEdit2 size={15} /> Edit
+          <FiEdit2 size={12} /> Edit
         </button>
 
-        <button 
+        <button
           onClick={() => onDelete(method)}
-          className="flex flex-1 min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-white/[0.04] px-2 text-[14px] font-semibold text-red-400 hover:bg-red-400/10 transition"
+          className="flex flex-1 min-h-[40px] md:min-h-[44px] items-center justify-center gap-1 rounded-lg md:rounded-xl bg-white/[0.04] px-2 text-[10px] md:text-xs font-semibold text-red-400 hover:bg-red-400/10 transition"
         >
-          <FiTrash2 size={15} /> Delete
+          <FiTrash2 size={12} /> Delete
         </button>
       </div>
     </motion.div>

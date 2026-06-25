@@ -90,8 +90,8 @@ export default function PaymentMethodsPage() {
             <FiArrowLeft size={22} className="text-[#eaecef]" />
           </button>
           <div>
-            <h1 className="text-[22px] font-bold text-white tracking-tight">Payment Methods</h1>
-            <p className="text-[14px] text-[#848e9c] mt-0.5">Manage payment methods for P2P trading.</p>
+            <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Payment Methods</h1>
+            <p className="text-[10px] md:text-xs text-[#848e9c] mt-0.5">Manage payment methods for P2P trading.</p>
           </div>
         </div>
       </div>
@@ -110,8 +110,8 @@ export default function PaymentMethodsPage() {
             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-white/[0.02]">
               <FiPlus size={32} className="text-[#848e9c]" />
             </div>
-            <h3 className="text-[18px] font-bold text-white">No Payment Methods Added</h3>
-            <p className="mt-2 text-[14px] text-[#848e9c] max-w-[250px]">
+            <h3 className="text-xs md:text-sm font-bold text-white">No Payment Methods Added</h3>
+            <p className="mt-2 text-[10px] md:text-xs text-[#848e9c] max-w-[250px]">
               Add a payment method to start P2P trading.
             </p>
           </div>
@@ -133,9 +133,9 @@ export default function PaymentMethodsPage() {
 
         <button 
           onClick={handleOpenAdd}
-          className="mt-6 w-full flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-primary/10 text-[15px] font-bold text-primary hover:bg-primary/20 transition active:scale-[0.98]"
+          className="mt-5 w-full flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-primary/10 text-xs md:text-sm font-bold text-primary hover:bg-primary/20 transition active:scale-[0.98]"
         >
-          <FiPlus size={18} /> Add Payment Method
+          <FiPlus size={16} /> Add Payment Method
         </button>
       </div>
 
