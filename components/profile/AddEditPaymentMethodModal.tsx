@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiX } from "react-icons/fi";
+import { FiX, FiAlertTriangle } from "react-icons/fi";
+import Link from "next/link";
 import { PaymentMethod, PaymentMethodType } from "@/lib/profile/types";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface Props {
   isOpen: boolean;
@@ -29,6 +31,7 @@ export function AddEditPaymentMethodModal({ isOpen, onClose, onSave, initialData
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  const { kycStatus, kyc } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -42,7 +45,7 @@ export function AddEditPaymentMethodModal({ isOpen, onClose, onSave, initialData
         // Reset
         setType("cbe");
         setBankName("");
-        setAccountHolderName("");
+        setAccountHolderName(kyc?.fullName || "");
         setAccountNumber("");
         setPhoneNumber("");
       }
@@ -86,15 +89,34 @@ export function AddEditPaymentMethodModal({ isOpen, onClose, onSave, initialData
         >
           <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.06]">
             <h2 className="text-sm md:text-base font-bold text-white">
-              {initialData ? "Edit Payment Method" : "Add Payment Method"}
+              {kycStatus !== "verified" ? "Verification Required" : initialData ? "Edit Payment Method" : "Add Payment Method"}
             </h2>
             <button onClick={onClose} className="p-2 text-[#848e9c] hover:text-white transition rounded-full hover:bg-white/[0.06]">
               <FiX size={18} />
             </button>
           </div>
 
-          <div className="px-4 py-4 overflow-y-auto flex-1">
-            <form id="payment-form" onSubmit={handleSubmit} className="space-y-4">
+          {kycStatus !== "verified" ? (
+            <div className="px-4 py-8 flex flex-col items-center justify-center text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-500/10 text-orange-500">
+                <FiAlertTriangle size={32} />
+              </div>
+              <h3 className="mb-2 text-lg font-bold text-white">Identity Verification Required</h3>
+              <p className="mb-6 text-xs text-[#848e9c] max-w-[280px]">
+                You must complete KYC identity verification before you can add payment methods for P2P trading.
+              </p>
+              <Link 
+                href="/kyc?start=1" 
+                className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
+                onClick={onClose}
+              >
+                Verify Now
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="px-4 py-4 overflow-y-auto flex-1">
+                <form id="payment-form" onSubmit={handleSubmit} className="space-y-4">
               
               {/* Payment Type */}
               <div className="space-y-1.5">
@@ -157,9 +179,13 @@ export function AddEditPaymentMethodModal({ isOpen, onClose, onSave, initialData
                   value={accountHolderName}
                   onChange={(e) => setAccountHolderName(e.target.value)}
                   placeholder="Exact name on account"
-                  className="w-full rounded-xl border border-white/[0.06] bg-[#0b0e11] px-3 py-3 text-xs md:text-sm font-medium text-white focus:border-primary focus:outline-none transition-all placeholder:text-white/20"
+                  className="w-full rounded-xl border border-white/[0.06] bg-[#0b0e11]/50 px-3 py-3 text-xs md:text-sm font-medium text-white/70 focus:outline-none cursor-not-allowed"
+                  readOnly
                   required
                 />
+                <p className="text-[9px] md:text-[10px] text-yellow-500/80 mt-1 leading-snug">
+                  Automatically filled from your verified KYC profile. Must match exactly.
+                </p>
               </div>
 
               {/* Account/Phone Number */}
@@ -195,7 +221,6 @@ export function AddEditPaymentMethodModal({ isOpen, onClose, onSave, initialData
                   <strong>Important:</strong> The account holder name must match your verified Korixa KYC identity. Payments from third-party accounts will be rejected.
                 </p>
               </div>
-
             </form>
           </div>
 
@@ -209,6 +234,8 @@ export function AddEditPaymentMethodModal({ isOpen, onClose, onSave, initialData
               {loading ? "Saving..." : "Confirm"}
             </button>
           </div>
+        </>
+      )}
         </motion.div>
       </div>
     </AnimatePresence>

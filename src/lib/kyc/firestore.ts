@@ -14,6 +14,7 @@ function docToRecord(userId: string, data: FirebaseFirestore.DocumentData): User
   return {
     userId,
     email: data.email ?? "",
+    fullName: data.fullName ?? "",
     kycStatus: data.kycStatus ?? "pending",
     idImageUrl: data.idImageUrl ?? null,
     selfieImageUrl: data.selfieImageUrl ?? null,
@@ -52,6 +53,7 @@ export async function ensureUserRecord(
   await ref.set({
     userId,
     email,
+    fullName: "",
     kycStatus: "pending",
     idImageUrl: null,
     selfieImageUrl: null,
@@ -81,6 +83,7 @@ export async function submitUserKyc(
   const update = {
     userId,
     email,
+    fullName: payload.fullName,
     kycStatus: evaluation.status as KycStatus,
     idImageUrl: payload.idImageUrl,
     selfieImageUrl: payload.selfieImageUrl,

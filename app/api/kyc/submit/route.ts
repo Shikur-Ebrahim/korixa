@@ -4,6 +4,7 @@ import { AuthError, verifyAuthToken } from "@/lib/auth/verify-token";
 import { submitUserKyc } from "@/lib/kyc/firestore";
 
 const schema = z.object({
+  fullName: z.string().min(2, "Full name is required"),
   idImageUrl: z.string().url(),
   selfieImageUrl: z.string().url(),
   extractedIdData: z.object({

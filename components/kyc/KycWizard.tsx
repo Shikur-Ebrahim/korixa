@@ -43,6 +43,7 @@ function KycWizardContent() {
   const [extractedData, setExtractedData] = useState<ExtractedIdData | null>(null);
   const [faceMatch, setFaceMatch] = useState<{ distance: number; score: number } | null>(null);
   const [result, setResult] = useState<UserKycRecord | null>(null);
+  const [fullName, setFullName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -89,10 +90,10 @@ function KycWizardContent() {
     }
   };
 
-  const canContinueFromId = Boolean(idFrontPreview && idBackPreview);
+  const canContinueFromId = Boolean(fullName.trim().length >= 2 && idFrontPreview && idBackPreview);
 
   const runVerification = async () => {
-    if (!idFrontPreview || !idBackPreview || !selfiePreview || !user) return;
+    if (!idFrontPreview || !idBackPreview || !selfiePreview || !user || !fullName) return;
 
     setStep("processing");
     setError(null);
@@ -131,6 +132,7 @@ function KycWizardContent() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          fullName,
           idImageUrl,
           selfieImageUrl,
           extractedIdData: enrichedOcr,
@@ -239,6 +241,18 @@ function KycWizardContent() {
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-[#848e9c]">Full Legal Name</span>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="As it appears on your ID"
+                className={appTheme.input}
+                required
+              />
             </label>
 
             <label className="block">

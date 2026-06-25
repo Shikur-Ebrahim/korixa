@@ -10,6 +10,7 @@ export type ExtractedIdData = {
 export type UserKycRecord = {
   userId: string;
   email: string;
+  fullName: string;
   kycStatus: KycStatus;
   idImageUrl: string | null;
   selfieImageUrl: string | null;
@@ -23,6 +24,7 @@ export type UserKycRecord = {
 };
 
 export type KycSubmissionPayload = {
+  fullName: string;
   idImageUrl: string;
   selfieImageUrl: string;
   extractedIdData: ExtractedIdData;
