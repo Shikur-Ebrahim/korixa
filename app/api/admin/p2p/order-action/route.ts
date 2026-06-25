@@ -46,15 +46,35 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Order missing buyerId or amountUSDT" }, { status: 400 });
       }
 
-      // Credit the buyer's wallet
-      const walletRef = db.doc(`users/${buyerId}/wallet/default`);
-      await walletRef.set(
-        {
-          balances: { USDT: FieldValue.increment(amountUSDT) },
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+      // Find the user's USDT funding wallet
+      const walletSnapshot = await db.collection("wallets")
+        .where("userId", "==", buyerId)
+        .where("type", "==", "funding")
+        .where("coin", "==", "USDT")
+        .limit(1)
+        .get();
+
+      if (!walletSnapshot.empty) {
+        // Increment the balance
+        const walletDoc = walletSnapshot.docs[0];
+        await walletDoc.ref.update({
+          balance: FieldValue.increment(amountUSDT),
+          availableBalance: FieldValue.increment(amountUSDT),
+        });
+      } else {
+        // Fallback: create it if it somehow doesn't exist
+        await db.collection("wallets").add({
+          userId: buyerId,
+          type: "funding",
+          coin: "USDT",
+          name: "Tether US",
+          balance: amountUSDT,
+          availableBalance: amountUSDT,
+          lockedBalance: 0,
+          usdValue: 0,
+          change24h: 0,
+        });
+      }
 
       // Mark order as completed
       await orderRef.update({

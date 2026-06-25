@@ -166,8 +166,8 @@ function OrderCard({ order }: { order: P2POrder }) {
         setActionMsg({
           ok: true,
           text: action === "release"
-            ? `✓ ${order.amountUSDT} USDT released to buyer's wallet!`
-            : "✓ Order rejected. No funds moved.",
+            ? `Successfully released ${order.amountUSDT} USDT to buyer's funding wallet!`
+            : "Order successfully rejected. No funds were transferred.",
         });
       } else {
         setActionMsg({ ok: false, text: data.error || "Action failed." });
@@ -234,15 +234,7 @@ function OrderCard({ order }: { order: P2POrder }) {
             </div>
           )}
 
-          {/* Action result message */}
-          {actionMsg && (
-            <div className={`rounded-lg px-3 py-2 text-[11px] font-medium flex items-center gap-1.5 ${
-              actionMsg.ok ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-            }`}>
-              {actionMsg.ok ? <FiCheck size={12} /> : <FiAlertCircle size={12} />}
-              {actionMsg.text}
-            </div>
-          )}
+          {/* Action result message -> replaced by modal below */}
 
           {/* Action buttons — only show if order is still paid */}
           {order.status === "paid" && !actionMsg?.ok && (
@@ -280,6 +272,40 @@ function OrderCard({ order }: { order: P2POrder }) {
           </button>
 
           {chatOpen && <ChatPanel order={order} onClose={() => setChatOpen(false)} />}
+        </div>
+      )}
+
+      {/* ── SUCCESS/ERROR MODAL ── */}
+      {actionMsg && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setActionMsg(null)}>
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/[0.08] bg-[#0b0e11] p-6 shadow-2xl space-y-4 mb-2 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-center">
+              <div className={`flex h-16 w-16 items-center justify-center rounded-full ${
+                actionMsg.ok ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+              }`}>
+                {actionMsg.ok ? <FiCheck size={32} /> : <FiX size={32} />}
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-bold text-white">
+                {actionMsg.ok ? "Success!" : "Failed"}
+              </h3>
+              <p className="text-xs text-[#848e9c] mt-2 leading-relaxed">
+                {actionMsg.text}
+              </p>
+            </div>
+
+            <button
+              onClick={() => setActionMsg(null)}
+              className="w-full rounded-2xl bg-white/[0.06] py-3.5 text-sm font-bold text-white transition hover:bg-white/[0.1] mt-4 active:scale-95"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>
