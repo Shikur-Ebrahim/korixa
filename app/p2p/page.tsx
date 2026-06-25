@@ -26,6 +26,7 @@ export default function P2PMarketplace() {
 
   const [filterAmount, setFilterAmount] = useState("");
   const [filterPayment, setFilterPayment] = useState<PaymentMethod | "All">("All");
+  const [paymentDropdownOpen, setPaymentDropdownOpen] = useState(false);
 
   useEffect(() => {
     const adType = activeTab === "buy" ? "sell" : "buy";
@@ -134,18 +135,39 @@ export default function P2PMarketplace() {
             />
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#1e2329] px-3 py-1.5">
+          <div className="relative flex shrink-0 items-center gap-1.5 rounded-lg bg-[#1e2329] px-3 py-1.5">
             <span className="text-[11px] text-[#848e9c]">Pay</span>
-            <select
-              value={filterPayment}
-              onChange={(e) => setFilterPayment(e.target.value as PaymentMethod | "All")}
-              className="bg-transparent text-xs text-white focus:outline-none"
+            <button
+              type="button"
+              onClick={() => setPaymentDropdownOpen(p => !p)}
+              className="flex items-center gap-1 bg-transparent text-xs text-white focus:outline-none whitespace-nowrap"
             >
-              <option value="All" className="bg-[#1e2329] text-white">All</option>
-              {PAYMENT_METHODS.map((m) => (
-                <option key={m} value={m} className="bg-[#1e2329] text-white">{m}</option>
-              ))}
-            </select>
+              <span>{filterPayment}</span>
+              <svg className={`h-3 w-3 text-[#848e9c] transition-transform ${paymentDropdownOpen ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+            </button>
+
+            {paymentDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setPaymentDropdownOpen(false)} />
+                <div className="absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-xl border border-white/[0.08] bg-[#1e2329] shadow-2xl overflow-hidden">
+                  {["All", ...PAYMENT_METHODS].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => { setFilterPayment(m as PaymentMethod | "All"); setPaymentDropdownOpen(false); }}
+                      className={`flex w-full items-center justify-between px-3 py-2.5 text-[11px] font-medium transition-colors border-b border-white/[0.04] last:border-0 ${
+                        m === filterPayment ? "bg-primary/10 text-primary" : "text-white hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      {m}
+                      {m === filterPayment && (
+                        <svg className="h-3 w-3 text-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
