@@ -10,6 +10,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFirestoreAssetsData } from "@/hooks/useFirestoreAssetsData";
+import { TransferModal } from "@/components/profile/TransferModal";
 
 const COIN_COLORS: Record<string, string> = {
   BTC: "#F7931A",
@@ -39,10 +40,11 @@ function fmtCoin(n: number) {
 }
 
 export function AssetsScreenFirestore() {
-  const { user, kycStatus } = useAuth();
   const router = useRouter();
+  const { user } = useAuth();
   const [hideBalance, setHideBalance] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "funding" | "spot">("all");
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const {
     fundingWallets,
@@ -116,21 +118,21 @@ export function AssetsScreenFirestore() {
           {/* Quick Actions */}
           <div className="mt-4 grid grid-cols-4 gap-2">
             {[
-              { icon: FiArrowDownLeft, label: "Deposit",  color: "text-green-400",  href: "/profile/funding" },
-              { icon: FiArrowUpRight,  label: "Withdraw", color: "text-red-400",    href: "/profile/funding" },
-              { icon: FiRepeat,        label: "Transfer", color: "text-blue-400",   href: "/profile/funding" },
-              { icon: FiClock,         label: "History",  color: "text-[#848e9c]", href: "/profile/history" },
-            ].map(({ icon: Icon, label, color, href }) => (
-              <Link
+              { icon: FiArrowDownLeft, label: "Deposit",  color: "text-green-400",  onClick: () => router.push("?deposit=open") },
+              { icon: FiArrowUpRight,  label: "Withdraw", color: "text-red-400",    onClick: () => router.push("/profile/funding") },
+              { icon: FiRepeat,        label: "Transfer", color: "text-blue-400",   onClick: () => setIsTransferModalOpen(true) },
+              { icon: FiClock,         label: "History",  color: "text-[#848e9c]", onClick: () => router.push("/profile/history") },
+            ].map(({ icon: Icon, label, color, onClick }) => (
+              <button
                 key={label}
-                href={href}
+                onClick={onClick}
                 className="flex flex-col items-center gap-1.5 rounded-xl bg-white/[0.04] py-3 transition hover:bg-white/[0.07]"
               >
                 <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-black/30 ${color}`}>
                   <Icon size={16} />
                 </div>
                 <span className="text-[10px] font-medium text-[#848e9c]">{label}</span>
-              </Link>
+              </button>
             ))}
           </div>
         </div>
@@ -346,6 +348,11 @@ export function AssetsScreenFirestore() {
         </Link>
       </div>
 
+      <TransferModal 
+        isOpen={isTransferModalOpen} 
+        onClose={() => setIsTransferModalOpen(false)} 
+        defaultFrom={activeTab === "spot" ? "spot" : "funding"} 
+      />
     </div>
   );
 }
