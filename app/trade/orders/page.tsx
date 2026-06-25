@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FiArrowLeft, FiFilter, FiSearch, FiCalendar } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { getTransactions, TransactionRecord } from "@/lib/profile/wallet-service";
+import { subscribeTransactions, TransactionRecord } from "@/lib/profile/wallet-service";
 
 const TABS = [
   { id: "open", label: "Open Orders" },
@@ -16,21 +16,18 @@ const TABS = [
 export default function SpotOrdersPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("open");
+  const [activeTab, setActiveTab] = useState("history");
   const [trades, setTrades] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user?.uid) {
       setLoading(true);
-      // Fetch only trade transactions
-      getTransactions(user.uid, "trade", 100).then((data) => {
+      const unsub = subscribeTransactions(user.uid, "trade", 100, (data) => {
         setTrades(data);
         setLoading(false);
-      }).catch((err) => {
-        console.error("Failed to load trades:", err);
-        setLoading(false);
       });
+      return () => unsub();
     }
   }, [user]);
 
