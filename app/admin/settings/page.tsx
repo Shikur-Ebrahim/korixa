@@ -6,12 +6,16 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { FiShield, FiTerminal, FiInfo, FiLock, FiDollarSign, FiArrowRight } from "react-icons/fi";
 
 export default function AdminSettingsPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, getIdToken } = useAuth();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
+  
+  const [newPassword, setNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState("");
 
   const cliCommand = `node set-admin.js ${user?.email ?? "user@email.com"}`;
 
@@ -19,6 +23,37 @@ export default function AdminSettingsPage() {
     void navigator.clipboard.writeText("node set-admin.js user@email.com");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePasswordChange = async () => {
+    if (newPassword.length < 6) {
+      setPasswordMsg("Password must be at least 6 characters.");
+      return;
+    }
+    setIsChangingPassword(true);
+    setPasswordMsg("");
+    try {
+      const token = await getIdToken();
+      const res = await fetch("/api/admin/password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordMsg("Password successfully changed!");
+        setNewPassword("");
+      } else {
+        setPasswordMsg(data.error || "Failed to change password.");
+      }
+    } catch (e) {
+      setPasswordMsg("An error occurred.");
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
@@ -150,15 +185,37 @@ export default function AdminSettingsPage() {
             {copied ? "Copied!" : "Copy"}
           </button>
         </div>
-        <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 space-y-1">
-          <p className="text-[10px] font-semibold text-primary flex items-center gap-1">
-            <FiInfo className="text-xs" /> After running
-          </p>
-          <ul className="text-[10px] text-[#848e9c] space-y-0.5 list-disc list-inside">
-            <li>Firebase custom claim <code className="text-white">role: "admin"</code> is set</li>
-            <li>Firestore <code className="text-white">users/{"{uid}"}</code> is updated</li>
-            <li>User must sign out and sign back in for the change to take effect</li>
-          </ul>
+      </div>
+
+      {/* Change Admin Password */}
+      <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <FiLock className="text-primary" />
+          <p className="text-sm font-semibold text-white">Change Admin Password</p>
+        </div>
+        <p className="text-xs text-[#848e9c]">
+          Update your admin account login password. You will use this new password the next time you sign in.
+        </p>
+        <div className="space-y-2 pt-1">
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="New Password (min 6 chars)"
+            className="w-full rounded-xl border border-white/[0.08] bg-[#0b0e11] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+          />
+          {passwordMsg && (
+            <p className={`text-xs ${passwordMsg.includes("success") ? "text-green-400" : "text-red-400"}`}>
+              {passwordMsg}
+            </p>
+          )}
+          <button
+            onClick={handlePasswordChange}
+            disabled={isChangingPassword || !newPassword}
+            className="w-full rounded-xl bg-white/[0.04] py-3 text-sm font-bold text-white transition hover:bg-white/[0.08] disabled:opacity-50"
+          >
+            {isChangingPassword ? "Updating..." : "Update Password"}
+          </button>
         </div>
       </div>
 
