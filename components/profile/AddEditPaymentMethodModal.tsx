@@ -98,16 +98,16 @@ export function AddEditPaymentMethodModal({ isOpen, onClose, onSave, initialData
 
           {kycStatus !== "verified" ? (
             <div className="px-4 py-8 flex flex-col items-center justify-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-500/10 text-orange-500">
-                <FiAlertTriangle size={32} />
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/10 text-orange-500">
+                <FiAlertTriangle size={20} />
               </div>
-              <h3 className="mb-2 text-lg font-bold text-white">Identity Verification Required</h3>
-              <p className="mb-6 text-xs text-[#848e9c] max-w-[280px]">
+              <h3 className="mb-2 text-xs md:text-sm font-bold text-white">Identity Verification Required</h3>
+              <p className="mb-6 text-[10px] md:text-xs text-[#848e9c] max-w-[280px]">
                 You must complete KYC identity verification before you can add payment methods for P2P trading.
               </p>
               <Link 
                 href="/kyc?start=1" 
-                className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
+                className="rounded-xl bg-primary px-6 py-2.5 text-[10px] md:text-xs font-bold text-[#0b0e11] transition hover:bg-primary/90"
                 onClick={onClose}
               >
                 Verify Now
