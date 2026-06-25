@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAuthToken } from "@/lib/auth/verify-token";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { getTronUsdtBalance } from "@/lib/deposit/tron";
+import { getTronUsdtBalance, getIncomingUsdtTransfers } from "@/lib/deposit/tron";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function GET(req: Request) {
@@ -18,51 +18,62 @@ export async function GET(req: Request) {
 
     const data = addressSnap.data();
     const address = data?.address;
-    const processedBalance = data?.processedBalance || 0;
+    const processedTxIds = data?.processedTxIds || [];
 
-    // Fetch real balance from TRON blockchain
-    const currentBalance = await getTronUsdtBalance(address);
+    // Fetch incoming transfers from TronGrid
+    const transfers = await getIncomingUsdtTransfers(address);
+    let newDepositAmount = 0;
+    const newTxIds = [];
 
-    if (currentBalance > processedBalance) {
-      // New deposit arrived!
-      const difference = currentBalance - processedBalance;
+    for (const tx of transfers) {
+      if (!processedTxIds.includes(tx.txId)) {
+        newDepositAmount += tx.amount;
+        newTxIds.push(tx.txId);
+      }
+    }
 
-      // Credit user's wallet
+    if (newDepositAmount > 0) {
+      // Credit user's wallet with the new incoming deposits
       const walletRef = db.doc(`users/${user.uid}/wallet/default`);
       await walletRef.set({
         balances: {
-          USDT: FieldValue.increment(difference)
+          USDT: FieldValue.increment(newDepositAmount)
         },
         updatedAt: FieldValue.serverTimestamp()
       }, { merge: true });
 
-      // Update processed balance so we don't credit twice
+      // Update processed TXIDs and processed balance
+      const currentBalance = await getTronUsdtBalance(address); // Just for admin display purposes
       await addressRef.update({
-        processedBalance: currentBalance,
+        processedTxIds: FieldValue.arrayUnion(...newTxIds),
+        processedBalance: FieldValue.increment(newDepositAmount), // Keep track of total ever deposited
+        currentBalance: currentBalance, // Store the actual on-chain balance for the Admin wallet view
         lastDepositAt: new Date().toISOString()
       });
 
-      // Record transaction
-      await db.collection(`users/${user.uid}/transactions`).add({
-        type: "deposit",
-        asset: "USDT",
-        amount: difference,
-        status: "completed",
-        timestamp: new Date().toISOString(),
-        chain: "TRC20",
-        address: address,
-      });
+      // Record transactions
+      for (const txId of newTxIds) {
+        const txInfo = transfers.find((t: any) => t.txId === txId);
+        await db.collection(`users/${user.uid}/transactions`).add({
+          type: "deposit",
+          asset: "USDT",
+          amount: txInfo?.amount || 0,
+          status: "completed",
+          timestamp: new Date().toISOString(),
+          chain: "TRC20",
+          address: address,
+          txId: txId,
+        });
+      }
 
       return NextResponse.json({
         newDeposit: true,
-        amountAdded: difference,
-        totalBalance: currentBalance,
+        amountAdded: newDepositAmount,
       });
     }
 
     return NextResponse.json({
       newDeposit: false,
-      totalBalance: currentBalance,
     });
   } catch (error) {
     console.error("Error checking TRON balance:", error);

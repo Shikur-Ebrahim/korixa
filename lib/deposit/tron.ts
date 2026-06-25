@@ -22,9 +22,8 @@ export function generateTronAccount() {
 }
 
 /**
- * Fetch the USDT TRC20 balance for a given address using TronWeb.
- * Returns balance in decimal format (e.g., 10.5 for 10.5 USDT).
- * TRC20 USDT has 6 decimals.
+ * Fetch the current USDT TRC20 balance.
+ * (Note: this drops when admin sweeps the wallet)
  */
 export async function getTronUsdtBalance(address: string): Promise<number> {
   try {
@@ -35,5 +34,31 @@ export async function getTronUsdtBalance(address: string): Promise<number> {
   } catch (error) {
     console.error("Error fetching TRON USDT balance:", error);
     return 0;
+  }
+}
+
+/**
+ * Fetch recent incoming USDT TRC20 transfers for an address.
+ * This ensures we detect deposits even if the admin has swept the balance to 0.
+ */
+export async function getIncomingUsdtTransfers(address: string) {
+  try {
+    const url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?limit=50&contract_address=${USDT_TRC20_CONTRACT}&only_to=true`;
+    
+    const response = await fetch(url, {
+      headers: { "TRON-PRO-API-KEY": TRONGRID_API_KEY }
+    });
+    
+    if (!response.ok) return [];
+    
+    const data = await response.json();
+    return data.data.map((tx: any) => ({
+      txId: tx.transaction_id,
+      amount: Number(tx.value) / 1_000_000,
+      timestamp: tx.block_timestamp
+    }));
+  } catch (error) {
+    console.error("Error fetching TRON transfers:", error);
+    return [];
   }
 }

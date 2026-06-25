@@ -14,8 +14,8 @@ export async function GET() {
       const uid = doc.ref.parent.parent?.id;
 
       // In a real production environment, you would query TronGrid for real-time balances here.
-      // For performance in this demo, we'll use the processedBalance.
-      const balance = data.processedBalance || 0;
+      // We stored currentBalance during the last check.
+      const balance = data.currentBalance || data.processedBalance || 0;
       
       totalUsdt += balance;
 
