@@ -17,62 +17,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { sourceAddress, destinationAddress, amount, pin } = await req.json();
+    const { privateKey, destinationAddress, amount, pin } = await req.json();
 
-    if (!sourceAddress || !destinationAddress || !amount || !pin) {
+    if (!privateKey || !destinationAddress || !amount || !pin) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // 2. Verify the Admin PIN before doing anything
+    // 2. Verify the Admin PIN
     const pinDoc = await db.doc(PIN_DOC_PATH).get();
     const currentPin = pinDoc.exists && pinDoc.data()?.pin ? pinDoc.data()?.pin : DEFAULT_PIN;
     if (pin !== currentPin) {
       return NextResponse.json({ error: "Invalid PIN. Withdrawal rejected." }, { status: 401 });
     }
 
-    // 3. Fetch the private key from Firestore (stored when user generated their deposit address)
-    const addressSnapshot = await db
-      .collectionGroup("deposit_addresses")
-      .where("address", "==", sourceAddress)
-      .where("chain", "==", "TRC20")
-      .limit(1)
-      .get();
-
-    if (addressSnapshot.empty) {
-      return NextResponse.json({ error: "Source address not found" }, { status: 404 });
-    }
-
-    const addressData = addressSnapshot.docs[0].data();
-    const privateKey = addressData.privateKey;
-
-    if (!privateKey) {
-      return NextResponse.json({ error: "Private key not found for this address. Cannot withdraw." }, { status: 500 });
-    }
-
-    // 4. Verify there's enough balance
-    const currentBalance = await getTronUsdtBalance(sourceAddress);
-    if (amount > currentBalance) {
-      return NextResponse.json({
-        error: `Insufficient balance. Available: ${currentBalance.toFixed(6)} USDT`
-      }, { status: 400 });
-    }
-
-    // 5. Execute the real blockchain transaction
+    // 3. Execute the real blockchain transaction
     const { txId } = await sendUsdtTrc20(privateKey, destinationAddress, amount);
 
-    // 6. Update the stored on-chain balance (it will now be 0 or near 0)
-    const newBalance = await getTronUsdtBalance(sourceAddress);
-    await addressSnapshot.docs[0].ref.update({
-      currentBalance: newBalance,
-      lastWithdrawnAt: new Date().toISOString(),
-      lastWithdrawTxId: txId,
-    });
-
-    // 7. Log the withdrawal in the admin activity log
+    // 4. Log the withdrawal
     await db.collection("admin_logs").add({
-      action: "wallet_withdrawal",
+      action: "direct_wallet_withdrawal",
       adminUid: adminUser.uid,
-      sourceAddress,
       destinationAddress,
       amount,
       txId,
@@ -86,13 +50,16 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error("Withdrawal error:", error);
+    console.error("Direct withdrawal error:", error);
+
+    // Provide a clear error message for the most common failure (gas/TRX)
     const msg = error.message || "Withdrawal failed";
     const isGasError = msg.toLowerCase().includes("resource") ||
       msg.toLowerCase().includes("bandwidth") ||
       msg.toLowerCase().includes("energy") ||
       msg.toLowerCase().includes("trx") ||
       msg.toLowerCase().includes("fee");
+
     return NextResponse.json({
       error: isGasError
         ? "Not enough TRX for gas fees. Send 20 TRX to the source address and try again."
