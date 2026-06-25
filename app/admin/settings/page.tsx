@@ -13,6 +13,7 @@ export default function AdminSettingsPage() {
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
   
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState("");
@@ -28,8 +29,12 @@ export default function AdminSettingsPage() {
   };
 
   const handlePasswordChange = async () => {
+    if (!oldPassword) {
+      setPasswordMsg("Please enter your current password.");
+      return;
+    }
     if (newPassword.length < 6) {
-      setPasswordMsg("Password must be at least 6 characters.");
+      setPasswordMsg("New password must be at least 6 characters.");
       return;
     }
     setIsChangingPassword(true);
@@ -42,11 +47,12 @@ export default function AdminSettingsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ newPassword }),
+        body: JSON.stringify({ oldPassword, newPassword }),
       });
       const data = await res.json();
       if (res.ok) {
         setPasswordMsg("Password successfully changed!");
+        setOldPassword("");
         setNewPassword("");
       } else {
         setPasswordMsg(data.error || "Failed to change password.");
@@ -220,6 +226,13 @@ export default function AdminSettingsPage() {
         <div className="space-y-2 pt-1">
           <input
             type="password"
+            value={oldPassword}
+            onChange={(e) => setOldPassword(e.target.value)}
+            placeholder="Current Password"
+            className="w-full rounded-xl border border-white/[0.08] bg-[#0b0e11] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+          />
+          <input
+            type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="New Password (min 6 chars)"
@@ -232,7 +245,7 @@ export default function AdminSettingsPage() {
           )}
           <button
             onClick={handlePasswordChange}
-            disabled={isChangingPassword || !newPassword}
+            disabled={isChangingPassword || !oldPassword || !newPassword}
             className="w-full rounded-xl bg-white/[0.04] py-3 text-sm font-bold text-white transition hover:bg-white/[0.08] disabled:opacity-50"
           >
             {isChangingPassword ? "Updating..." : "Update Password"}
