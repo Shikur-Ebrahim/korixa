@@ -90,8 +90,8 @@ export default function PaymentMethodsPage() {
             <FiArrowLeft size={22} className="text-[#eaecef]" />
           </button>
           <div>
-            <h1 className="text-[24px] font-bold text-white tracking-tight">Payment Methods</h1>
-            <p className="text-[13px] text-[#848e9c]">Manage payment methods used for P2P transactions.</p>
+            <h1 className="text-[22px] font-bold text-white tracking-tight">Payment Methods</h1>
+            <p className="text-[14px] text-[#848e9c] mt-0.5">Manage payment methods for P2P trading.</p>
           </div>
         </div>
       </div>
