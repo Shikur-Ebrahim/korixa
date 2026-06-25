@@ -86,7 +86,7 @@ export default function PaymentMethodsPage() {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-[#0b0e11] px-4 pt-4 pb-4 border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-1.5 -ml-1.5 rounded-full hover:bg-white/[0.06] transition">
+          <button onClick={() => router.push("/dashboard?profile=open")} className="p-1.5 -ml-1.5 rounded-full hover:bg-white/[0.06] transition">
             <FiArrowLeft size={22} className="text-[#eaecef]" />
           </button>
           <div>
