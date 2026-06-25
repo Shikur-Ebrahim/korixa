@@ -10,7 +10,7 @@ import {
   deleteDoc,
   updateDoc
 } from "firebase/firestore";
-import { getClientFirestore } from "@/lib/firebase-client";
+import { getClientFirestore } from "@/lib/firebase";
 import { PaymentMethod } from "./types";
 import { Unsubscribe } from "firebase/auth";
 
