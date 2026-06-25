@@ -123,7 +123,7 @@ export default function P2PMarketplace() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 overflow-x-auto px-4 py-2.5 scrollbar-hide">
+        <div className="flex flex-wrap gap-2 px-4 py-2.5">
           <div className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#1e2329] px-3 py-1.5">
             <span className="text-[11px] text-[#848e9c]">Amount</span>
             <input
