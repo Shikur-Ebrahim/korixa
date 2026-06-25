@@ -24,7 +24,7 @@ export function useDepositGate() {
       return;
     }
 
-    router.push("/deposit");
+    router.push("?deposit=open");
   }, [isVerified, kycLoading, router]);
 
   const dismissNotice = useCallback(() => setNotice(null), []);

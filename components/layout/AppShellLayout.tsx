@@ -6,6 +6,7 @@ import { AppBottomNav } from "@/components/layout/AppBottomNav";
 import { AppMobileHeader } from "@/components/layout/AppMobileHeader";
 import { NotificationsDrawer } from "@/components/layout/NotificationsDrawer";
 import { ProfileDrawer } from "@/components/layout/ProfileDrawer";
+import { DepositDrawer } from "@/components/layout/DepositDrawer";
 import { appTheme } from "@/components/layout/app-theme";
 import { useLoginTracker } from "@/lib/profile/useLoginTracker";
 
@@ -16,12 +17,20 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
 
-  // Auto-open profile drawer when navigating back from security page
+  // Auto-open drawers from query params
   useEffect(() => {
+    let changed = false;
     if (searchParams.get("profile") === "open") {
       setProfileOpen(true);
-      // Clean the query param without reloading
+      changed = true;
+    }
+    if (searchParams.get("deposit") === "open") {
+      setDepositOpen(true);
+      changed = true;
+    }
+    if (changed) {
       router.replace(pathname, { scroll: false });
     }
   }, [searchParams, pathname, router]);
@@ -46,6 +55,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
       {!hideBottomNav && <AppBottomNav />}
       <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
       <NotificationsDrawer open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+      <DepositDrawer open={depositOpen} onClose={() => setDepositOpen(false)} />
     </div>
   );
 }

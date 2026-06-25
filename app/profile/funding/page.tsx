@@ -164,7 +164,7 @@ export default function FundingAccountPage() {
           {/* Quick Actions Row */}
           <div className="grid grid-cols-4 gap-3 mt-8 relative z-10">
             {[
-              { icon: FiDownload, label: "Deposit", onClick: () => router.push("/deposit") },
+              { icon: FiDownload, label: "Deposit", onClick: () => router.push("?deposit=open") },
               { icon: FiUpload, label: "Withdraw", onClick: () => {} },
               { icon: FiRepeat, label: "Transfer", onClick: () => setIsTransferModalOpen(true) },
               { icon: FiUsers, label: "P2P", onClick: () => router.push("/p2p") },
