@@ -8,7 +8,6 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { subscribeTransactions, TransactionRecord } from "@/lib/profile/wallet-service";
 
 const TABS = [
-  { id: "open", label: "Open Orders" },
   { id: "history", label: "Order History" },
   { id: "trades", label: "Trade History" },
 ];
@@ -104,14 +103,6 @@ export default function SpotOrdersPage() {
                 </div>
               </div>
             ))}
-          </div>
-        ) : activeTab === "open" ? (
-          // Open Orders Empty State
-          <div className="flex flex-col items-center justify-center py-32 text-center">
-            <div className="w-20 h-20 bg-white/[0.02] rounded-full flex items-center justify-center mb-4">
-              <FiCalendar size={32} className="text-[#848e9c]" />
-            </div>
-            <p className="text-sm font-medium text-[#848e9c]">No open orders</p>
           </div>
         ) : trades.length === 0 ? (
           // Trade History Empty State
