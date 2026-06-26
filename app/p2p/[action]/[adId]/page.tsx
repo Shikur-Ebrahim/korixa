@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { doc, getDoc, getDocs, collection, addDoc, updateDoc, increment, query, where } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter, useParams } from "next/navigation";
-import { FiArrowLeft, FiRefreshCw, FiDollarSign } from "react-icons/fi";
+import { FiArrowLeft, FiRefreshCw } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { P2PAdvertisement, P2POrder } from "@/lib/p2p/types";
@@ -24,15 +24,6 @@ export default function P2POrderCreationPage() {
   const [amountUSDT, setAmountUSDT] = useState("");
   const [inputMode, setInputMode] = useState<"fiat" | "crypto">("fiat");
 
-  // Seller specific state
-  const [usdtBalance, setUsdtBalance] = useState(0);
-  const [walletId, setWalletId] = useState<string | null>(null);
-  const [sellerMethod, setSellerMethod] = useState<string>("");
-  const [sellerAccountName, setSellerAccountName] = useState("");
-  const [sellerAccountNumber, setSellerAccountNumber] = useState("");
-
-  const isBuy = action === "buy";
-
   useEffect(() => {
     async function fetchAd() {
       try {
@@ -47,20 +38,7 @@ export default function P2POrderCreationPage() {
       }
     }
     fetchAd();
-
-    // Fetch user wallet if selling
-    if (user && action === "sell") {
-      const fetchWallet = async () => {
-        const q = query(collection(getClientFirestore(), "wallets"), where("userId", "==", user.uid), where("coin", "==", "USDT"), where("type", "==", "funding"));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          setUsdtBalance(snap.docs[0].data().availableBalance ?? 0);
-          setWalletId(snap.docs[0].id);
-        }
-      };
-      fetchWallet();
-    }
-  }, [adId, user, action]);
+  }, [adId]);
 
   // Auto-calculation logic
   useEffect(() => {
@@ -99,33 +77,12 @@ export default function P2POrderCreationPage() {
     }
 
     if (usdt > ad.availableUSDT) {
-      alert(`Amount exceeds ad capacity of ${ad.availableUSDT} USDT.`);
+      alert(`Amount exceeds available balance of ${ad.availableUSDT} USDT.`);
       return;
-    }
-
-    if (!isBuy) {
-      if (usdt > usdtBalance) {
-        alert("Insufficient USDT balance. Please deposit to your funding wallet.");
-        return;
-      }
-      if (!sellerMethod || !sellerAccountName || !sellerAccountNumber) {
-        alert("Please provide your payment account details.");
-        return;
-      }
     }
 
     setSubmitting(true);
     try {
-      const db = getClientFirestore();
-
-      // If user is selling, deduct USDT from their wallet immediately
-      if (!isBuy && walletId) {
-        await updateDoc(doc(db, "wallets", walletId), {
-          availableBalance: increment(-usdt),
-          balance: increment(-usdt),
-        });
-      }
-
       const orderData: Omit<P2POrder, "id"> = {
         adId: ad.id,
         merchantId: ad.merchantId,
@@ -135,10 +92,8 @@ export default function P2POrderCreationPage() {
         amountUSDT: usdt,
         amountETB: etb,
         price: ad.price,
-        paymentMethod: isBuy ? ad.paymentMethods[0] : (sellerMethod as any),
-        paymentAccountDetails: isBuy 
-          ? (ad.paymentAccountDetails ?? []) 
-          : [{ method: sellerMethod as any, accountName: sellerAccountName, accountNumber: sellerAccountNumber }],
+        paymentMethod: ad.paymentMethods[0],
+        paymentAccountDetails: ad.paymentAccountDetails ?? [],
         status: "pending",
         createdAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 15 * 60000).toISOString(),
@@ -156,6 +111,8 @@ export default function P2POrderCreationPage() {
   if (loading) return <div className="min-h-screen bg-[#0b0e11] pt-24 text-center text-[#848e9c]">Loading ad details...</div>;
   if (!ad) return <div className="min-h-screen bg-[#0b0e11] pt-24 text-center text-red-500">Advertisement not found.</div>;
 
+  const isBuy = action === "buy";
+
   return (
     <div className="min-h-screen bg-[#0b0e11] text-white">
       {/* Header */}
@@ -171,14 +128,8 @@ export default function P2POrderCreationPage() {
       <main className="mx-auto max-w-lg p-4 space-y-6">
         {/* Merchant Card summary */}
         <div className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <span className="font-semibold">{ad.merchantName}</span>
-            {!isBuy && (
-              <div className="flex items-center gap-1.5 text-xs text-[#848e9c]">
-                <FiDollarSign size={12} className="text-primary" />
-                Your balance: <span className="font-bold text-white">{usdtBalance.toFixed(4)}</span>
-              </div>
-            )}
           </div>
           <div className="mt-4 flex justify-between">
             <div>
@@ -188,9 +139,7 @@ export default function P2POrderCreationPage() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-[#848e9c]">
-                {isBuy ? "Available" : "Wanted"}
-              </div>
+              <div className="text-xs text-[#848e9c]">Available</div>
               <div className="font-medium">{ad.availableUSDT} USDT</div>
             </div>
           </div>
@@ -201,7 +150,7 @@ export default function P2POrderCreationPage() {
 
         {/* Input Form */}
         <div className="space-y-4">
-          {/* Top Input */}
+          {/* I want to pay / I will receive */}
           <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
             <label className="text-xs font-medium text-[#848e9c]">
               {isBuy ? "I want to pay" : "I will sell"}
@@ -209,12 +158,12 @@ export default function P2POrderCreationPage() {
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
-                value={isBuy ? amountETB : amountUSDT}
-                onChange={isBuy ? handleFiatChange : handleCryptoChange}
-                placeholder={isBuy ? `Min ${ad.minOrderLimit}` : "0.00"}
+                value={amountETB}
+                onChange={handleFiatChange}
+                placeholder={`Min ${ad.minOrderLimit}`}
                 className="w-full bg-transparent text-2xl font-bold text-white focus:outline-none"
               />
-              <span className="font-bold text-white">{isBuy ? "ETB" : "USDT"}</span>
+              <span className="font-bold text-white">ETB</span>
             </div>
           </div>
 
@@ -222,7 +171,7 @@ export default function P2POrderCreationPage() {
             <FiRefreshCw size={16} />
           </div>
 
-          {/* Bottom Input */}
+          {/* I will receive / I want to get */}
           <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
             <label className="text-xs font-medium text-[#848e9c]">
               {isBuy ? "I will receive" : "I will get"}
@@ -230,68 +179,15 @@ export default function P2POrderCreationPage() {
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
-                value={isBuy ? amountUSDT : amountETB}
-                onChange={isBuy ? handleCryptoChange : handleFiatChange}
-                placeholder={isBuy ? "0.00" : `Min ${ad.minOrderLimit}`}
+                value={amountUSDT}
+                onChange={handleCryptoChange}
+                placeholder="0.00"
                 className="w-full bg-transparent text-2xl font-bold text-white focus:outline-none"
               />
-              <span className="font-bold text-white">{isBuy ? "USDT" : "ETB"}</span>
+              <span className="font-bold text-white">USDT</span>
             </div>
           </div>
         </div>
-
-        {/* Seller Payment Details */}
-        {!isBuy && (
-          <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4 space-y-3">
-            <h3 className="text-sm font-bold">Your Receiving Account</h3>
-            <p className="text-xs text-[#848e9c]">Where should the buyer send the ETB?</p>
-            
-            <div className="flex flex-col gap-2">
-              {ad.paymentMethods.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setSellerMethod(m)}
-                  className={`flex items-center justify-between rounded-xl border p-3 text-sm font-semibold transition ${
-                    sellerMethod === m
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-white/[0.06] bg-[#0b0e11] text-white"
-                  }`}
-                >
-                  {m}
-                  <div
-                    className={`flex h-4 w-4 items-center justify-center rounded-full border ${
-                      sellerMethod === m ? "border-primary bg-primary" : "border-white/20"
-                    }`}
-                  >
-                    {sellerMethod === m && <div className="h-2 w-2 rounded-full bg-black" />}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {sellerMethod && (
-              <div className="space-y-2">
-                <input
-                  placeholder="Your full name on the account"
-                  value={sellerAccountName}
-                  onChange={e => setSellerAccountName(e.target.value)}
-                  className="w-full rounded-lg bg-[#0b0e11] px-3 py-3 text-sm text-white border border-white/[0.06] focus:outline-none"
-                />
-                <input
-                  placeholder="Account or Phone Number"
-                  value={sellerAccountNumber}
-                  onChange={e => setSellerAccountNumber(e.target.value)}
-                  className="w-full rounded-lg bg-[#0b0e11] px-3 py-3 text-sm text-white border border-white/[0.06] focus:outline-none"
-                />
-              </div>
-            )}
-            <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 px-4 py-3">
-              <p className="text-[11px] text-orange-300">
-                <strong>Note:</strong> {amountUSDT || "0.00"} USDT will be locked in escrow when you place this order.
-              </p>
-            </div>
-          </div>
-        )}
 
         <button
           onClick={handlePlaceOrder}
