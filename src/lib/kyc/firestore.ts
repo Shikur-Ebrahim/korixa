@@ -21,6 +21,7 @@ function docToRecord(userId: string, data: FirebaseFirestore.DocumentData): User
     extractedIdData: data.extractedIdData ?? null,
     faceMatchScore: data.faceMatchScore ?? null,
     faceMatchDistance: data.faceMatchDistance ?? null,
+    faceDescriptor: data.faceDescriptor ?? [],
     livenessPassed: Boolean(data.livenessPassed),
     rejectionReason: data.rejectionReason ?? null,
     createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? data.createdAt ?? "",
@@ -60,6 +61,7 @@ export async function ensureUserRecord(
     extractedIdData: null,
     faceMatchScore: null,
     faceMatchDistance: null,
+    faceDescriptor: [],
     livenessPassed: false,
     rejectionReason: null,
     createdAt: now,
@@ -70,12 +72,39 @@ export async function ensureUserRecord(
   return docToRecord(userId, created.data()!);
 }
 
+function getEuclideanDistance(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 1;
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) {
+    sum += Math.pow(a[i] - b[i], 2);
+  }
+  return Math.sqrt(sum);
+}
+
 export async function submitUserKyc(
   userId: string,
   email: string,
   payload: KycSubmissionPayload
 ): Promise<UserKycRecord> {
-  const evaluation = evaluateKycSubmission(payload);
+  let evaluation = evaluateKycSubmission(payload);
+
+  if (evaluation.status === "verified" && payload.faceDescriptor && payload.faceDescriptor.length > 0) {
+    const snapshot = await getAdminDb().collection(USERS_COLLECTION).get();
+    for (const doc of snapshot.docs) {
+      if (doc.id === userId) continue;
+      const data = doc.data();
+      if (data.faceDescriptor && Array.isArray(data.faceDescriptor) && data.faceDescriptor.length > 0) {
+        const dist = getEuclideanDistance(payload.faceDescriptor, data.faceDescriptor);
+        if (dist < 0.55) {
+          evaluation = {
+            status: "rejected",
+            rejectionReason: "This face has already been used in another account.",
+          };
+          break;
+        }
+      }
+    }
+  }
 
   const ref = getAdminDb().collection(USERS_COLLECTION).doc(userId);
   const now = FieldValue.serverTimestamp();
@@ -90,6 +119,7 @@ export async function submitUserKyc(
     extractedIdData: payload.extractedIdData as ExtractedIdData,
     faceMatchScore: payload.faceMatchScore,
     faceMatchDistance: payload.faceMatchDistance,
+    faceDescriptor: payload.faceDescriptor ?? [],
     livenessPassed: payload.livenessPassed,
     rejectionReason: evaluation.rejectionReason,
     updatedAt: now,

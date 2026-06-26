@@ -140,6 +140,7 @@ function KycWizardContent() {
           extractedIdData: enrichedOcr,
           faceMatchDistance: match.distance,
           faceMatchScore: match.score,
+          faceDescriptor: match.selfieDescriptor,
           livenessPassed: true,
         }),
       });
@@ -497,6 +498,21 @@ function KycWizardContent() {
                 <p className="mt-2 text-xs text-[#848e9c] sm:text-sm">{result.rejectionReason}</p>
               )}
             </div>
+
+            {result.kycStatus === "rejected" && (
+              <button
+                onClick={() => {
+                  setStep("upload-id");
+                  setIdFrontPreview(null);
+                  setIdBackPreview(null);
+                  setSelfiePreview(null);
+                  setResult(null);
+                }}
+                className={`${appTheme.btnPrimary} mx-auto mt-4 w-full max-w-md py-3`}
+              >
+                Fix the problem and try again
+              </button>
+            )}
 
             {result.kycStatus === "verified" ? (
               <Link href="/dashboard" className={`${appTheme.btnPrimary} inline-flex px-5 py-2.5`}>

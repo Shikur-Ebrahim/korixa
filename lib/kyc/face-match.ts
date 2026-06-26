@@ -7,6 +7,7 @@ export type FaceMatchResult = {
   distance: number;
   score: number;
   matched: boolean;
+  selfieDescriptor?: number[];
   skipped?: boolean; // true when face could not be detected in one of the images
 };
 
@@ -24,7 +25,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-async function getFaceDescriptor(imageSource: string): Promise<Float32Array | null> {
+export async function getFaceDescriptor(imageSource: string): Promise<Float32Array | null> {
   try {
     const faceapi = await loadFaceApiModels();
     const input = await loadImage(imageSource);
@@ -53,7 +54,6 @@ export async function compareFaces(
 
   // If either image has no detectable face (small ID photo, poor quality),
   // skip the match and treat liveness as the proof — a human reviewer will verify.
-  if (!idDescriptor || !selfieDescriptor) {
     return {
       distance: 1,
       score: 0,
@@ -69,6 +69,7 @@ export async function compareFaces(
     distance,
     score,
     matched: distance <= 0.65, // slightly more lenient than 0.6
+    selfieDescriptor: Array.from(selfieDescriptor),
     skipped: false,
   };
 }

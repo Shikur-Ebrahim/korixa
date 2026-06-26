@@ -17,6 +17,7 @@ export type UserKycRecord = {
   extractedIdData: ExtractedIdData | null;
   faceMatchScore: number | null;
   faceMatchDistance: number | null;
+  faceDescriptor?: number[];
   livenessPassed: boolean;
   rejectionReason: string | null;
   createdAt: string;
@@ -30,6 +31,7 @@ export type KycSubmissionPayload = {
   extractedIdData: ExtractedIdData;
   faceMatchDistance: number;
   faceMatchScore: number;
+  faceDescriptor: number[];
   livenessPassed: boolean;
 };
 

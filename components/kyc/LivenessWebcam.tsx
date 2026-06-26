@@ -7,7 +7,7 @@ import {
   eyeAspectRatio,
   headYawFromLandmarks,
   isFacePresent,
-  isHeadTurnLeft,
+  isHeadTurned,
   isSmiling,
   LIVENESS_CHALLENGES,
   LIVENESS_RETRY_MS,
@@ -33,12 +33,13 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
   const completedRef = useRef<Record<LivenessChallenge, boolean>>({
     "face-present": false,
     "blink-once": false,
-    "turn-left": false,
+    "turn-head": false,
     smile: false,
   });
   const lastSpokenRef = useRef(0);
   const capturingRef = useRef(false);
   const advancingRef = useRef(false);
+  const firstSelfieRef = useRef<string | null>(null);
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
   const [completed, setCompleted] = useState<Record<LivenessChallenge, boolean>>({
     "face-present": false,
     "blink-once": false,
-    "turn-left": false,
+    "turn-head": false,
     smile: false,
   });
   const [statusText, setStatusText] = useState("Starting AI liveness assistant...");
@@ -85,8 +86,16 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
 
     capturingRef.current = true;
     setPhase("capturing");
-    setStatusText("Capturing your selfie...");
-    setAssistantLine("Perfect! Hold still while I capture your photo.");
+    setStatusText("Processing your selfie...");
+    setAssistantLine("Perfect! You're all done.");
+
+    if (firstSelfieRef.current) {
+      stopCamera();
+      stopSpeaking();
+      setPhase("done");
+      onCapture(firstSelfieRef.current);
+      return;
+    }
 
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
@@ -190,6 +199,16 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
         const yaw = headYawFromLandmarks(landmarks);
 
         if (active.id === "face-present" && isFacePresent(yaw)) {
+          if (video && !firstSelfieRef.current) {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              firstSelfieRef.current = canvasToDataUrl(canvas);
+            }
+          }
           markComplete("face-present");
           setStatusText("Face detected ✓");
           void advanceStep(activeStep);
@@ -203,9 +222,9 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
           } else if (shouldRetry) {
             void repeatInstruction(activeStep);
           }
-        } else if (active.id === "turn-left" && isHeadTurnLeft(yaw)) {
-          markComplete("turn-left");
-          setStatusText("Head turn left ✓");
+        } else if (active.id === "turn-head" && isHeadTurned(yaw)) {
+          markComplete("turn-head");
+          setStatusText("Head turn detected ✓");
           void advanceStep(activeStep);
         } else if (active.id === "smile" && isSmiling(landmarks)) {
           markComplete("smile");

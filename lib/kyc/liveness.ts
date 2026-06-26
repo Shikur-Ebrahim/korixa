@@ -1,6 +1,6 @@
 "use client";
 
-export type LivenessChallenge = "face-present" | "blink-once" | "turn-left" | "smile";
+export type LivenessChallenge = "face-present" | "blink-once" | "turn-head" | "smile";
 
 export type LivenessChallengeMeta = {
   id: LivenessChallenge;
@@ -26,11 +26,11 @@ export const LIVENESS_CHALLENGES: LivenessChallengeMeta[] = [
     retryInstruction: "Close and open your eyes once.",
   },
   {
-    id: "turn-left",
-    label: "Turn left",
-    hint: "Turn your head slightly left",
-    instruction: "Turn your head left",
-    retryInstruction: "Turn your head a little to the left.",
+    id: "turn-head",
+    label: "Turn head left or right",
+    hint: "Turn your head slightly left or right",
+    instruction: "Turn your head left or right",
+    retryInstruction: "Turn your head a little to the left or right.",
   },
   {
     id: "smile",
@@ -75,13 +75,9 @@ export function isBlinkDetected(ear: number, baselineEar: number): boolean {
   return ear < baselineEar * 0.85 || ear < 0.20;
 }
 
-export function isHeadTurnLeft(yaw: number): boolean {
-  // Lowered from -0.05 → -0.03: only a slight left lean needed
-  return yaw < -0.03;
-}
-
-export function isHeadTurnRight(yaw: number): boolean {
-  return yaw > 0.05;
+export function isHeadTurned(yaw: number): boolean {
+  // Fast acceptance: slightly left or right
+  return yaw < -0.05 || yaw > 0.05;
 }
 
 export function isFaceCentered(yaw: number): boolean {

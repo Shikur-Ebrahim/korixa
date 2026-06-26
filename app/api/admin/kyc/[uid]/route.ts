@@ -47,3 +47,46 @@ export async function PATCH(request: Request, { params }: Params) {
     );
   }
 }
+
+export async function DELETE(request: Request, { params }: Params) {
+  try {
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const role = await getRoleFromToken(token);
+    if (role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const { uid } = await params;
+
+    const db = getAdminDb();
+    const ref = db.collection("users").doc(uid);
+    const snap = await ref.get();
+
+    if (!snap.exists) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Completely wipe all KYC data
+    const update = {
+      kycStatus: "pending",
+      idImageUrl: FieldValue.delete(),
+      selfieImageUrl: FieldValue.delete(),
+      extractedIdData: FieldValue.delete(),
+      faceMatchScore: FieldValue.delete(),
+      faceMatchDistance: FieldValue.delete(),
+      faceDescriptor: FieldValue.delete(),
+      livenessPassed: FieldValue.delete(),
+      rejectionReason: FieldValue.delete(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    await ref.update(update);
+
+    return NextResponse.json({ ok: true, uid, kycStatus: "pending" });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "KYC deletion failed" },
+      { status: 500 }
+    );
+  }
+}

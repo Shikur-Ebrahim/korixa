@@ -67,6 +67,27 @@ export default function AdminKycPage() {
     } finally { setBusy(null); }
   };
 
+  const handleKycDelete = async (uid: string) => {
+    if (!confirm("Are you sure you want to completely delete this user's KYC data? This will revert them to an unverified state.")) return;
+    setBusy(uid + "delete");
+    try {
+      const token = await getIdToken();
+      const res = await fetch(`/api/admin/kyc/${uid}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.uid === uid ? { ...u, kycStatus: "pending", rejectionReason: null, idImageUrl: null, selfieImageUrl: null, faceMatchScore: null } : u
+          )
+        );
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const filtered = filter === "all" ? users : users.filter((u) => u.kycStatus === filter);
 
   return (
@@ -168,6 +189,17 @@ export default function AdminKycPage() {
                     </button>
                   </div>
                 )}
+                
+                {/* Delete KYC Button */}
+                <div className="pt-2 border-t border-white/[0.06] mt-2">
+                  <button
+                    disabled={!!busy}
+                    onClick={() => void handleKycDelete(u.uid)}
+                    className="w-full rounded-xl border border-red-500/20 bg-red-500/5 py-2 text-xs font-semibold text-red-500 transition hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    {busy === u.uid + "delete" ? "Deleting..." : "Completely Delete KYC Data"}
+                  </button>
+                </div>
               </div>
             ))}
       </div>

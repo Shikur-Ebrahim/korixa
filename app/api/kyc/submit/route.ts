@@ -15,6 +15,7 @@ const schema = z.object({
   }),
   faceMatchDistance: z.number(),
   faceMatchScore: z.number(),
+  faceDescriptor: z.array(z.number()).optional(),
   livenessPassed: z.boolean(),
 });
 

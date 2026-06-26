@@ -37,14 +37,22 @@ export function KycGate({ children, featureName = "trading features" }: KycGateP
       <p className="mx-auto mb-4 max-w-md text-xs text-[#848e9c] sm:text-sm">
         {kycStatus === "rejected"
           ? "Your verification was rejected. Please submit clearer ID and selfie photos."
-          : `Complete KYC to unlock ${featureName}.`}
+          : kycStatus === "pending"
+            ? "Your verification is currently processing. Please wait."
+            : `Complete KYC to unlock ${featureName}.`}
       </p>
-      <Link
-        href="/kyc?start=1"
-        className={`${appTheme.btnPrimary} inline-flex px-5 py-2.5`}
-      >
-        {kycStatus === "rejected" ? "Retry verification" : "Verify now"}
-      </Link>
+      {kycStatus === "pending" ? (
+        <button disabled className={`${appTheme.btnPrimary} inline-flex px-5 py-2.5 opacity-50 cursor-not-allowed`}>
+          Processing...
+        </button>
+      ) : (
+        <Link
+          href="/kyc?start=1"
+          className={`${appTheme.btnPrimary} inline-flex px-5 py-2.5`}
+        >
+          {kycStatus === "rejected" ? "Retry verification" : "Verify now"}
+        </Link>
+      )}
     </div>
   );
 }
