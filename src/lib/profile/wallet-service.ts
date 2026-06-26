@@ -126,8 +126,28 @@ export async function getTransactions(uid: string, txType?: TransactionType | Tr
       } as TransactionRecord;
     });
 
+    // Fetch received internal transfers (deposits)
+    const qReceived = query(collection(db, "withdrawals"), where("destination", "==", uid));
+    const snapReceived = await getDocs(qReceived);
+    const receivedTxs = snapReceived.docs
+      .filter(doc => doc.data().type === "internal_transfer")
+      .map(doc => {
+        const data = doc.data();
+      return {
+        id: doc.id,
+        type: "deposit", // It's an incoming transfer, so it counts as a deposit
+        coin: data.coin,
+        amount: data.amount,
+        usdValue: data.amount,
+        status: data.status,
+        timestamp: new Date(data.createdAt).getTime(),
+        network: "Internal",
+        destination: data.userId, // The sender
+      } as TransactionRecord;
+    });
+
     // Merge
-    let all = [...txs, ...p2pTxs, ...withdrawalTxs];
+    let all = [...txs, ...p2pTxs, ...withdrawalTxs, ...receivedTxs];
     
     if (txType) {
       if (Array.isArray(txType)) {

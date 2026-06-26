@@ -90,7 +90,7 @@ export default function InternalTransferPage() {
           </div>
           <input
             type="text"
-            placeholder="Email / Phone / Korixa UID"
+            placeholder="Email / Korixa UID"
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
             className="w-full bg-transparent text-white text-sm font-medium outline-none placeholder-[#3b4351]"

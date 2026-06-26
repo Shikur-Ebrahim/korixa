@@ -76,7 +76,7 @@ export default function OnchainWithdrawPage() {
           <FiCheckSquare size={32} />
         </div>
         <h2 className="text-2xl font-bold mb-2">Request Submitted</h2>
-        <p className="text-[#848e9c] mb-8 text-center">Your withdrawal request is pending admin verification. It will be processed shortly.</p>
+        <p className="text-[#848e9c] mb-8 text-center">Your withdrawal request is pending system verification. It will be processed shortly.</p>
         <button 
           onClick={() => router.push("/profile/history")}
           className="w-full bg-white/[0.08] hover:bg-white/[0.12] rounded-xl py-4 font-bold transition"
