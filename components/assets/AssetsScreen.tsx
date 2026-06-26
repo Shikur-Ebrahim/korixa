@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { FiAlertCircle } from "react-icons/fi";
 import { AllocationChart } from "@/components/assets/AllocationChart";
 import { AssetHoldings } from "@/components/assets/AssetHoldings";
+import { CardBanner } from "@/components/assets/CardBanner";
 import { EmptyPortfolioState } from "@/components/assets/EmptyPortfolioState";
 import { PortfolioOverview } from "@/components/assets/PortfolioOverview";
 import { QuickActions } from "@/components/assets/QuickActions";
@@ -56,6 +57,8 @@ export function AssetsScreen() {
         loading={isLoading}
         onRefresh={() => void refresh()}
       />
+
+      <CardBanner />
 
       <QuickActions
         onDeposit={openDeposit}

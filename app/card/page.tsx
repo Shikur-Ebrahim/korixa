@@ -132,6 +132,7 @@ interface UserCard {
   cvv: string;
   holderName: string;
   frozen: boolean;
+  displayInAssets?: boolean;
   createdAt: unknown;
 }
 
@@ -631,6 +632,28 @@ export default function CardPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Display in Assets Toggle */}
+            <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#161a1e] p-4 mt-2">
+              <div>
+                <p className="text-xs font-bold text-white">Show in Assets</p>
+                <p className="text-[10px] text-[#848e9c]">Display card on Wallet page</p>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await updateDoc(doc(getClientFirestore(), "userCards", user.uid), {
+                      displayInAssets: card.displayInAssets === false ? true : false,
+                    });
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+                className={`relative h-6 w-10 rounded-full transition-colors ${card.displayInAssets !== false ? "bg-primary" : "bg-white/[0.1]"}`}
+              >
+                <div className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${card.displayInAssets !== false ? "left-5" : "left-1"}`} />
+              </button>
             </div>
 
             {/* Upgrade Card Button */}
