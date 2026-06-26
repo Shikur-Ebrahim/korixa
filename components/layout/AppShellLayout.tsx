@@ -19,7 +19,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
-  const { notifications, unreadCount, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, readIds, markAsRead, markAllAsRead } = useNotifications();
 
   // Auto-open drawers from query params
   useEffect(() => {
@@ -49,7 +49,6 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
         onNotificationsClick={() => {
           setProfileOpen(false);
           setNotificationsOpen(true);
-          markAllAsRead();
         }}
         unreadCount={unreadCount}
       />
@@ -57,8 +56,22 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       {!hideBottomNav && <AppBottomNav />}
-      <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
-      <NotificationsDrawer open={notificationsOpen} onClose={() => setNotificationsOpen(false)} notifications={notifications} />
+      <ProfileDrawer 
+        open={profileOpen} 
+        onClose={() => setProfileOpen(false)} 
+        onOpenNotifications={() => {
+          setProfileOpen(false);
+          setNotificationsOpen(true);
+        }}
+      />
+      <NotificationsDrawer 
+        open={notificationsOpen} 
+        onClose={() => setNotificationsOpen(false)} 
+        notifications={notifications} 
+        readIds={readIds}
+        markAsRead={markAsRead}
+        markAllAsRead={markAllAsRead}
+      />
       <DepositDrawer open={depositOpen} onClose={() => setDepositOpen(false)} />
     </div>
   );

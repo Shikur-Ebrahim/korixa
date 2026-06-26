@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 type ProfileDrawerProps = {
   open: boolean;
   onClose: () => void;
+  onOpenNotifications?: () => void;
 };
 
 function kycBadgeClass(status: string) {
@@ -74,7 +75,7 @@ const MENU_GROUPS = [
   },
 ];
 
-export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
+export function ProfileDrawer({ open, onClose, onOpenNotifications }: ProfileDrawerProps) {
   const { user, kycStatus, logout } = useAuth();
   const [copiedUid, setCopiedUid] = useState(false);
   const router = useRouter();
@@ -184,7 +185,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
               </p>
               <div className="rounded-xl border border-white/[0.04] bg-[#161a1e] divide-y divide-white/[0.04] overflow-hidden">
                 {group.items.map((item) => (
-                  item.href === "/profile/security" ? (
+                  item.label === "Security Center" ? (
                     <button
                       key={item.label}
                       type="button"
@@ -193,6 +194,24 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
                         onClose();
                         // Navigate after a tiny delay so drawer closes without blocking
                         setTimeout(() => router.push("/profile/security"), 50);
+                      }}
+                    >
+                      <span className="flex items-center gap-3">
+                        <item.icon className="text-[#848e9c] text-lg" />
+                        {item.label}
+                      </span>
+                      <FiChevronRight className="text-[#848e9c]" />
+                    </button>
+                  ) : item.label === "Notifications" ? (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-[#eaecef] transition hover:bg-white/[0.04]"
+                      onClick={() => {
+                        onClose();
+                        if (onOpenNotifications) {
+                          setTimeout(() => onOpenNotifications(), 50);
+                        }
                       }}
                     >
                       <span className="flex items-center gap-3">

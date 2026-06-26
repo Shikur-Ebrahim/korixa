@@ -7,9 +7,19 @@ type NotificationsDrawerProps = {
   open: boolean;
   onClose: () => void;
   notifications?: TransactionRecord[];
+  readIds?: Set<string>;
+  markAsRead?: (id: string) => void;
+  markAllAsRead?: () => void;
 };
 
-export function NotificationsDrawer({ open, onClose, notifications = [] }: NotificationsDrawerProps) {
+export function NotificationsDrawer({ 
+  open, 
+  onClose, 
+  notifications = [],
+  readIds = new Set(),
+  markAsRead,
+  markAllAsRead
+}: NotificationsDrawerProps) {
   if (!open) return null;
 
   const getTypeIcon = (type: string) => {
@@ -54,7 +64,18 @@ export function NotificationsDrawer({ open, onClose, notifications = [] }: Notif
 
       <div className="absolute inset-x-0 top-0 mx-auto flex max-h-[85vh] w-full max-w-lg flex-col rounded-b-2xl bg-[#161a1e] shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-4 shrink-0">
-          <h2 className="text-base md:text-lg font-bold text-white">Notifications</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-base md:text-lg font-bold text-white">Notifications</h2>
+            {notifications.length > 0 && markAllAsRead && (
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="text-xs text-primary hover:text-primary/80 transition"
+              >
+                Mark all as read
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -78,27 +99,37 @@ export function NotificationsDrawer({ open, onClose, notifications = [] }: Notif
             </div>
           ) : (
             <div className="space-y-2">
-              {notifications.map((tx) => (
-                <div key={tx.id} className="flex items-start gap-3 p-3 rounded-xl bg-[#0b0e11] border border-white/[0.04] hover:border-white/[0.08] transition">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#161a1e] border border-white/[0.04]">
-                    {getTypeIcon(tx.type)}
-                  </div>
-                  <div className="flex-1 min-w-0 pt-0.5">
-                    <p className="text-xs md:text-sm font-bold text-white mb-0.5 line-clamp-2 leading-snug">
-                      {formatMessage(tx)}
-                    </p>
-                    <p className="text-[10px] md:text-xs text-[#848e9c]">
-                      {new Date(tx.timestamp).toLocaleString()}
-                    </p>
-                  </div>
-                  {tx.status === "completed" && (
-                    <div className="h-2 w-2 rounded-full bg-green-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                  )}
-                  {tx.status === "pending" && (
-                    <div className="h-2 w-2 rounded-full bg-yellow-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
-                  )}
-                </div>
-              ))}
+              {notifications.map((tx) => {
+                const isUnread = !readIds.has(tx.id);
+                return (
+                  <button 
+                    key={tx.id} 
+                    onClick={() => markAsRead?.(tx.id)}
+                    className="w-full text-left flex items-start gap-3 p-3 rounded-xl bg-[#0b0e11] border border-white/[0.04] hover:border-white/[0.08] transition relative"
+                  >
+                    {isUnread && (
+                      <div className="absolute left-1 top-4 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]" />
+                    )}
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#161a1e] border border-white/[0.04] ml-2">
+                      {getTypeIcon(tx.type)}
+                    </div>
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <p className={`text-xs md:text-sm font-bold mb-0.5 line-clamp-2 leading-snug ${isUnread ? "text-white" : "text-[#eaecef]"}`}>
+                        {formatMessage(tx)}
+                      </p>
+                      <p className="text-[10px] md:text-xs text-[#848e9c]">
+                        {new Date(tx.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                    {tx.status === "completed" && (
+                      <div className="h-2 w-2 rounded-full bg-green-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                    )}
+                    {tx.status === "pending" && (
+                      <div className="h-2 w-2 rounded-full bg-yellow-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
