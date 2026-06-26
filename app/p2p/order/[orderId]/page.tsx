@@ -8,6 +8,7 @@ import { getClientFirestore } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getAuth } from "firebase/auth";
 import type { P2POrder, P2PMessage } from "@/lib/p2p/types";
+import { AppealModal } from "./AppealModal";
 
 export default function P2POrderRoomPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function P2POrderRoomPage() {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [appealOpen, setAppealOpen] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -277,6 +279,17 @@ export default function P2POrderRoomPage() {
           </div>
         )}
 
+        {/* Appeal Action */}
+        {(order.status === "paid" || order.status === "pending" || order.status === "appealed") && (
+          <button
+            onClick={() => setAppealOpen(true)}
+            disabled={order.status === "appealed"}
+            className="w-full mt-3 rounded-xl border border-red-500/20 bg-red-500/10 py-3 text-sm font-bold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+          >
+            {order.status === "appealed" ? "Order is under appeal" : "Appeal Order"}
+          </button>
+        )}
+
         {/* Admin/Merchant Actions */}
         {order.status === "paid" && isAdminOrMerchant && (
           <button
@@ -294,6 +307,9 @@ export default function P2POrderRoomPage() {
 
       {/* Chat Drawer */}
       {chatOpen && <ChatDrawer orderId={orderId} onClose={() => setChatOpen(false)} messages={messages} user={user} showToast={showToast} />}
+
+      {/* Appeal Modal */}
+      {appealOpen && <AppealModal order={order} user={user} onClose={() => setAppealOpen(false)} showToast={showToast} />}
     </div>
   );
 }

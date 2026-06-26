@@ -33,7 +33,10 @@ export interface P2PAdvertisement {
   maxOrderLimit: number; // in ETB
   paymentMethods: PaymentMethod[];
   paymentAccountDetails: PaymentAccountDetail[]; // Per-method account info shown to buyers
-  status: "active" | "disabled";
+  termsOfTrade?: string;
+  autoReply?: string;
+  timeLimit: number; // in minutes (e.g., 15, 30)
+  status: "active" | "disabled" | "paused";
   createdAt: string;
 }
 
@@ -59,6 +62,7 @@ export interface P2POrder {
 
 export interface P2PMessage {
   id: string;
+  orderId: string;
   senderId: string;
   senderName: string;
   text: string;
@@ -66,11 +70,19 @@ export interface P2PMessage {
   createdAt: string;
 }
 
+export type AppealReason = "Payment Completed" | "Seller Not Responding" | "Incorrect Amount" | "Fraud Suspicion" | "Other";
+
 export interface P2PAppeal {
   id: string;
   orderId: string;
-  raisedBy: string; // UID
-  reason: string;
-  status: "open" | "resolved" | "rejected";
+  buyerId: string;
+  sellerId: string;
+  creatorId: string; // The one who initiated the appeal
+  reason: AppealReason;
+  description: string;
+  evidenceUrls: string[];
+  status: "pending" | "approved" | "rejected";
   createdAt: string;
+  resolvedAt?: string;
+  resolutionNotes?: string;
 }

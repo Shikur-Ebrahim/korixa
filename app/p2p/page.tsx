@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { FiCheckCircle, FiArrowLeft, FiClock, FiShield, FiAlertTriangle } from "react-icons/fi";
+import { FiCheckCircle, FiArrowLeft, FiClock, FiShield, FiAlertTriangle, FiPlus, FiList } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { P2PAdvertisement, PaymentMethod } from "@/lib/p2p/types";
@@ -90,12 +90,23 @@ export default function P2PMarketplace() {
             </div>
           </div>
           
-          <button
-            onClick={() => router.push("/p2p/orders")}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1e2329] text-white"
-          >
-            <FiClock size={16} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                if (!isVerified) return alert("KYC required");
+                router.push("/p2p/my-ads");
+              }}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1e2329] text-white"
+            >
+              <FiList size={16} />
+            </button>
+            <button
+              onClick={() => router.push("/p2p/orders")}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1e2329] text-white"
+            >
+              <FiClock size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Buy / Sell Tabs */}
@@ -147,26 +158,33 @@ export default function P2PMarketplace() {
             </button>
 
             {paymentDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setPaymentDropdownOpen(false)} />
-                <div className="absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-xl border border-white/[0.08] bg-[#1e2329] shadow-2xl overflow-hidden">
-                  {["All", ...PAYMENT_METHODS].map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => { setFilterPayment(m as PaymentMethod | "All"); setPaymentDropdownOpen(false); }}
-                      className={`flex w-full items-center justify-between px-3 py-2.5 text-[11px] font-medium transition-colors border-b border-white/[0.04] last:border-0 ${
-                        m === filterPayment ? "bg-primary/10 text-primary" : "text-white hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      {m}
-                      {m === filterPayment && (
-                        <svg className="h-3 w-3 text-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                      )}
-                    </button>
-                  ))}
+              <div className="fixed inset-0 z-50 flex flex-col justify-end">
+                <div 
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+                  onClick={() => setPaymentDropdownOpen(false)} 
+                />
+                <div className="relative bg-[#1e2329] rounded-t-3xl p-4 animate-in slide-in-from-bottom-full duration-300">
+                  <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+                  <h3 className="mb-4 text-center text-sm font-bold text-white">Select Payment Method</h3>
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                    {["All", ...PAYMENT_METHODS].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => { setFilterPayment(m as PaymentMethod | "All"); setPaymentDropdownOpen(false); }}
+                        className={`flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-sm font-medium transition-colors ${
+                          m === filterPayment ? "bg-primary/10 text-primary" : "bg-[#0b0e11] text-white"
+                        }`}
+                      >
+                        {m}
+                        {m === filterPayment && (
+                          <FiCheckCircle size={16} className="text-primary shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -265,6 +283,18 @@ export default function P2PMarketplace() {
           ))
         )}
       </div>
+
+      {/* FAB: Create Advertisement */}
+      <button
+        onClick={() => {
+          if (!isVerified) return alert("KYC verification is required before creating P2P advertisements.");
+          router.push("/p2p/create-ad");
+        }}
+        className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#0b0e11] shadow-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all"
+        style={{ boxShadow: "0 8px 32px rgba(247, 147, 26, 0.4)" }}
+      >
+        <FiPlus size={28} />
+      </button>
     </div>
   );
 }

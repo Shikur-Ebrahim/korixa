@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FiUsers, FiShoppingBag, FiList, FiAlertTriangle } from "react-icons/fi";
 import { MerchantManagement } from "@/components/admin/p2p/MerchantManagement";
 import { AdvertisementManagement } from "@/components/admin/p2p/AdvertisementManagement";
+import { AppealManagement } from "@/components/admin/p2p/AppealManagement";
 
 type Tab = "merchants" | "ads" | "appeals";
 
@@ -47,13 +48,7 @@ export default function AdminP2PPage() {
       <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
         {activeTab === "merchants" && <MerchantManagement />}
         {activeTab === "ads" && <AdvertisementManagement />}
-        {activeTab === "appeals" && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <FiAlertTriangle className="mb-3 text-4xl text-[#848e9c]" />
-            <h3 className="text-lg font-medium text-white">Appeal Management</h3>
-            <p className="mt-1 text-sm text-[#848e9c]">Coming soon in Phase 2.</p>
-          </div>
-        )}
+        {activeTab === "appeals" && <AppealManagement />}
       </div>
     </div>
   );

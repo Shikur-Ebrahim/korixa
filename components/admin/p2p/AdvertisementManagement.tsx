@@ -109,6 +109,7 @@ export function AdvertisementManagement() {
         maxOrderLimit: Number(form.maxOrderLimit),
         paymentMethods: form.paymentMethods ?? [],
         paymentAccountDetails: form.paymentAccountDetails ?? [],
+        timeLimit: 15,
         status: "active",
         createdAt: new Date().toISOString(),
       };
