@@ -642,6 +642,7 @@ export default function CardPage() {
               </div>
               <button
                 onClick={async () => {
+                  if (!user) return;
                   try {
                     await updateDoc(doc(getClientFirestore(), "userCards", user.uid), {
                       displayInAssets: card.displayInAssets === false ? true : false,
