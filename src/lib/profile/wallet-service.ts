@@ -205,9 +205,11 @@ export function subscribeTransactions(uid: string, txType: TransactionType | Tra
   
   const txsMap = new Map<string, TransactionRecord>();
   const p2pMap = new Map<string, TransactionRecord>();
+  const sentWithdrawalsMap = new Map<string, TransactionRecord>();
+  const receivedWithdrawalsMap = new Map<string, TransactionRecord>();
 
   const notify = () => {
-    let all = [...txsMap.values(), ...p2pMap.values()];
+    let all = [...txsMap.values(), ...p2pMap.values(), ...sentWithdrawalsMap.values(), ...receivedWithdrawalsMap.values()];
     
     if (txType) {
       if (Array.isArray(txType)) {
@@ -253,9 +255,56 @@ export function subscribeTransactions(uid: string, txType: TransactionType | Tra
     console.error("Failed to subscribe to p2pOrders", error);
   });
 
+  const unsubSentWithdrawals = onSnapshot(query(collection(db, "withdrawals"), where("userId", "==", uid)), (snapshot) => {
+    sentWithdrawalsMap.clear();
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const type = data.type === "internal_transfer" ? "transfer" : "withdrawal";
+      sentWithdrawalsMap.set(doc.id, {
+        id: doc.id,
+        type,
+        coin: data.coin,
+        amount: data.amount,
+        usdValue: data.amount, // Approximate
+        status: data.status,
+        timestamp: new Date(data.createdAt).getTime(),
+        network: data.network,
+        destination: data.destination,
+      } as TransactionRecord);
+    });
+    notify();
+  }, (error) => {
+    console.error("Failed to subscribe to sent withdrawals", error);
+  });
+
+  const unsubReceivedWithdrawals = onSnapshot(query(collection(db, "withdrawals"), where("destination", "==", uid)), (snapshot) => {
+    receivedWithdrawalsMap.clear();
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.type === "internal_transfer") {
+        receivedWithdrawalsMap.set(doc.id, {
+          id: doc.id,
+          type: "deposit", // It's an incoming transfer, so it counts as a deposit
+          coin: data.coin,
+          amount: data.amount,
+          usdValue: data.amount,
+          status: data.status,
+          timestamp: new Date(data.createdAt).getTime(),
+          network: "Internal",
+          destination: data.userId, // The sender
+        } as TransactionRecord);
+      }
+    });
+    notify();
+  }, (error) => {
+    console.error("Failed to subscribe to received withdrawals", error);
+  });
+
   return () => {
     unsubTxs();
     unsubP2P();
+    unsubSentWithdrawals();
+    unsubReceivedWithdrawals();
   };
 }
 

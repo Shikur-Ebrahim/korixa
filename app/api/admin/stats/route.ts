@@ -16,15 +16,17 @@ export async function GET(request: Request) {
     const db = getAdminDb();
 
     // Run all counts in parallel
-    const [usersSnap, depositsSnap, pendingKycSnap] = await Promise.all([
+    const [usersSnap, depositsSnap, pendingKycSnap, pendingWithdrawalsSnap] = await Promise.all([
       db.collection("users").count().get(),
       db.collection("deposits").count().get(),
       db.collection("users").where("kycStatus", "==", "pending").count().get(),
+      db.collection("withdrawals").where("status", "==", "pending").count().get(),
     ]);
 
     const totalUsers = usersSnap.data().count;
     const totalDeposits = depositsSnap.data().count;
     const pendingKyc = pendingKycSnap.data().count;
+    const pendingWithdrawals = pendingWithdrawalsSnap.data().count;
 
     // Recent users (last 5)
     const recentSnap = await db
@@ -47,7 +49,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       totalUsers,
       totalDeposits,
-      totalWithdrawals: 0,
+      pendingWithdrawals,
       pendingKyc,
       recentUsers,
     });
