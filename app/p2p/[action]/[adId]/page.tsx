@@ -188,7 +188,9 @@ export default function P2POrderCreationPage() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-[#848e9c]">Available</div>
+              <div className="text-xs text-[#848e9c]">
+                {isBuy ? "Available" : "Wanted"}
+              </div>
               <div className="font-medium">{ad.availableUSDT} USDT</div>
             </div>
           </div>
