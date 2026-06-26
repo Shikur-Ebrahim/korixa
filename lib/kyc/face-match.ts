@@ -54,6 +54,7 @@ export async function compareFaces(
 
   // If either image has no detectable face (small ID photo, poor quality),
   // skip the match and treat liveness as the proof — a human reviewer will verify.
+  if (!idDescriptor || !selfieDescriptor) {
     return {
       distance: 1,
       score: 0,
