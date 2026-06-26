@@ -52,7 +52,7 @@ export function CardBanner() {
   return (
     <Link
       href="/card"
-      style={{ display: "block", borderRadius: "16px", overflow: "hidden", textDecoration: "none" }}
+      style={{ display: "block", textDecoration: "none" }}
     >
       <div
         style={{

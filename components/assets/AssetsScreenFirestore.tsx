@@ -139,11 +139,10 @@ export function AssetsScreenFirestore() {
         </div>
       </div>
 
-      {/* ── Card Banner ── */}
-      <CardBanner />
-
-      {/* ── Tabs ── */}
-      <div className="flex gap-1 rounded-xl bg-[#1e2329] p-1">
+      {/* ── Card Banner & Tabs ── */}
+      <div className="flex flex-col rounded-xl overflow-hidden bg-[#1e2329]">
+        <CardBanner />
+        <div className="flex gap-1 p-1">
         {(["all", "funding", "spot"] as const).map(tab => (
           <button
             key={tab}
@@ -157,6 +156,7 @@ export function AssetsScreenFirestore() {
             {tab === "all" ? "All Assets" : tab === "funding" ? "Funding" : "Spot"}
           </button>
         ))}
+        </div>
       </div>
 
       {/* ── Funding Wallet ── */}
