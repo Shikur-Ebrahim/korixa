@@ -381,14 +381,17 @@ export default function CardPage() {
   const [freezing, setFreezing] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [kycName, setKycName] = useState("KORIXA USER");
+  const [kycStatus, setKycStatus] = useState("pending");
+  const [showKycRequiredModal, setShowKycRequiredModal] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     const db = getClientFirestore();
     getDoc(doc(db, "users", user.uid)).then((snap) => {
       if (snap.exists()) {
-        const n = snap.data()?.fullName;
-        if (n) setKycName(n.toUpperCase());
+        const data = snap.data();
+        if (data?.fullName) setKycName(data.fullName.toUpperCase());
+        if (data?.kycStatus) setKycStatus(data.kycStatus);
       }
     });
   }, [user]);
@@ -635,13 +638,49 @@ export default function CardPage() {
                 <BrowseTierCard
                   key={tier.id}
                   tier={tier}
-                  onBuy={() => setConfirmTier(tier)}
+                  onBuy={() => {
+                    if (kycStatus !== "approved") {
+                      setShowKycRequiredModal(true);
+                    } else {
+                      setConfirmTier(tier);
+                    }
+                  }}
                 />
               ))}
             </div>
           </>
         )}
       </div>
+
+      {/* ── KYC Required Modal ─────────────────────────────────────────── */}
+      {showKycRequiredModal && (
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center px-4 pb-4 sm:p-0">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowKycRequiredModal(false)} />
+          <div className="relative w-full max-w-sm mx-auto bg-[#161a1e] rounded-3xl border border-white/[0.06] shadow-2xl p-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 border border-primary/20 mb-4">
+              <FiLock size={24} className="text-primary" />
+            </div>
+            <h3 className="text-sm font-bold text-white mb-2">Identity Verification Required</h3>
+            <p className="text-[11px] text-[#848e9c] mb-6 leading-relaxed">
+              To comply with financial regulations and protect your account, you must complete KYC verification before applying for a Korixa Card.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowKycRequiredModal(false)}
+                className="w-full rounded-xl border border-white/[0.08] bg-[#0b0e11] py-3.5 text-xs font-bold text-white hover:bg-white/[0.04] transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => router.push("/kyc")}
+                className="w-full rounded-xl bg-primary py-3.5 text-xs font-bold text-black shadow-lg shadow-primary/20 hover:bg-primary/90 transition"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Confirm Buy Modal ──────────────────────────────────────────── */}
       {confirmTier && (
