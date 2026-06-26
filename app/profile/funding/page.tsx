@@ -12,6 +12,7 @@ import { InsightList } from "@/components/landing/market/InsightList";
 import { TopGainersList } from "@/components/landing/market/TopGainersList";
 import type { AppMarketPageData } from "@/lib/coingecko";
 import { TransferModal } from "@/components/profile/TransferModal";
+import { WithdrawDrawer } from "@/components/profile/WithdrawDrawer";
 import { useBinanceTickers } from "@/hooks/useBinanceMarket";
 
 const COIN_COLORS: Record<string, string> = {
@@ -39,6 +40,7 @@ export default function FundingAccountPage() {
   const [marketLoading, setMarketLoading] = useState(true);
   const [hideBalances, setHideBalances] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
 
   useEffect(() => {
     if (user?.uid) {
@@ -165,7 +167,7 @@ export default function FundingAccountPage() {
           <div className="grid grid-cols-4 gap-3 mt-8 relative z-10">
             {[
               { icon: FiDownload, label: "Deposit", onClick: () => router.push("?deposit=open") },
-              { icon: FiUpload, label: "Withdraw", onClick: () => {} },
+              { icon: FiUpload, label: "Withdraw", onClick: () => setIsWithdrawOpen(true) },
               { icon: FiRepeat, label: "Transfer", onClick: () => setIsTransferModalOpen(true) },
               { icon: FiUsers, label: "P2P", onClick: () => router.push("/p2p") },
             ].map((action, i) => (
@@ -295,6 +297,7 @@ export default function FundingAccountPage() {
       </div>
 
       <TransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} defaultFrom="funding" />
+      <WithdrawDrawer open={isWithdrawOpen} onClose={() => setIsWithdrawOpen(false)} />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useFirestoreAssetsData } from "@/hooks/useFirestoreAssetsData";
 import { TransferModal } from "@/components/profile/TransferModal";
 import { CardBanner } from "@/components/assets/CardBanner";
+import { WithdrawDrawer } from "@/components/profile/WithdrawDrawer";
 
 const COIN_COLORS: Record<string, string> = {
   BTC: "#F7931A",
@@ -46,6 +47,7 @@ export function AssetsScreenFirestore() {
   const [hideBalance, setHideBalance] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "funding" | "spot">("all");
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
 
   const {
     fundingWallets,
@@ -120,7 +122,7 @@ export function AssetsScreenFirestore() {
           <div className="mt-4 grid grid-cols-4 gap-2">
             {[
               { icon: FiArrowDownLeft, label: "Deposit",  color: "text-green-400",  onClick: () => router.push("?deposit=open") },
-              { icon: FiArrowUpRight,  label: "Withdraw", color: "text-red-400",    onClick: () => router.push("/profile/funding") },
+              { icon: FiArrowUpRight,  label: "Withdraw", color: "text-red-400",    onClick: () => setIsWithdrawOpen(true) },
               { icon: FiRepeat,        label: "Transfer", color: "text-blue-400",   onClick: () => setIsTransferModalOpen(true) },
               { icon: FiClock,         label: "History",  color: "text-[#848e9c]", onClick: () => router.push("/profile/history") },
             ].map(({ icon: Icon, label, color, onClick }) => (
@@ -357,6 +359,7 @@ export function AssetsScreenFirestore() {
         onClose={() => setIsTransferModalOpen(false)} 
         defaultFrom={activeTab === "spot" ? "spot" : "funding"} 
       />
+      <WithdrawDrawer open={isWithdrawOpen} onClose={() => setIsWithdrawOpen(false)} />
     </div>
   );
 }
