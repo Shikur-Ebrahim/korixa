@@ -51,7 +51,7 @@ const MENU_GROUPS = [
     items: [
       { label: "Funding Account", href: "/profile/funding", icon: FiBriefcase },
       { label: "Spot Account", href: "/profile/spot", icon: FiBriefcase },
-      { label: "Korixa Card", href: "/card", icon: FiCreditCard },
+      { label: "Visa Card", href: "/card", icon: FiCreditCard },
       { label: "Transaction History", href: "/profile/history", icon: FiFileText },
     ],
   },

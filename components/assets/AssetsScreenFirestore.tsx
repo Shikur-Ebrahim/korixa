@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFirestoreAssetsData } from "@/hooks/useFirestoreAssetsData";
 import { TransferModal } from "@/components/profile/TransferModal";
+import { CardBanner } from "@/components/assets/CardBanner";
 
 const COIN_COLORS: Record<string, string> = {
   BTC: "#F7931A",
@@ -137,6 +138,9 @@ export function AssetsScreenFirestore() {
           </div>
         </div>
       </div>
+
+      {/* ── Card Banner ── */}
+      <CardBanner />
 
       {/* ── Tabs ── */}
       <div className="flex gap-1 rounded-xl bg-[#1e2329] p-1">

@@ -18,9 +18,19 @@ interface UserCard {
   displayInAssets?: boolean;
 }
 
+const TIER_STYLES: Record<string, { bg: string; text: string; visa: string; label: string }> = {
+  starter:  { bg: "linear-gradient(135deg, #374151 0%, #1f2937 60%, #111827 100%)", text: "#ffffff", visa: "#ffffff", label: "Starter" },
+  bronze:   { bg: "linear-gradient(135deg, #92400e 0%, #78350f 60%, #451a03 100%)", text: "#fef3c7", visa: "#fbbf24", label: "Bronze" },
+  silver:   { bg: "linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 60%, #94a3b8 100%)", text: "#0f172a", visa: "#0f172a", label: "Silver" },
+  gold:     { bg: "linear-gradient(135deg, #fcd34d 0%, #f59e0b 60%, #d97706 100%)", text: "#451a03", visa: "#ffffff", label: "Gold" },
+  platinum: { bg: "linear-gradient(135deg, #1e3a5f 0%, #1e40af 60%, #1d4ed8 100%)", text: "#ffffff", visa: "#93c5fd", label: "Platinum" },
+  diamond:  { bg: "linear-gradient(135deg, #4c1d95 0%, #1e1b4b 60%, #000000 100%)", text: "#e9d5ff", visa: "#c4b5fd", label: "Diamond" },
+  black:    { bg: "linear-gradient(135deg, #18181b 0%, #09090b 60%, #000000 100%)", text: "#d4d4d8", visa: "#fafafa", label: "Black" },
+};
+
 export function CardBanner() {
   const { user } = useAuth();
-  const [card, setCard] = useState<UserCard | null>(null);
+  const [card, setCard] = useState<UserCard | null | undefined>(undefined);
 
   useEffect(() => {
     if (!user) return;
@@ -31,59 +41,83 @@ export function CardBanner() {
     return () => unsub();
   }, [user]);
 
-  if (!card) return null;
-  // If the user explicitly disabled it, don't show it.
-  // We treat undefined as true (default is on).
+  // Loading or no card
+  if (card === undefined || card === null) return null;
+  // User explicitly hid it
   if (card.displayInAssets === false) return null;
 
-  const maskedCard = "•••• " + card.cardNumber.split(" ")[3];
-
-  // Map tierId to visual styles for the banner
-  let bgGradient = "from-[#374151] via-[#1f2937] to-[#111827]";
-  let textColor = "text-white";
-  let visaColor = "#ffffff";
-  
-  if (card.tierId === "bronze") {
-    bgGradient = "from-[#7c3a1c] via-[#92400e] to-[#78350f]";
-    visaColor = "#fbbf24";
-  } else if (card.tierId === "silver") {
-    bgGradient = "from-[#e2e8f0] via-[#cbd5e1] to-[#94a3b8]";
-    textColor = "text-slate-900";
-    visaColor = "#0f172a";
-  } else if (card.tierId === "gold") {
-    bgGradient = "from-[#fcd34d] via-[#f59e0b] to-[#d97706]";
-    textColor = "text-amber-950";
-    visaColor = "#ffffff";
-  } else if (card.tierId === "platinum") {
-    bgGradient = "from-[#1e3a5f] via-[#1e40af] to-[#1d4ed8]";
-  } else if (card.tierId === "diamond") {
-    bgGradient = "from-[#171717] via-[#0a0a0a] to-[#000000]";
-  } else if (card.tierId === "black") {
-    bgGradient = "from-[#09090b] via-[#000000] to-[#000000]";
-  }
+  const style = TIER_STYLES[card.tierId] ?? TIER_STYLES.starter;
+  const lastFour = card.cardNumber?.split(" ").pop() ?? "----";
 
   return (
-    <Link href="/card" className="block relative w-full rounded-2xl overflow-hidden shadow-lg border border-white/[0.04] transition active:scale-[0.98]">
-      <div className={`w-full bg-gradient-to-r ${bgGradient} px-5 py-4 flex items-center justify-between overflow-hidden relative`}>
-        {/* Subtle background waves */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="absolute h-px bg-current w-[150%] -left-[25%] top-[10px]" style={{ transform: `rotate(${-10 + i * 5}deg) translateY(${i * 8}px)` }} />
-          ))}
+    <Link
+      href="/card"
+      style={{ display: "block", borderRadius: "16px", overflow: "hidden", textDecoration: "none" }}
+    >
+      <div
+        style={{
+          background: style.bg,
+          padding: "14px 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          position: "relative",
+          overflow: "hidden",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
+        }}
+      >
+        {/* Decorative circles */}
+        <div style={{
+          position: "absolute", right: -30, top: -30,
+          width: 100, height: 100,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.07)",
+          pointerEvents: "none",
+        }} />
+        <div style={{
+          position: "absolute", right: 40, bottom: -40,
+          width: 120, height: 120,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.05)",
+          pointerEvents: "none",
+        }} />
+
+        {/* Left: label + chip icon */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ color: style.text, fontSize: 10, opacity: 0.65, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase" }}>
+              My Card
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
+              <span style={{ color: style.text, fontSize: 15, fontWeight: 800 }}>
+                {style.label}
+              </span>
+              <FiChevronRight size={14} color={style.text} style={{ opacity: 0.6 }} />
+            </div>
+          </div>
         </div>
-        
-        <div className="relative z-10 flex items-center gap-1.5">
-          <p className={`font-bold text-base ${textColor}`}>My Card</p>
-          <FiChevronRight size={16} className={`${textColor} opacity-60`} />
-        </div>
-        
-        <div className="relative z-10 flex items-center gap-3">
-          <p className={`font-mono text-sm tracking-widest ${textColor} opacity-80`}>
-            {maskedCard}
-          </p>
-          <p className={`text-base font-black italic`} style={{ color: visaColor }}>
+
+        {/* Right: masked number + VISA */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative", zIndex: 1 }}>
+          <span style={{
+            color: style.text,
+            fontFamily: "monospace",
+            fontSize: 13,
+            letterSpacing: 3,
+            opacity: 0.85,
+          }}>
+            •••• {lastFour}
+          </span>
+          <span style={{
+            color: style.visa,
+            fontStyle: "italic",
+            fontWeight: 900,
+            fontSize: 17,
+            letterSpacing: 0,
+            lineHeight: 1,
+          }}>
             VISA
-          </p>
+          </span>
         </div>
       </div>
     </Link>
