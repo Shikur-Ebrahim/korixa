@@ -289,6 +289,7 @@ export default function P2PMarketplace() {
           ))
         )}
       </div>
+      )}
     </div>
   );
 }
