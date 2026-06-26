@@ -31,7 +31,7 @@ export type KycSubmissionPayload = {
   extractedIdData: ExtractedIdData;
   faceMatchDistance: number;
   faceMatchScore: number;
-  faceDescriptor: number[];
+  faceDescriptor?: number[];
   livenessPassed: boolean;
 };
 
