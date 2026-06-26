@@ -199,7 +199,7 @@ export default function P2POrderCreationPage() {
 
         {/* Input Form */}
         <div className="space-y-4">
-          {/* I want to pay / I will receive */}
+          {/* Top Input */}
           <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
             <label className="text-xs font-medium text-[#848e9c]">
               {isBuy ? "I want to pay" : "I will sell"}
@@ -207,12 +207,12 @@ export default function P2POrderCreationPage() {
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
-                value={amountETB}
-                onChange={handleFiatChange}
-                placeholder={`Min ${ad.minOrderLimit}`}
+                value={isBuy ? amountETB : amountUSDT}
+                onChange={isBuy ? handleFiatChange : handleCryptoChange}
+                placeholder={isBuy ? `Min ${ad.minOrderLimit}` : "0.00"}
                 className="w-full bg-transparent text-2xl font-bold text-white focus:outline-none"
               />
-              <span className="font-bold text-white">ETB</span>
+              <span className="font-bold text-white">{isBuy ? "ETB" : "USDT"}</span>
             </div>
           </div>
 
@@ -220,7 +220,7 @@ export default function P2POrderCreationPage() {
             <FiRefreshCw size={16} />
           </div>
 
-          {/* I will receive / I want to get */}
+          {/* Bottom Input */}
           <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
             <label className="text-xs font-medium text-[#848e9c]">
               {isBuy ? "I will receive" : "I will get"}
@@ -228,12 +228,12 @@ export default function P2POrderCreationPage() {
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
-                value={amountUSDT}
-                onChange={handleCryptoChange}
-                placeholder="0.00"
+                value={isBuy ? amountUSDT : amountETB}
+                onChange={isBuy ? handleCryptoChange : handleFiatChange}
+                placeholder={isBuy ? "0.00" : `Min ${ad.minOrderLimit}`}
                 className="w-full bg-transparent text-2xl font-bold text-white focus:outline-none"
               />
-              <span className="font-bold text-white">USDT</span>
+              <span className="font-bold text-white">{isBuy ? "USDT" : "ETB"}</span>
             </div>
           </div>
         </div>
@@ -244,14 +244,28 @@ export default function P2POrderCreationPage() {
             <h3 className="text-sm font-bold">Your Receiving Account</h3>
             <p className="text-xs text-[#848e9c]">Where should the buyer send the ETB?</p>
             
-            <select 
-              value={sellerMethod} 
-              onChange={e => setSellerMethod(e.target.value)}
-              className="w-full rounded-lg bg-[#0b0e11] px-3 py-3 text-sm text-white border border-white/[0.06] focus:outline-none"
-            >
-              <option value="">Select payment method</option>
-              {ad.paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+            <div className="flex flex-col gap-2">
+              {ad.paymentMethods.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setSellerMethod(m)}
+                  className={`flex items-center justify-between rounded-xl border p-3 text-sm font-semibold transition ${
+                    sellerMethod === m
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-white/[0.06] bg-[#0b0e11] text-white"
+                  }`}
+                >
+                  {m}
+                  <div
+                    className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+                      sellerMethod === m ? "border-primary bg-primary" : "border-white/20"
+                    }`}
+                  >
+                    {sellerMethod === m && <div className="h-2 w-2 rounded-full bg-black" />}
+                  </div>
+                </button>
+              ))}
+            </div>
 
             {sellerMethod && (
               <div className="space-y-2">
