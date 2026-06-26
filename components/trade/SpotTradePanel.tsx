@@ -292,7 +292,7 @@ export function SpotTradePanel() {
 
       {/* ── CONFIRMATION MODAL ── */}
       {confirmModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setConfirmModal(false)}>
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setConfirmModal(false)}>
           <div
             className="w-full max-w-sm rounded-t-3xl border-t border-white/[0.08] bg-[#0b0e11] p-5 shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
