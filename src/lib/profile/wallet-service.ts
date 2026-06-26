@@ -85,25 +85,42 @@ export async function getSpotHoldings(uid: string): Promise<SpotHolding[]> {
 export async function getTransactions(uid: string, txType?: TransactionType | TransactionType[], limitCount = 50): Promise<TransactionRecord[]> {
   try {
     const db = getClientFirestore();
-    // Only query by userId to avoid requiring a composite index in Firestore
+    
+    // Fetch normal transactions
     const q = query(collection(db, "transactions"), where("userId", "==", uid));
-    
     const snapshot = await getDocs(q);
-    if (snapshot.empty) return [];
-    
     let txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TransactionRecord));
+    
+    // Fetch p2p orders
+    const qP2P = query(collection(db, "p2pOrders"), where("buyerId", "==", uid));
+    const snapP2P = await getDocs(qP2P);
+    const p2pTxs = snapP2P.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        type: data.type === "buy" ? "p2p_buy" : "p2p_sell",
+        coin: "USDT",
+        amount: data.amountUSDT,
+        usdValue: data.amountUSDT,
+        status: data.status === "completed" ? "completed" : (data.status === "cancelled" ? "failed" : "pending"),
+        timestamp: new Date(data.createdAt).getTime(),
+      } as TransactionRecord;
+    });
+
+    // Merge
+    let all = [...txs, ...p2pTxs];
     
     if (txType) {
       if (Array.isArray(txType)) {
-        txs = txs.filter(tx => txType.includes(tx.type));
+        all = all.filter(tx => txType.includes(tx.type));
       } else {
-        txs = txs.filter(tx => tx.type === txType);
+        all = all.filter(tx => tx.type === txType);
       }
     }
     
-    txs.sort((a, b) => b.timestamp - a.timestamp);
+    all.sort((a, b) => b.timestamp - a.timestamp);
     
-    return txs.slice(0, limitCount);
+    return all.slice(0, limitCount);
   } catch (error) {
     console.error("Failed to fetch transactions", error);
     return [];
@@ -146,39 +163,61 @@ export function subscribeFundingWallets(uid: string, callback: (wallets: WalletA
 
 export function subscribeTransactions(uid: string, txType: TransactionType | TransactionType[] | undefined, limitCount: number, callback: (transactions: TransactionRecord[]) => void): Unsubscribe {
   const db = getClientFirestore();
-  // Only query by userId to avoid requiring a composite index in Firestore
-  const q = query(collection(db, "transactions"), where("userId", "==", uid));
   
-  return onSnapshot(q, (snapshot) => {
-    if (snapshot.empty) {
-      callback([]);
-      return;
-    }
-    
-    // Filter and sort in memory
-    let txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TransactionRecord));
+  const txsMap = new Map<string, TransactionRecord>();
+  const p2pMap = new Map<string, TransactionRecord>();
+
+  const notify = () => {
+    let all = [...txsMap.values(), ...p2pMap.values()];
     
     if (txType) {
       if (Array.isArray(txType)) {
-        txs = txs.filter(tx => txType.includes(tx.type));
+        all = all.filter(tx => txType.includes(tx.type));
       } else {
-        txs = txs.filter(tx => tx.type === txType);
+        all = all.filter(tx => tx.type === txType);
       }
     }
     
-    // Sort descending by timestamp
-    txs.sort((a, b) => b.timestamp - a.timestamp);
-    
-    // Apply limit
+    all.sort((a, b) => b.timestamp - a.timestamp);
     if (limitCount > 0) {
-      txs = txs.slice(0, limitCount);
+      all = all.slice(0, limitCount);
     }
-    
-    callback(txs);
+    callback(all);
+  };
+
+  const unsubTxs = onSnapshot(query(collection(db, "transactions"), where("userId", "==", uid)), (snapshot) => {
+    txsMap.clear();
+    snapshot.docs.forEach(doc => {
+      txsMap.set(doc.id, { id: doc.id, ...doc.data() } as TransactionRecord);
+    });
+    notify();
   }, (error) => {
     console.error("Failed to subscribe to transactions", error);
-    callback([]);
   });
+
+  const unsubP2P = onSnapshot(query(collection(db, "p2pOrders"), where("buyerId", "==", uid)), (snapshot) => {
+    p2pMap.clear();
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      p2pMap.set(doc.id, {
+        id: doc.id,
+        type: data.type === "buy" ? "p2p_buy" : "p2p_sell",
+        coin: "USDT",
+        amount: data.amountUSDT,
+        usdValue: data.amountUSDT,
+        status: data.status === "completed" ? "completed" : (data.status === "cancelled" ? "failed" : "pending"),
+        timestamp: new Date(data.createdAt).getTime(),
+      } as TransactionRecord);
+    });
+    notify();
+  }, (error) => {
+    console.error("Failed to subscribe to p2pOrders", error);
+  });
+
+  return () => {
+    unsubTxs();
+    unsubP2P();
+  };
 }
 
 export async function ensureUserWallets(uid: string): Promise<void> {
