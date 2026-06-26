@@ -13,7 +13,7 @@ type AppMobileHeaderProps = {
 
 export function AppMobileHeader({ onProfileClick, onNotificationsClick, unreadCount = 0 }: AppMobileHeaderProps) {
   return (
-    <header className={`${appTheme.header} relative`}>
+    <header className={appTheme.header}>
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
         <button
           type="button"
