@@ -9,6 +9,7 @@ import { ProfileDrawer } from "@/components/layout/ProfileDrawer";
 import { DepositDrawer } from "@/components/layout/DepositDrawer";
 import { appTheme } from "@/components/layout/app-theme";
 import { useLoginTracker } from "@/lib/profile/useLoginTracker";
+import { useNotifications } from "@/lib/profile/useNotifications";
 
 export function AppShellLayout({ children }: { children: ReactNode }) {
   useLoginTracker();
@@ -18,6 +19,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
+  const { notifications, unreadCount, markAllAsRead } = useNotifications();
 
   // Auto-open drawers from query params
   useEffect(() => {
@@ -47,14 +49,16 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
         onNotificationsClick={() => {
           setProfileOpen(false);
           setNotificationsOpen(true);
+          markAllAsRead();
         }}
+        unreadCount={unreadCount}
       />
       <main className={hideBottomNav ? "mx-auto max-w-lg px-4 pb-6 pt-16" : appTheme.main}>
         {children}
       </main>
       {!hideBottomNav && <AppBottomNav />}
       <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
-      <NotificationsDrawer open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+      <NotificationsDrawer open={notificationsOpen} onClose={() => setNotificationsOpen(false)} notifications={notifications} />
       <DepositDrawer open={depositOpen} onClose={() => setDepositOpen(false)} />
     </div>
   );

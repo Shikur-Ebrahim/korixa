@@ -8,9 +8,10 @@ import { appTheme } from "@/components/layout/app-theme";
 type AppMobileHeaderProps = {
   onProfileClick: () => void;
   onNotificationsClick?: () => void;
+  unreadCount?: number;
 };
 
-export function AppMobileHeader({ onProfileClick, onNotificationsClick }: AppMobileHeaderProps) {
+export function AppMobileHeader({ onProfileClick, onNotificationsClick, unreadCount = 0 }: AppMobileHeaderProps) {
   return (
     <header className={`${appTheme.header} relative`}>
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
@@ -42,7 +43,11 @@ export function AppMobileHeader({ onProfileClick, onNotificationsClick }: AppMob
           className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-[#161a1e] text-[#eaecef] transition hover:bg-white/[0.06]"
         >
           <FiBell className="text-base" />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-black border border-[#161a1e]">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </button>
       </div>
     </header>
