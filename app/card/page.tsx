@@ -373,6 +373,7 @@ export default function CardPage() {
   const [wallets, setWallets] = useState<WalletAsset[]>([]);
   const [loadingCard, setLoadingCard] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [showTopupModal, setShowTopupModal] = useState(false);
   const [confirmTier, setConfirmTier] = useState<(typeof CARD_TIERS)[0] | null>(null);
   const [topupAmount, setTopupAmount] = useState("");
@@ -424,16 +425,22 @@ export default function CardPage() {
       showToast(`Need $${confirmTier.price} USDT. You have $${usdtBalance.toFixed(2)}.`, false);
       return;
     }
+    const usdtWallet = wallets.find((w) => w.coin === "USDT");
+    if (!usdtWallet) {
+      showToast("USDT Wallet not found.", false);
+      return;
+    }
+
     setBuying(true);
     try {
       const db = getClientFirestore();
-      await updateDoc(doc(db, `users/${user.uid}/fundingWallets/USDT`), {
+      await updateDoc(doc(db, "wallets", usdtWallet.id), {
         availableBalance: increment(-confirmTier.price),
         balance: increment(-confirmTier.price),
       });
       await setDoc(doc(db, "userCards", user.uid), {
         tierId: confirmTier.id,
-        balance: confirmTier.initialBalance,
+        balance: (card?.balance || 0) + confirmTier.initialBalance,
         cardNumber: generateCardNumber(),
         expiryDate: generateExpiry(),
         cvv: generateCVV(),
@@ -464,10 +471,13 @@ export default function CardPage() {
     if (!user || !card) return;
     const amount = parseFloat(topupAmount);
     if (!amount || amount <= 0 || amount > usdtBalance) return;
+    const usdtWallet = wallets.find((w) => w.coin === "USDT");
+    if (!usdtWallet) return;
+
     setTopping(true);
     try {
       const db = getClientFirestore();
-      await updateDoc(doc(db, `users/${user.uid}/fundingWallets/USDT`), {
+      await updateDoc(doc(db, "wallets", usdtWallet.id), {
         availableBalance: increment(-amount),
         balance: increment(-amount),
       });
@@ -622,6 +632,39 @@ export default function CardPage() {
                 ))}
               </div>
             </div>
+
+            {/* Upgrade Card Button */}
+            {!showUpgrade && (
+              <button
+                onClick={() => setShowUpgrade(true)}
+                className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] py-3 text-xs font-bold text-white hover:bg-white/[0.04] transition mt-2"
+              >
+                Upgrade or Change Card Tier
+              </button>
+            )}
+
+            {showUpgrade && (
+              <div className="mt-6 border-t border-white/[0.06] pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-sm font-bold text-white">Upgrade Card</h2>
+                    <p className="text-[10px] text-[#848e9c]">Your current balance will carry over.</p>
+                  </div>
+                  <button onClick={() => setShowUpgrade(false)} className="text-xs font-bold text-[#848e9c] hover:text-white">
+                    Cancel
+                  </button>
+                </div>
+                <div className="space-y-5">
+                  {CARD_TIERS.filter((t) => t.id !== currentTier.id).map((tier) => (
+                    <BrowseTierCard
+                      key={tier.id}
+                      tier={tier}
+                      onBuy={() => setConfirmTier(tier)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -724,17 +767,22 @@ export default function CardPage() {
               {[
                 { label: "Card tier", value: confirmTier.name },
                 { label: "Card price", value: `$${confirmTier.price} USDT`, highlight: true },
-                { label: "Initial card balance", value: `$${confirmTier.initialBalance}`, green: true },
+                { label: "Added balance", value: `+$${confirmTier.initialBalance}`, green: true },
+                card ? { label: "Previous balance", value: `$${card.balance.toFixed(2)}` } : null,
+                card ? { label: "New total balance", value: `$${((card.balance || 0) + confirmTier.initialBalance).toFixed(2)}`, highlight: true } : null,
                 { label: "Daily / Monthly limit", value: `$${confirmTier.dailyLimit} / $${confirmTier.monthlyLimit}` },
                 { label: "Your USDT balance", value: `$${usdtBalance.toFixed(2)}`, warn: usdtBalance < confirmTier.price },
-              ].map(({ label, value, highlight, green, warn }) => (
-                <div key={label} className="flex justify-between text-[10px]">
-                  <span className="text-[#848e9c]">{label}</span>
-                  <span className={`font-bold ${highlight ? "text-primary" : green ? "text-green-400" : warn ? "text-red-400" : "text-white"}`}>
-                    {value}
-                  </span>
-                </div>
-              ))}
+              ].filter(Boolean).map((item) => {
+                const { label, value, highlight, green, warn } = item as any;
+                return (
+                  <div key={label} className="flex justify-between text-[10px]">
+                    <span className="text-[#848e9c]">{label}</span>
+                    <span className={`font-bold ${highlight ? "text-primary" : green ? "text-green-400" : warn ? "text-red-400" : "text-white"}`}>
+                      {value}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             <button
