@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { subscribeFundingWallets } from "@/lib/profile/wallet-service";
 import type { WalletAsset } from "@/lib/profile/wallet-service";
-import {
-  getClientFirestore,
-} from "@/lib/firebase";
+import { getClientFirestore } from "@/lib/firebase";
 import {
   doc,
   getDoc,
@@ -24,15 +22,14 @@ import {
   FiPlus,
   FiLock,
   FiUnlock,
-  FiStar,
   FiCheck,
   FiCreditCard,
-  FiZap,
-  FiShield,
   FiX,
+  FiChevronDown,
+  FiChevronUp,
 } from "react-icons/fi";
 
-// ── Card tiers ────────────────────────────────────────────────────────────────
+// ── Card tiers ─────────────────────────────────────────────────────────────
 const CARD_TIERS = [
   {
     id: "starter",
@@ -40,14 +37,12 @@ const CARD_TIERS = [
     price: 7,
     initialBalance: 3,
     dailyLimit: 50,
-    monthlyLimit: 200,
+    monthlyLimit: 300,
     gradient: "from-[#374151] via-[#1f2937] to-[#111827]",
-    badge: "bg-gray-500/20 text-gray-300",
     accentColor: "#9ca3af",
-    glowColor: "rgba(156,163,175,0.3)",
-    visa: "text-gray-300",
-    networkLine: "opacity-10",
-    perks: ["Virtual card", "Basic limits", "Card freeze"],
+    glowColor: "rgba(156,163,175,0.28)",
+    visaColor: "#9ca3af",
+    perks: ["Virtual card", "Basic spending limits", "Card freeze"],
   },
   {
     id: "bronze",
@@ -55,14 +50,12 @@ const CARD_TIERS = [
     price: 15,
     initialBalance: 8,
     dailyLimit: 150,
-    monthlyLimit: 600,
+    monthlyLimit: 900,
     gradient: "from-[#7c3a1c] via-[#92400e] to-[#78350f]",
-    badge: "bg-amber-900/40 text-amber-400",
     accentColor: "#d97706",
-    glowColor: "rgba(217,119,6,0.35)",
-    visa: "text-amber-400",
-    networkLine: "opacity-15",
-    perks: ["Virtual card", "Higher limits", "Card freeze", "Spending insights"],
+    glowColor: "rgba(217,119,6,0.32)",
+    visaColor: "#fbbf24",
+    perks: ["Virtual card", "Higher limits", "Spending insights", "Card freeze"],
   },
   {
     id: "silver",
@@ -70,14 +63,12 @@ const CARD_TIERS = [
     price: 25,
     initialBalance: 15,
     dailyLimit: 300,
-    monthlyLimit: 1200,
-    gradient: "from-[#374151] via-[#4b5563] to-[#6b7280]",
-    badge: "bg-slate-500/30 text-slate-200",
-    accentColor: "#cbd5e1",
-    glowColor: "rgba(203,213,225,0.35)",
-    visa: "text-slate-200",
-    networkLine: "opacity-20",
-    perks: ["Virtual card", "Priority support", "2% cashback", "Freeze & lock"],
+    monthlyLimit: 1800,
+    gradient: "from-[#4b5563] via-[#6b7280] to-[#374151]",
+    accentColor: "#e2e8f0",
+    glowColor: "rgba(226,232,240,0.32)",
+    visaColor: "#f1f5f9",
+    perks: ["Virtual card", "2% cashback", "Priority support", "Freeze & lock"],
   },
   {
     id: "gold",
@@ -85,14 +76,12 @@ const CARD_TIERS = [
     price: 50,
     initialBalance: 30,
     dailyLimit: 500,
-    monthlyLimit: 2000,
-    gradient: "from-[#854d0e] via-[#ca8a04] to-[#a16207]",
-    badge: "bg-yellow-500/20 text-yellow-400",
+    monthlyLimit: 3000,
+    gradient: "from-[#92400e] via-[#b45309] to-[#a16207]",
     accentColor: "#fbbf24",
-    glowColor: "rgba(251,191,36,0.4)",
-    visa: "text-yellow-400",
-    networkLine: "opacity-25",
-    perks: ["Virtual card", "5% cashback", "24/7 concierge", "Global access", "Priority KYC"],
+    glowColor: "rgba(251,191,36,0.38)",
+    visaColor: "#fde68a",
+    perks: ["Virtual card", "5% cashback", "24/7 concierge", "Global access"],
   },
   {
     id: "platinum",
@@ -100,14 +89,12 @@ const CARD_TIERS = [
     price: 100,
     initialBalance: 60,
     dailyLimit: 1000,
-    monthlyLimit: 5000,
+    monthlyLimit: 6000,
     gradient: "from-[#1e3a5f] via-[#1e40af] to-[#1d4ed8]",
-    badge: "bg-blue-500/20 text-blue-300",
-    accentColor: "#60a5fa",
-    glowColor: "rgba(96,165,250,0.4)",
-    visa: "text-blue-300",
-    networkLine: "opacity-30",
-    perks: ["Virtual card", "8% cashback", "Lounge access", "Travel insurance", "Zero fees"],
+    accentColor: "#93c5fd",
+    glowColor: "rgba(147,197,253,0.35)",
+    visaColor: "#bfdbfe",
+    perks: ["Virtual card", "8% cashback", "Lounge access", "Zero fees"],
   },
   {
     id: "diamond",
@@ -115,14 +102,12 @@ const CARD_TIERS = [
     price: 200,
     initialBalance: 120,
     dailyLimit: 3000,
-    monthlyLimit: 15000,
+    monthlyLimit: 18000,
     gradient: "from-[#312e81] via-[#4c1d95] to-[#5b21b6]",
-    badge: "bg-purple-500/20 text-purple-300",
-    accentColor: "#a78bfa",
-    glowColor: "rgba(167,139,250,0.45)",
-    visa: "text-purple-300",
-    networkLine: "opacity-35",
-    perks: ["Virtual + Physical", "12% cashback", "Private banking", "Dedicated manager", "Airport VIP"],
+    accentColor: "#c4b5fd",
+    glowColor: "rgba(196,181,253,0.4)",
+    visaColor: "#ddd6fe",
+    perks: ["Virtual + Physical", "12% cashback", "Private banking", "Dedicated manager"],
   },
   {
     id: "black",
@@ -130,14 +115,12 @@ const CARD_TIERS = [
     price: 500,
     initialBalance: 300,
     dailyLimit: 10000,
-    monthlyLimit: 50000,
-    gradient: "from-[#0a0a0a] via-[#171717] to-[#18181b]",
-    badge: "bg-white/10 text-white",
-    accentColor: "#f5f5f5",
-    glowColor: "rgba(255,255,255,0.25)",
-    visa: "text-white",
-    networkLine: "opacity-40",
-    perks: ["Virtual + Metal card", "15% cashback", "Private jet access", "Wealth manager", "Global VIP"],
+    monthlyLimit: 60000,
+    gradient: "from-[#09090b] via-[#18181b] to-[#27272a]",
+    accentColor: "#f4f4f5",
+    glowColor: "rgba(244,244,245,0.22)",
+    visaColor: "#ffffff",
+    perks: ["Virtual + Metal card", "15% cashback", "Private jet access", "Global VIP"],
   },
 ];
 
@@ -152,191 +135,236 @@ interface UserCard {
   createdAt: unknown;
 }
 
-function generateCardNumber(): string {
-  const parts = Array.from({ length: 4 }, () =>
-    Math.floor(1000 + Math.random() * 9000).toString()
-  );
-  return parts.join(" ");
+function generateCardNumber() {
+  return Array.from({ length: 4 }, () =>
+    Math.floor(1000 + Math.random() * 9000)
+  ).join(" ");
 }
 
-function generateCVV(): string {
+function generateCVV() {
   return Math.floor(100 + Math.random() * 900).toString();
 }
 
-function generateExpiry(): string {
+function generateExpiry() {
   const now = new Date();
-  const expYear = (now.getFullYear() + 4) % 100;
-  const expMonth = String(now.getMonth() + 1).padStart(2, "0");
-  return `${expMonth}/${expYear}`;
+  // 3 years ahead — standard Visa expiry
+  const exp = new Date(now.getFullYear() + 3, now.getMonth());
+  const mm = String(exp.getMonth() + 1).padStart(2, "0");
+  const yy = String(exp.getFullYear()).slice(-2);
+  return `${mm}/${yy}`;
 }
 
-// ── Card Visual Component ─────────────────────────────────────────────────────
-function CardVisual({
+// ── Tiny chip SVG ─────────────────────────────────────────────────────────
+function Chip({ color }: { color: string }) {
+  return (
+    <svg width="38" height="28" viewBox="0 0 38 28" fill="none">
+      <rect x="0.5" y="0.5" width="37" height="27" rx="3.5" stroke={color} strokeOpacity="0.5" fill={color} fillOpacity="0.12" />
+      <line x1="13" y1="0" x2="13" y2="28" stroke={color} strokeOpacity="0.3" strokeWidth="0.8" />
+      <line x1="25" y1="0" x2="25" y2="28" stroke={color} strokeOpacity="0.3" strokeWidth="0.8" />
+      <line x1="0" y1="10" x2="38" y2="10" stroke={color} strokeOpacity="0.3" strokeWidth="0.8" />
+      <line x1="0" y1="18" x2="38" y2="18" stroke={color} strokeOpacity="0.3" strokeWidth="0.8" />
+      <rect x="13.5" y="10.5" width="11" height="7" rx="1" stroke={color} strokeOpacity="0.4" fill={color} fillOpacity="0.08" />
+    </svg>
+  );
+}
+
+// ── Premium Card Visual ───────────────────────────────────────────────────
+function PremiumCard({
   tier,
   card,
   showDetails,
+  onClick,
 }: {
   tier: (typeof CARD_TIERS)[0];
   card: UserCard;
   showDetails: boolean;
+  onClick: () => void;
 }) {
-  const maskedNumber = showDetails
-    ? card.cardNumber
-    : card.cardNumber.replace(/(\d{4} ){3}/, "**** **** **** ");
+  const parts = card.cardNumber.split(" ");
+  const maskedParts = showDetails
+    ? parts
+    : ["••••", "••••", "••••", parts[3]];
 
   return (
-    <div
-      className={`relative w-full aspect-[1.586/1] rounded-2xl bg-gradient-to-br ${tier.gradient} p-5 shadow-2xl overflow-hidden select-none`}
-      style={{ boxShadow: `0 20px 60px ${tier.glowColor}, 0 4px 20px rgba(0,0,0,0.5)` }}
+    <button
+      onClick={onClick}
+      className={`relative w-full aspect-[1.586/1] rounded-2xl bg-gradient-to-br ${tier.gradient} p-5 text-left overflow-hidden shadow-2xl transition-transform active:scale-[0.98]`}
+      style={{ boxShadow: `0 20px 60px ${tier.glowColor}, 0 6px 20px rgba(0,0,0,0.6)` }}
     >
-      {/* Network pattern lines */}
-      <div className={`absolute inset-0 ${tier.networkLine}`}>
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute h-px bg-white"
-            style={{
-              top: `${10 + i * 12}%`,
-              left: "-10%",
-              right: "-10%",
-              transform: `rotate(${-15 + i * 3}deg)`,
-              opacity: 0.4 - i * 0.04,
-            }}
-          />
-        ))}
-      </div>
+      {/* Background lines */}
+      {[...Array(9)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute h-[1px] bg-white"
+          style={{
+            top: `${8 + i * 10}%`,
+            left: "-5%",
+            right: "-5%",
+            transform: `rotate(${-18 + i * 3}deg)`,
+            opacity: 0.06 + i * 0.005,
+          }}
+        />
+      ))}
 
-      {/* Glowing orbs */}
-      <div
-        className="absolute -top-10 -right-10 h-32 w-32 rounded-full blur-2xl opacity-30"
-        style={{ background: tier.accentColor }}
-      />
-      <div
-        className="absolute -bottom-10 -left-10 h-24 w-24 rounded-full blur-2xl opacity-20"
-        style={{ background: tier.accentColor }}
-      />
+      {/* Glow orbs */}
+      <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full blur-3xl opacity-25" style={{ background: tier.accentColor }} />
+      <div className="absolute -bottom-12 -left-12 h-28 w-28 rounded-full blur-3xl opacity-15" style={{ background: tier.accentColor }} />
 
       {/* Top row */}
       <div className="relative flex items-start justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">
-            Korixa
-          </p>
-          <p
-            className="text-xs font-bold uppercase tracking-wider mt-0.5"
-            style={{ color: tier.accentColor }}
-          >
+          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/40">Korixa Pay</p>
+          <p className="text-xs font-black uppercase tracking-wider mt-0.5" style={{ color: tier.accentColor }}>
             {tier.name}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          {/* Chip */}
-          <div
-            className="h-6 w-9 rounded-sm border opacity-80"
-            style={{ borderColor: tier.accentColor, background: `${tier.accentColor}20` }}
-          >
-            <div className="h-full w-full grid grid-cols-2 grid-rows-2 gap-px p-0.5 opacity-60">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="rounded-[1px]" style={{ background: tier.accentColor }} />
-              ))}
-            </div>
-          </div>
-        </div>
+        <Chip color={tier.accentColor} />
       </div>
 
       {/* Card number */}
-      <p className="relative mt-6 font-mono text-sm tracking-widest text-white/90">
-        {maskedNumber}
-      </p>
+      <div className="relative mt-5 flex items-center gap-3">
+        {maskedParts.map((part, i) => (
+          <p key={i} className="font-mono text-sm tracking-[0.15em] text-white/90">
+            {part}
+          </p>
+        ))}
+      </div>
 
-      {/* Bottom row */}
+      {/* Bottom */}
       <div className="relative mt-4 flex items-end justify-between">
         <div>
-          <p className="text-[8px] uppercase tracking-widest text-white/40">Card Holder</p>
-          <p className="text-xs font-bold text-white mt-0.5 truncate max-w-[140px]">
+          <p className="text-[8px] uppercase tracking-[0.12em] text-white/35">Card Holder</p>
+          <p className="text-xs font-bold text-white mt-0.5 max-w-[140px] truncate">
             {card.holderName.toUpperCase()}
           </p>
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex gap-4 mt-2">
             <div>
-              <p className="text-[8px] uppercase tracking-widest text-white/40">Expires</p>
-              <p className="text-[10px] font-mono text-white/80">
+              <p className="text-[7px] uppercase tracking-widest text-white/35">Valid Thru</p>
+              <p className="text-[10px] font-mono font-bold text-white/90">
                 {showDetails ? card.expiryDate : "••/••"}
               </p>
             </div>
             <div>
-              <p className="text-[8px] uppercase tracking-widest text-white/40">CVV</p>
-              <p className="text-[10px] font-mono text-white/80">
+              <p className="text-[7px] uppercase tracking-widest text-white/35">CVV</p>
+              <p className="text-[10px] font-mono font-bold text-white/90">
                 {showDetails ? card.cvv : "•••"}
               </p>
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-end">
-          <p
-            className={`text-lg font-black italic tracking-tight ${tier.visa}`}
-          >
+
+        <div className="flex flex-col items-end gap-0.5">
+          <p className="text-xl font-black italic leading-none tracking-tight" style={{ color: tier.visaColor }}>
             VISA
           </p>
-          <p className="text-[7px] text-white/30 uppercase tracking-widest">Virtual</p>
+          <div className="flex items-center gap-0.5">
+            <div className="h-5 w-5 rounded-full opacity-70" style={{ background: tier.accentColor }} />
+            <div className="h-5 w-5 rounded-full -ml-2 opacity-50" style={{ background: tier.visaColor }} />
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-// ── Tier Selector Card (in buy modal) ────────────────────────────────────────
-function TierCard({
-  tier,
-  selected,
-  onClick,
-}: {
-  tier: (typeof CARD_TIERS)[0];
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`relative w-full rounded-xl border p-3 text-left transition-all ${
-        selected
-          ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-          : "border-white/[0.06] bg-[#0b0e11] hover:border-white/[0.12]"
-      }`}
-    >
-      {selected && (
-        <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-          <FiCheck className="text-black" size={10} />
-        </div>
-      )}
-      <div className="flex items-center gap-3">
-        <div
-          className={`flex h-10 w-16 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${tier.gradient}`}
-          style={{ boxShadow: `0 4px 12px ${tier.glowColor}` }}
-        >
-          <p className="text-[10px] font-black text-white/90">{tier.name.toUpperCase()}</p>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-white">{tier.name} Card</p>
-            <p className="text-xs font-bold text-primary">${tier.price}</p>
-          </div>
-          <p className="text-[10px] text-[#848e9c] mt-0.5">
-            ${tier.initialBalance} initial balance · ${tier.dailyLimit}/day limit
-          </p>
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {tier.perks.slice(0, 3).map((p) => (
-              <span key={p} className="rounded px-1.5 py-0.5 text-[9px] bg-white/[0.05] text-[#848e9c]">
-                {p}
-              </span>
-            ))}
-          </div>
-        </div>
+      {/* Eye hint */}
+      <div className="absolute bottom-3 right-3 opacity-30">
+        {showDetails ? <FiEyeOff size={12} className="text-white" /> : <FiEye size={12} className="text-white" />}
       </div>
     </button>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Tier Browse Card (vertical list for non-owners) ───────────────────────
+function BrowseTierCard({
+  tier,
+  onBuy,
+}: {
+  tier: (typeof CARD_TIERS)[0];
+  onBuy: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] overflow-hidden">
+      {/* Visual preview */}
+      <div
+        className={`relative aspect-[1.586/1] bg-gradient-to-br ${tier.gradient} p-5 overflow-hidden`}
+        style={{ boxShadow: `inset 0 -20px 40px rgba(0,0,0,0.3)` }}
+      >
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="absolute h-[1px] bg-white" style={{ top: `${10 + i * 12}%`, left: "-5%", right: "-5%", transform: `rotate(${-15 + i * 3}deg)`, opacity: 0.07 }} />
+        ))}
+        <div className="absolute -top-8 -right-8 h-28 w-28 rounded-full blur-2xl opacity-20" style={{ background: tier.accentColor }} />
+
+        <div className="relative flex items-start justify-between">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/40">Korixa Pay</p>
+            <p className="text-xs font-black uppercase tracking-wider mt-0.5" style={{ color: tier.accentColor }}>
+              {tier.name}
+            </p>
+          </div>
+          <Chip color={tier.accentColor} />
+        </div>
+
+        <div className="relative mt-4 flex gap-3">
+          {["••••", "••••", "••••", "1234"].map((p, i) => (
+            <p key={i} className="font-mono text-sm tracking-[0.15em] text-white/70">{p}</p>
+          ))}
+        </div>
+
+        <div className="relative mt-4 flex items-end justify-between">
+          <div>
+            <p className="text-[8px] uppercase tracking-[0.12em] text-white/35">Card Holder</p>
+            <p className="text-xs font-bold text-white/70 mt-0.5">YOUR NAME</p>
+            <div className="flex gap-4 mt-1.5">
+              <div>
+                <p className="text-[7px] uppercase tracking-widest text-white/35">Valid Thru</p>
+                <p className="text-[10px] font-mono text-white/60">••/••</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-0.5">
+            <p className="text-xl font-black italic leading-none" style={{ color: tier.visaColor }}>VISA</p>
+            <div className="flex">
+              <div className="h-5 w-5 rounded-full opacity-60" style={{ background: tier.accentColor }} />
+              <div className="h-5 w-5 rounded-full -ml-2 opacity-40" style={{ background: tier.visaColor }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Info + button */}
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <p className="text-sm font-bold text-white">{tier.name} Card</p>
+            <p className="text-[10px] text-[#848e9c] mt-0.5">
+              ${tier.initialBalance} initial · ${tier.dailyLimit}/day · ${tier.monthlyLimit}/mo
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-[#848e9c]">Price</p>
+            <p className="text-base font-black text-primary">${tier.price}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {tier.perks.map((p) => (
+            <span key={p} className="flex items-center gap-1 rounded-lg bg-white/[0.04] border border-white/[0.06] px-2 py-1 text-[9px] font-semibold text-[#848e9c]">
+              <FiCheck size={8} className="text-primary" /> {p}
+            </span>
+          ))}
+        </div>
+
+        <button
+          onClick={onBuy}
+          className="w-full rounded-xl py-3 text-xs font-bold text-black shadow-lg transition active:scale-[0.98]"
+          style={{ background: tier.accentColor, boxShadow: `0 8px 24px ${tier.glowColor}` }}
+        >
+          Get {tier.name} Card — ${tier.price} USDT
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────
 export default function CardPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -345,76 +373,64 @@ export default function CardPage() {
   const [wallets, setWallets] = useState<WalletAsset[]>([]);
   const [loadingCard, setLoadingCard] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
-  const [showBuyModal, setShowBuyModal] = useState(false);
   const [showTopupModal, setShowTopupModal] = useState(false);
-  const [selectedTier, setSelectedTier] = useState(CARD_TIERS[0]);
+  const [confirmTier, setConfirmTier] = useState<(typeof CARD_TIERS)[0] | null>(null);
   const [topupAmount, setTopupAmount] = useState("");
   const [buying, setBuying] = useState(false);
   const [topping, setTopping] = useState(false);
   const [freezing, setFreezing] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [kycName, setKycName] = useState("KORIXA USER");
 
-  // Load KYC name from firestore user doc
   useEffect(() => {
     if (!user) return;
     const db = getClientFirestore();
     getDoc(doc(db, "users", user.uid)).then((snap) => {
       if (snap.exists()) {
-        const name = snap.data()?.fullName;
-        if (name) setKycName(name.toUpperCase());
+        const n = snap.data()?.fullName;
+        if (n) setKycName(n.toUpperCase());
       }
     });
   }, [user]);
 
-  // Subscribe to card doc
   useEffect(() => {
     if (!user) return;
     const db = getClientFirestore();
     const unsub = onSnapshot(doc(db, "userCards", user.uid), (snap) => {
-      if (snap.exists()) {
-        setCard(snap.data() as UserCard);
-      } else {
-        setCard(null);
-      }
+      setCard(snap.exists() ? (snap.data() as UserCard) : null);
       setLoadingCard(false);
     });
     return () => unsub();
   }, [user]);
 
-  // Subscribe to funding wallets for USDT balance
   useEffect(() => {
     if (!user) return;
     return subscribeFundingWallets(user.uid, setWallets);
   }, [user]);
 
-  const usdtBalance =
-    wallets.find((w) => w.coin === "USDT")?.availableBalance ?? 0;
+  const usdtBalance = wallets.find((w) => w.coin === "USDT")?.availableBalance ?? 0;
 
-  const showToast = (msg: string, type: "ok" | "err") => {
-    setToast({ msg, type });
+  const showToast = (msg: string, ok = true) => {
+    setToast({ msg, ok });
     setTimeout(() => setToast(null), 3000);
   };
 
   const handleBuyCard = async () => {
-    if (!user) return;
-    if (usdtBalance < selectedTier.price) {
-      showToast(`Insufficient balance. Need $${selectedTier.price} USDT.`, "err");
+    if (!user || !confirmTier) return;
+    if (usdtBalance < confirmTier.price) {
+      showToast(`Need $${confirmTier.price} USDT. You have $${usdtBalance.toFixed(2)}.`, false);
       return;
     }
     setBuying(true);
     try {
       const db = getClientFirestore();
-      // Deduct from funding wallet
-      const walletRef = doc(db, `users/${user.uid}/fundingWallets/USDT`);
-      await updateDoc(walletRef, {
-        availableBalance: increment(-selectedTier.price),
-        balance: increment(-selectedTier.price),
+      await updateDoc(doc(db, `users/${user.uid}/fundingWallets/USDT`), {
+        availableBalance: increment(-confirmTier.price),
+        balance: increment(-confirmTier.price),
       });
-      // Create card doc
       await setDoc(doc(db, "userCards", user.uid), {
-        tierId: selectedTier.id,
-        balance: selectedTier.initialBalance,
+        tierId: confirmTier.id,
+        balance: confirmTier.initialBalance,
         cardNumber: generateCardNumber(),
         expiryDate: generateExpiry(),
         cvv: generateCVV(),
@@ -422,21 +438,20 @@ export default function CardPage() {
         frozen: false,
         createdAt: serverTimestamp(),
       });
-      // Record transaction
       await setDoc(doc(db, `users/${user.uid}/transactions/${Date.now()}`), {
         type: "card_purchase",
-        amount: selectedTier.price,
+        amount: confirmTier.price,
         coin: "USDT",
-        usdValue: selectedTier.price,
+        usdValue: confirmTier.price,
         status: "completed",
         timestamp: Date.now(),
         userId: user.uid,
       });
-      setShowBuyModal(false);
-      showToast("Card activated successfully! 🎉", "ok");
+      setConfirmTier(null);
+      showToast("Card activated! 🎉");
     } catch (e) {
       console.error(e);
-      showToast("Failed to purchase card. Try again.", "err");
+      showToast("Purchase failed. Try again.", false);
     } finally {
       setBuying(false);
     }
@@ -445,64 +460,46 @@ export default function CardPage() {
   const handleTopup = async () => {
     if (!user || !card) return;
     const amount = parseFloat(topupAmount);
-    if (!amount || amount <= 0) return;
-    if (usdtBalance < amount) {
-      showToast("Insufficient USDT balance.", "err");
-      return;
-    }
+    if (!amount || amount <= 0 || amount > usdtBalance) return;
     setTopping(true);
     try {
       const db = getClientFirestore();
-      const walletRef = doc(db, `users/${user.uid}/fundingWallets/USDT`);
-      await updateDoc(walletRef, {
+      await updateDoc(doc(db, `users/${user.uid}/fundingWallets/USDT`), {
         availableBalance: increment(-amount),
         balance: increment(-amount),
       });
-      await updateDoc(doc(db, "userCards", user.uid), {
-        balance: increment(amount),
-      });
+      await updateDoc(doc(db, "userCards", user.uid), { balance: increment(amount) });
       setTopupAmount("");
       setShowTopupModal(false);
-      showToast(`$${amount} topped up to card ✅`, "ok");
-    } catch (e) {
-      showToast("Top-up failed. Try again.", "err");
+      showToast(`$${amount} added to card ✅`);
+    } catch {
+      showToast("Top-up failed.", false);
     } finally {
       setTopping(false);
     }
   };
 
-  const handleFreezeToggle = async () => {
+  const handleFreeze = async () => {
     if (!user || !card) return;
     setFreezing(true);
     try {
-      const db = getClientFirestore();
-      await updateDoc(doc(db, "userCards", user.uid), {
-        frozen: !card.frozen,
-      });
-      showToast(card.frozen ? "Card unfrozen ✅" : "Card frozen 🔒", "ok");
+      await updateDoc(doc(getClientFirestore(), "userCards", user.uid), { frozen: !card.frozen });
+      showToast(card.frozen ? "Card unfrozen ✅" : "Card frozen 🔒");
     } catch {
-      showToast("Failed. Try again.", "err");
+      showToast("Failed.", false);
     } finally {
       setFreezing(false);
     }
   };
 
-  const currentTier = card
-    ? CARD_TIERS.find((t) => t.id === card.tierId) ?? CARD_TIERS[0]
-    : null;
+  const currentTier = card ? CARD_TIERS.find((t) => t.id === card.tierId) ?? CARD_TIERS[0] : null;
 
   return (
     <div className="min-h-screen bg-[#0b0e11] pb-24 text-white">
       {/* Toast */}
       {toast && (
-        <div
-          className={`fixed top-4 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold shadow-2xl border ${
-            toast.type === "ok"
-              ? "bg-green-900/90 border-green-500/30 text-green-300"
-              : "bg-red-900/90 border-red-500/30 text-red-300"
-          }`}
-        >
-          {toast.type === "ok" ? <FiCheck size={14} /> : <FiX size={14} />}
+        <div className={`fixed top-4 left-1/2 z-[200] -translate-x-1/2 flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold shadow-2xl border ${toast.ok ? "bg-green-900/90 border-green-500/30 text-green-300" : "bg-red-900/90 border-red-500/30 text-red-300"}`}>
+          {toast.ok ? <FiCheck size={14} /> : <FiX size={14} />}
           {toast.msg}
         </div>
       )}
@@ -510,10 +507,7 @@ export default function CardPage() {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[#0b0e11]/95 backdrop-blur-md border-b border-white/[0.06]">
         <div className="flex items-center gap-3 px-4 py-3 max-w-lg mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1e2329] text-white"
-          >
+          <button onClick={() => router.back()} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1e2329] text-white">
             <FiArrowLeft size={16} />
           </button>
           <h1 className="text-base font-bold">My Card</h1>
@@ -525,88 +519,64 @@ export default function CardPage() {
         </div>
       </div>
 
-      <div className="px-4 pt-5 pb-4 max-w-lg mx-auto space-y-5">
+      <div className="px-4 pt-5 pb-4 max-w-lg mx-auto space-y-4">
         {loadingCard ? (
           <div className="space-y-4">
-            <div className="aspect-[1.586/1] w-full rounded-2xl bg-white/[0.03]" />
-            <div className="h-28 rounded-xl bg-white/[0.03]" />
+            <div className="aspect-[1.586/1] rounded-2xl bg-white/[0.03]" />
+            <div className="h-24 rounded-xl bg-white/[0.03]" />
           </div>
         ) : card && currentTier ? (
           <>
-            {/* Card Visual */}
-            <div className={`relative ${card.frozen ? "opacity-60 saturate-0" : ""} transition-all`}>
-              <CardVisual tier={currentTier} card={card} showDetails={showDetails} />
-              {card.frozen && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 backdrop-blur-sm">
-                  <div className="flex flex-col items-center gap-2">
-                    <FiLock size={28} className="text-white" />
-                    <p className="text-xs font-bold text-white">Card Frozen</p>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Active card */}
+            <PremiumCard
+              tier={currentTier}
+              card={card}
+              showDetails={showDetails}
+              onClick={() => setShowDetails((v) => !v)}
+            />
 
-            {/* Card name + status */}
-            <div className="text-center">
-              <p className="text-sm font-bold text-white">{currentTier.name} Visa Virtual</p>
-              <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-green-500/10 border border-green-500/20 px-3 py-0.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                <span className="text-[10px] font-bold text-green-400">
-                  {card.frozen ? "Frozen" : "Active"}
-                </span>
+            {/* Tap hint */}
+            <p className="text-center text-[10px] text-[#848e9c]">
+              {showDetails ? "Tap card to hide details" : "Tap card to reveal details"}
+            </p>
+
+            {/* Status + balance */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-3 text-center">
+                <p className="text-[9px] uppercase tracking-widest text-[#848e9c]">Status</p>
+                <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5"
+                  style={{ borderColor: card.frozen ? "#ef4444" : "#22c55e", background: card.frozen ? "#ef444415" : "#22c55e15" }}>
+                  <div className="h-1.5 w-1.5 rounded-full" style={{ background: card.frozen ? "#ef4444" : "#22c55e" }} />
+                  <span className="text-[9px] font-bold" style={{ color: card.frozen ? "#ef4444" : "#22c55e" }}>
+                    {card.frozen ? "Frozen" : "Active"}
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-3 text-center">
+                <p className="text-[9px] uppercase tracking-widest text-[#848e9c]">Card Balance</p>
+                <p className="mt-1 text-lg font-black text-white">${card.balance.toFixed(2)}</p>
               </div>
             </div>
 
-            {/* Balance */}
-            <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4 text-center">
-              <p className="text-[10px] uppercase tracking-widest text-[#848e9c]">Card Balance</p>
-              <p className="mt-1 text-3xl font-black text-white">
-                ${card.balance.toFixed(2)}
-              </p>
-              <p className="text-[10px] text-[#848e9c] mt-0.5">
-                ${currentTier.dailyLimit}/day · ${currentTier.monthlyLimit}/month limit
-              </p>
+            {/* Limits */}
+            <div className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-3">
+              <div className="flex justify-between text-[10px] mb-2">
+                <span className="text-[#848e9c]">Daily Limit</span>
+                <span className="font-bold text-white">${currentTier.dailyLimit.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-[10px]">
+                <span className="text-[#848e9c]">Monthly Limit</span>
+                <span className="font-bold text-white">${currentTier.monthlyLimit.toLocaleString()}</span>
+              </div>
             </div>
 
-            {/* Action buttons */}
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                onClick={() => setShowDetails((v) => !v)}
-                className="flex flex-col items-center gap-1.5 rounded-xl bg-[#161a1e] border border-white/[0.06] py-3 px-2 transition hover:bg-white/[0.04]"
-              >
-                {showDetails ? <FiEyeOff size={18} className="text-primary" /> : <FiEye size={18} className="text-primary" />}
-                <span className="text-[9px] font-bold text-[#848e9c]">
-                  {showDetails ? "Hide" : "Show"} Details
-                </span>
-              </button>
-              <button
-                onClick={handleFreezeToggle}
-                disabled={freezing}
-                className="flex flex-col items-center gap-1.5 rounded-xl bg-[#161a1e] border border-white/[0.06] py-3 px-2 transition hover:bg-white/[0.04] disabled:opacity-50"
-              >
-                {card.frozen
-                  ? <FiUnlock size={18} className="text-blue-400" />
-                  : <FiLock size={18} className="text-blue-400" />}
-                <span className="text-[9px] font-bold text-[#848e9c]">
-                  {card.frozen ? "Unfreeze" : "Freeze"}
-                </span>
-              </button>
-              <button
-                onClick={() => setShowTopupModal(true)}
-                className="flex flex-col items-center gap-1.5 rounded-xl bg-[#161a1e] border border-white/[0.06] py-3 px-2 transition hover:bg-white/[0.04]"
-              >
-                <FiPlus size={18} className="text-green-400" />
-                <span className="text-[9px] font-bold text-[#848e9c]">Top Up</span>
-              </button>
-            </div>
-
-            {/* Card details section */}
+            {/* Card detail rows (shown when tapped) */}
             {showDetails && (
               <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] divide-y divide-white/[0.04] overflow-hidden">
                 {[
                   { label: "Card Number", value: card.cardNumber },
                   { label: "Card Holder", value: card.holderName },
-                  { label: "Expiry Date", value: card.expiryDate },
+                  { label: "Valid Thru", value: card.expiryDate },
                   { label: "CVV", value: card.cvv },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between px-4 py-3">
@@ -617,16 +587,34 @@ export default function CardPage() {
               </div>
             )}
 
+            {/* Action buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowTopupModal(true)}
+                className="flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-xs font-bold text-black shadow-lg shadow-primary/20 hover:bg-primary/90 transition"
+              >
+                <FiPlus size={14} /> Top Up
+              </button>
+              <button
+                onClick={handleFreeze}
+                disabled={freezing}
+                className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-[#161a1e] py-3 text-xs font-bold text-white hover:bg-white/[0.04] transition disabled:opacity-50"
+              >
+                {card.frozen ? <FiUnlock size={14} className="text-blue-400" /> : <FiLock size={14} className="text-blue-400" />}
+                {card.frozen ? "Unfreeze" : "Freeze"}
+              </button>
+            </div>
+
             {/* Perks */}
             <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4">
-              <p className="text-xs font-bold text-white mb-3 flex items-center gap-2">
-                <FiStar size={12} className="text-primary" /> {currentTier.name} Card Benefits
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#848e9c] mb-3">
+                {currentTier.name} Benefits
               </p>
               <div className="space-y-2">
                 {currentTier.perks.map((perk) => (
                   <div key={perk} className="flex items-center gap-2">
-                    <FiCheck size={12} className="text-primary shrink-0" />
-                    <p className="text-[10px] text-[#848e9c]">{perk}</p>
+                    <FiCheck size={11} className="text-primary shrink-0" />
+                    <p className="text-xs text-[#848e9c]">{perk}</p>
                   </div>
                 ))}
               </div>
@@ -634,139 +622,99 @@ export default function CardPage() {
           </>
         ) : (
           <>
-            {/* No card — show tiers to buy */}
-            <div className="text-center pt-2 pb-4">
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 mb-4">
-                <FiCreditCard size={28} className="text-primary" />
-              </div>
-              <h2 className="text-base font-bold text-white">Get Your Korixa Card</h2>
+            {/* No card — vertical tier browser */}
+            <div className="text-center pt-2 pb-2">
+              <h2 className="text-base font-bold text-white">Choose Your Card</h2>
               <p className="text-[10px] text-[#848e9c] mt-1">
-                Choose a card tier and start spending crypto worldwide
+                7 tiers available · Spend crypto worldwide · Instant activation
               </p>
             </div>
 
-            {/* Tier preview carousel */}
-            <div className="relative overflow-hidden">
-              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-                {CARD_TIERS.map((tier) => (
-                  <div
-                    key={tier.id}
-                    onClick={() => { setSelectedTier(tier); setShowBuyModal(true); }}
-                    className="shrink-0 cursor-pointer"
-                    style={{ width: "62vw", maxWidth: "240px" }}
-                  >
-                    <div
-                      className={`relative aspect-[1.586/1] rounded-xl bg-gradient-to-br ${tier.gradient} p-4 overflow-hidden`}
-                      style={{ boxShadow: `0 12px 40px ${tier.glowColor}` }}
-                    >
-                      <div className={`absolute inset-0 ${tier.networkLine}`}>
-                        {[...Array(5)].map((_, i) => (
-                          <div key={i} className="absolute h-px bg-white" style={{ top: `${15 + i * 16}%`, left: "-10%", right: "-10%", transform: `rotate(${-12 + i * 3}deg)`, opacity: 0.3 }} />
-                        ))}
-                      </div>
-                      <p className="relative text-[9px] font-bold uppercase tracking-widest text-white/50">Korixa</p>
-                      <p className="relative text-xs font-black mt-1 uppercase tracking-wider" style={{ color: tier.accentColor }}>{tier.name}</p>
-                      <div className="relative mt-3 flex items-end justify-between">
-                        <div>
-                          <p className="text-[7px] text-white/40 uppercase tracking-widest">From</p>
-                          <p className="text-lg font-black text-white">${tier.price}</p>
-                        </div>
-                        <p className={`text-base font-black italic ${tier.visa}`}>VISA</p>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-center text-[10px] font-bold text-[#848e9c]">
-                      ${tier.initialBalance} initial · Tap to select
-                    </p>
-                  </div>
+            <div className="space-y-5">
+              {CARD_TIERS.map((tier) => (
+                <BrowseTierCard
+                  key={tier.id}
+                  tier={tier}
+                  onBuy={() => setConfirmTier(tier)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Confirm Buy Modal ──────────────────────────────────────────── */}
+      {confirmTier && (
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmTier(null)} />
+          <div className="relative w-full max-w-lg mx-auto bg-[#161a1e] rounded-t-3xl sm:rounded-3xl border border-white/[0.06] shadow-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white">Confirm Purchase</h3>
+              <button onClick={() => setConfirmTier(null)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-[#848e9c]">
+                <FiX size={16} />
+              </button>
+            </div>
+
+            {/* Mini card preview */}
+            <div
+              className={`relative aspect-[1.586/1] rounded-xl bg-gradient-to-br ${confirmTier.gradient} p-4 mb-4 overflow-hidden`}
+              style={{ boxShadow: `0 12px 40px ${confirmTier.glowColor}` }}
+            >
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="absolute h-[1px] bg-white" style={{ top: `${15 + i * 16}%`, left: "-5%", right: "-5%", transform: `rotate(-12deg)`, opacity: 0.06 }} />
+              ))}
+              <p className="relative text-[8px] font-bold uppercase tracking-widest text-white/40">Korixa Pay</p>
+              <p className="relative text-xs font-black uppercase tracking-wider mt-0.5" style={{ color: confirmTier.accentColor }}>
+                {confirmTier.name}
+              </p>
+              <div className="relative mt-3 flex gap-3">
+                {["••••", "••••", "••••", "----"].map((p, i) => (
+                  <p key={i} className="font-mono text-xs tracking-widest text-white/60">{p}</p>
                 ))}
+              </div>
+              <div className="relative mt-3 flex items-end justify-between">
+                <div>
+                  <p className="text-[7px] text-white/35 uppercase tracking-widest">Card Holder</p>
+                  <p className="text-xs font-bold text-white/70">{kycName}</p>
+                </div>
+                <p className="text-base font-black italic" style={{ color: confirmTier.visaColor }}>VISA</p>
               </div>
             </div>
 
-            {/* Feature highlights */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl bg-[#0b0e11] border border-white/[0.06] p-3 space-y-2 mb-4">
               {[
-                { icon: FiShield, label: "Secure", desc: "256-bit encrypted" },
-                { icon: FiZap, label: "Instant", desc: "Activate in seconds" },
-                { icon: FiStar, label: "Rewards", desc: "Earn cashback" },
-              ].map(({ icon: Icon, label, desc }) => (
-                <div key={label} className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-3 text-center">
-                  <Icon size={16} className="text-primary mx-auto mb-1.5" />
-                  <p className="text-[10px] font-bold text-white">{label}</p>
-                  <p className="text-[9px] text-[#848e9c] mt-0.5">{desc}</p>
+                { label: "Card tier", value: confirmTier.name },
+                { label: "Card price", value: `$${confirmTier.price} USDT`, highlight: true },
+                { label: "Initial card balance", value: `$${confirmTier.initialBalance}`, green: true },
+                { label: "Daily / Monthly limit", value: `$${confirmTier.dailyLimit} / $${confirmTier.monthlyLimit}` },
+                { label: "Your USDT balance", value: `$${usdtBalance.toFixed(2)}`, warn: usdtBalance < confirmTier.price },
+              ].map(({ label, value, highlight, green, warn }) => (
+                <div key={label} className="flex justify-between text-[10px]">
+                  <span className="text-[#848e9c]">{label}</span>
+                  <span className={`font-bold ${highlight ? "text-primary" : green ? "text-green-400" : warn ? "text-red-400" : "text-white"}`}>
+                    {value}
+                  </span>
                 </div>
               ))}
             </div>
 
             <button
-              onClick={() => setShowBuyModal(true)}
-              className="w-full rounded-xl bg-primary py-3.5 text-xs font-bold text-black shadow-lg shadow-primary/20 hover:bg-primary/90 transition"
+              onClick={handleBuyCard}
+              disabled={buying || usdtBalance < confirmTier.price}
+              className="w-full rounded-xl py-3.5 text-xs font-bold text-black shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: confirmTier.accentColor, boxShadow: `0 8px 24px ${confirmTier.glowColor}` }}
             >
-              Get Your Card — Starting at $7
+              {buying
+                ? "Activating..."
+                : usdtBalance < confirmTier.price
+                ? `Need $${(confirmTier.price - usdtBalance).toFixed(2)} more USDT`
+                : `Activate ${confirmTier.name} Card — $${confirmTier.price}`}
             </button>
-          </>
-        )}
-      </div>
-
-      {/* ── Buy Card Modal ─────────────────────────────────────────────────── */}
-      {showBuyModal && (
-        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowBuyModal(false)} />
-          <div className="relative w-full max-w-lg mx-auto bg-[#161a1e] rounded-t-3xl sm:rounded-3xl border border-white/[0.06] shadow-2xl max-h-[85vh] overflow-y-auto scrollbar-hide">
-            <div className="sticky top-0 bg-[#161a1e] z-10 flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/[0.06]">
-              <h3 className="text-sm font-bold text-white">Choose Card Tier</h3>
-              <button onClick={() => setShowBuyModal(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-[#848e9c]">
-                <FiX size={16} />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-3">
-              {CARD_TIERS.map((tier) => (
-                <TierCard
-                  key={tier.id}
-                  tier={tier}
-                  selected={selectedTier.id === tier.id}
-                  onClick={() => setSelectedTier(tier)}
-                />
-              ))}
-
-              <div className="rounded-xl border border-white/[0.06] bg-[#0b0e11] p-3 mt-2">
-                <div className="flex justify-between text-[10px] mb-1">
-                  <span className="text-[#848e9c]">Selected tier</span>
-                  <span className="font-bold text-white">{selectedTier.name}</span>
-                </div>
-                <div className="flex justify-between text-[10px] mb-1">
-                  <span className="text-[#848e9c]">Card price</span>
-                  <span className="font-bold text-primary">${selectedTier.price} USDT</span>
-                </div>
-                <div className="flex justify-between text-[10px] mb-1">
-                  <span className="text-[#848e9c]">Initial card balance</span>
-                  <span className="font-bold text-green-400">${selectedTier.initialBalance}</span>
-                </div>
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-[#848e9c]">Your USDT balance</span>
-                  <span className={`font-bold ${usdtBalance >= selectedTier.price ? "text-white" : "text-red-400"}`}>
-                    ${usdtBalance.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleBuyCard}
-                disabled={buying || usdtBalance < selectedTier.price}
-                className="w-full rounded-xl bg-primary py-3.5 text-xs font-bold text-black shadow-lg shadow-primary/20 hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {buying
-                  ? "Activating..."
-                  : usdtBalance < selectedTier.price
-                  ? `Need $${(selectedTier.price - usdtBalance).toFixed(2)} more`
-                  : `Activate ${selectedTier.name} Card — $${selectedTier.price}`}
-              </button>
-            </div>
           </div>
         </div>
       )}
 
-      {/* ── Top-up Modal ───────────────────────────────────────────────────── */}
+      {/* ── Top-up Modal ──────────────────────────────────────────────── */}
       {showTopupModal && card && (
         <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowTopupModal(false)} />
@@ -778,8 +726,8 @@ export default function CardPage() {
               </button>
             </div>
 
-            <div className="rounded-xl bg-[#0b0e11] border border-white/[0.06] p-3 mb-4">
-              <div className="flex justify-between text-[10px] mb-1">
+            <div className="rounded-xl bg-[#0b0e11] border border-white/[0.06] p-3 mb-4 space-y-2">
+              <div className="flex justify-between text-[10px]">
                 <span className="text-[#848e9c]">Funding balance (USDT)</span>
                 <span className="font-bold text-white">${usdtBalance.toFixed(2)}</span>
               </div>
@@ -789,26 +737,21 @@ export default function CardPage() {
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-[#848e9c] mb-2">
-                Amount (USDT)
-              </label>
-              <input
-                type="number"
-                value={topupAmount}
-                onChange={(e) => setTopupAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full rounded-xl bg-[#0b0e11] border border-white/[0.08] px-4 py-3 text-center text-xl font-bold text-white focus:outline-none focus:border-primary transition"
-              />
-            </div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-[#848e9c] mb-2">
+              Amount (USDT)
+            </label>
+            <input
+              type="number"
+              value={topupAmount}
+              onChange={(e) => setTopupAmount(e.target.value)}
+              placeholder="0.00"
+              className="w-full rounded-xl bg-[#0b0e11] border border-white/[0.08] px-4 py-3 text-center text-2xl font-black text-white focus:outline-none focus:border-primary transition mb-4"
+            />
 
-            <div className="flex gap-2 mb-4">
+            <div className="grid grid-cols-4 gap-2 mb-4">
               {[5, 10, 20, 50].map((amt) => (
-                <button
-                  key={amt}
-                  onClick={() => setTopupAmount(String(amt))}
-                  className="flex-1 rounded-xl bg-[#0b0e11] border border-white/[0.06] py-2 text-[10px] font-bold text-[#848e9c] hover:border-primary hover:text-primary transition"
-                >
+                <button key={amt} onClick={() => setTopupAmount(String(amt))}
+                  className="rounded-xl bg-[#0b0e11] border border-white/[0.06] py-2 text-[10px] font-bold text-[#848e9c] hover:border-primary hover:text-primary transition">
                   ${amt}
                 </button>
               ))}
@@ -817,7 +760,7 @@ export default function CardPage() {
             <button
               onClick={handleTopup}
               disabled={topping || !topupAmount || parseFloat(topupAmount) <= 0 || parseFloat(topupAmount) > usdtBalance}
-              className="w-full rounded-xl bg-primary py-3.5 text-xs font-bold text-black shadow-lg shadow-primary/20 hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-xl bg-primary py-3.5 text-xs font-bold text-black shadow-lg shadow-primary/20 hover:bg-primary/90 transition disabled:opacity-50"
             >
               {topping ? "Processing..." : `Top Up $${topupAmount || "0"}`}
             </button>
