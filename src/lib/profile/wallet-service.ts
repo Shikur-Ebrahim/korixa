@@ -85,23 +85,25 @@ export async function getSpotHoldings(uid: string): Promise<SpotHolding[]> {
 export async function getTransactions(uid: string, txType?: TransactionType | TransactionType[], limitCount = 50): Promise<TransactionRecord[]> {
   try {
     const db = getClientFirestore();
-    let q = query(collection(db, "transactions"), where("userId", "==", uid), orderBy("timestamp", "desc"), limit(limitCount));
+    // Only query by userId to avoid requiring a composite index in Firestore
+    const q = query(collection(db, "transactions"), where("userId", "==", uid));
+    
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return [];
+    
+    let txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TransactionRecord));
     
     if (txType) {
       if (Array.isArray(txType)) {
-        if (txType.length > 0) {
-          q = query(collection(db, "transactions"), where("userId", "==", uid), where("type", "in", txType), orderBy("timestamp", "desc"), limit(limitCount));
-        }
+        txs = txs.filter(tx => txType.includes(tx.type));
       } else {
-        q = query(collection(db, "transactions"), where("userId", "==", uid), where("type", "==", txType), orderBy("timestamp", "desc"), limit(limitCount));
+        txs = txs.filter(tx => tx.type === txType);
       }
     }
     
-    const snapshot = await getDocs(q);
+    txs.sort((a, b) => b.timestamp - a.timestamp);
     
-    if (snapshot.empty) return [];
-    
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TransactionRecord));
+    return txs.slice(0, limitCount);
   } catch (error) {
     console.error("Failed to fetch transactions", error);
     return [];
@@ -142,7 +144,7 @@ export function subscribeFundingWallets(uid: string, callback: (wallets: WalletA
   });
 }
 
-export function subscribeTransactions(uid: string, txType: TransactionType | undefined, limitCount: number, callback: (transactions: TransactionRecord[]) => void): Unsubscribe {
+export function subscribeTransactions(uid: string, txType: TransactionType | TransactionType[] | undefined, limitCount: number, callback: (transactions: TransactionRecord[]) => void): Unsubscribe {
   const db = getClientFirestore();
   // Only query by userId to avoid requiring a composite index in Firestore
   const q = query(collection(db, "transactions"), where("userId", "==", uid));
@@ -157,7 +159,11 @@ export function subscribeTransactions(uid: string, txType: TransactionType | und
     let txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TransactionRecord));
     
     if (txType) {
-      txs = txs.filter(tx => tx.type === txType);
+      if (Array.isArray(txType)) {
+        txs = txs.filter(tx => txType.includes(tx.type));
+      } else {
+        txs = txs.filter(tx => tx.type === txType);
+      }
     }
     
     // Sort descending by timestamp
