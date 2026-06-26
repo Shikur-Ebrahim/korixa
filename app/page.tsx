@@ -6,7 +6,6 @@ import { MarketPreview } from "@/components/landing/MarketPreview";
 import { MarketPreviewSkeleton } from "@/components/landing/MarketPreviewSkeleton";
 import { P2PSection } from "@/components/landing/P2PSection";
 import { GrowthSection } from "@/components/landing/GrowthSection";
-import { Features } from "@/components/landing/Features";
 import { WhyKorixa } from "@/components/landing/WhyKorixa";
 import { CallToAction } from "@/components/landing/CallToAction";
 import { Footer } from "@/components/landing/Footer";
@@ -23,7 +22,6 @@ export default function Home() {
         </Suspense>
         <P2PSection />
         <GrowthSection />
-        <Features />
         <WhyKorixa />
         <CallToAction />
       </main>

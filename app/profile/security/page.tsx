@@ -150,7 +150,7 @@ export default function SecurityCenter() {
   if (loading) {
     return (
       <div className={`${appTheme.page} relative min-h-screen pb-20`}>
-        <div className="mx-auto w-full max-w-4xl px-4 py-6 flex flex-col gap-6 animate-pulse">
+        <div className="mx-auto w-full max-w-4xl px-4 py-6 flex flex-col gap-6">
           {/* Header skeleton */}
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-white/[0.04]" />

@@ -100,7 +100,7 @@ export default function ActivityPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="animate-pulse h-20 rounded-xl bg-white/[0.02]" />
+              <div key={i} className="h-20 rounded-xl bg-white/[0.02]" />
             ))}
           </div>
         ) : logs.length === 0 ? (
