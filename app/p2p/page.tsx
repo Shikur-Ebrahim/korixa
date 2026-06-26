@@ -97,14 +97,6 @@ export default function P2PMarketplace() {
           >
             <FiClock size={16} />
           </button>
-          {isVerified && (
-            <button
-              onClick={() => router.push("/p2p/create-ad")}
-              className="flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-bold text-black"
-            >
-              <FiPlus size={13} /> Create Ad
-            </button>
-          )}
         </div>
 
         {/* Buy / Sell Tabs */}
@@ -334,14 +326,14 @@ function MyAdsSection({ userId, onCreateAd, isVerified }: { userId: string; onCr
         onClick={onCreateAd}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-black"
       >
-        <FiPlus size={16} /> Create New Sell Ad
+        <FiPlus size={16} /> Create New Buy Ad
       </button>
       {loading ? (
         <div className="py-8 text-center text-xs text-[#848e9c]">Loading...</div>
       ) : myAds.length === 0 ? (
         <div className="py-12 text-center">
           <FiList size={28} className="mx-auto mb-3 text-[#848e9c]" />
-          <p className="text-sm text-[#848e9c]">No ads yet. Create your first sell ad!</p>
+          <p className="text-sm text-[#848e9c]">No ads yet. Create your first buy ad!</p>
         </div>
       ) : (
         myAds.map(ad => (

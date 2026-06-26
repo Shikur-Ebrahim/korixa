@@ -41,7 +41,6 @@ export default function CreateAdPage() {
   const [minLimit, setMinLimit] = useState("");
   const [maxLimit, setMaxLimit] = useState("");
   const [selectedMethods, setSelectedMethods] = useState<PaymentMethod[]>([]);
-  const [accountDetails, setAccountDetails] = useState<Record<string, { name: string; number: string }>>({});
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -77,32 +76,17 @@ export default function CreateAdPage() {
     const maxNum = parseFloat(maxLimit);
 
     if (!priceNum || !amountNum || !minNum || !maxNum) { showToast("Please fill all fields."); return; }
-    if (amountNum > usdtBalance) { showToast("Insufficient USDT balance."); return; }
+    if (amountNum <= 0) { showToast("Amount must be greater than 0."); return; }
     if (minNum >= maxNum) { showToast("Min limit must be less than max limit."); return; }
     if (selectedMethods.length === 0) { showToast("Select at least one payment method."); return; }
-    for (const m of selectedMethods) {
-      const d = accountDetails[m];
-      if (!d?.name || !d?.number) { showToast(`Fill account details for ${m}.`); return; }
-    }
 
     setSubmitting(true);
     try {
       const db = getClientFirestore();
-      const paymentAccountDetails: PaymentAccountDetail[] = selectedMethods.map(m => ({
-        method: m,
-        accountName: accountDetails[m].name,
-        accountNumber: accountDetails[m].number,
-      }));
 
-      // Escrow: deduct USDT from seller's wallet
-      await updateDoc(doc(db, "wallets", walletId), {
-        availableBalance: increment(-amountNum),
-        balance: increment(-amountNum),
-      });
-
-      // Create the advertisement
+      // Create the advertisement (BUY AD)
       await addDoc(collection(db, "p2pAdvertisements"), {
-        type: "sell",
+        type: "buy",
         merchantId: user.uid,
         merchantName: user.displayName || user.email?.split("@")[0] || "Seller",
         merchantVerified: true,
@@ -113,7 +97,7 @@ export default function CreateAdPage() {
         minOrderLimit: minNum,
         maxOrderLimit: maxNum,
         paymentMethods: selectedMethods,
-        paymentAccountDetails,
+        paymentAccountDetails: [],
         status: "active",
         currency: "ETB",
         createdAt: new Date().toISOString(),
@@ -158,8 +142,8 @@ export default function CreateAdPage() {
           <FiArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h1 className="text-base font-bold">Create Sell Ad</h1>
-          <p className="text-[11px] text-[#848e9c]">Sell USDT — receive ETB</p>
+          <h1 className="text-base font-bold">Create Buy Ad</h1>
+          <p className="text-[11px] text-[#848e9c]">Buy USDT — send ETB</p>
         </div>
         <div className="flex items-center gap-1">
           {steps.map((s, i) => (
@@ -197,17 +181,15 @@ export default function CreateAdPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-[#848e9c] uppercase tracking-wider">Total USDT to Sell</label>
+              <label className="mb-1.5 block text-xs font-semibold text-[#848e9c] uppercase tracking-wider">Total USDT to Buy</label>
               <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-[#161a1e] px-4 py-3">
                 <input
                   type="number"
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
                   placeholder="e.g. 100"
-                  max={usdtBalance}
                   className="flex-1 bg-transparent text-sm text-white placeholder:text-[#848e9c] focus:outline-none"
                 />
-                <button onClick={() => setAmount(usdtBalance.toFixed(4))} className="text-[10px] font-bold text-primary">ALL</button>
               </div>
               {price && amount && (
                 <p className="mt-1 text-[10px] text-green-400">
@@ -219,7 +201,6 @@ export default function CreateAdPage() {
             <button
               onClick={() => {
                 if (!price || !amount) { showToast("Enter price and amount."); return; }
-                if (parseFloat(amount) > usdtBalance) { showToast("Amount exceeds your USDT balance."); return; }
                 if (parseFloat(amount) <= 0) { showToast("Amount must be greater than 0."); return; }
                 setStep("limits");
               }}
@@ -280,12 +261,11 @@ export default function CreateAdPage() {
         {/* ── STEP 3: Payment Methods ── */}
         {step === "payment" && (
           <div className="space-y-4">
-            <p className="text-xs text-[#848e9c]">Select how buyers will send you money. Add your account details for each method.</p>
+            <p className="text-xs text-[#848e9c]">Select how you can send money to sellers.</p>
 
             <div className="space-y-3">
               {PAYMENT_METHODS.map(m => {
                 const selected = selectedMethods.includes(m);
-                const detail = accountDetails[m] ?? { name: "", number: "" };
                 return (
                   <div key={m} className={`rounded-xl border transition ${selected ? "border-primary/50 bg-primary/5" : "border-white/[0.06] bg-[#161a1e]"}`}>
                     <button
@@ -298,22 +278,6 @@ export default function CreateAdPage() {
                         {selected && <FiCheck size={11} className="text-black" />}
                       </div>
                     </button>
-                    {selected && (
-                      <div className="border-t border-white/[0.06] px-4 pb-3 pt-2 space-y-2">
-                        <input
-                          placeholder="Account holder name"
-                          value={detail.name}
-                          onChange={e => setAccountDetails(prev => ({ ...prev, [m]: { ...detail, name: e.target.value } }))}
-                          className="w-full rounded-lg bg-[#0b0e11] px-3 py-2 text-xs text-white placeholder:text-[#848e9c] border border-white/[0.06] focus:outline-none focus:border-primary/50"
-                        />
-                        <input
-                          placeholder={m === "Telebirr" ? "Phone number (e.g. 09...)" : "Account number"}
-                          value={detail.number}
-                          onChange={e => setAccountDetails(prev => ({ ...prev, [m]: { ...detail, number: e.target.value } }))}
-                          className="w-full rounded-lg bg-[#0b0e11] px-3 py-2 text-xs text-white placeholder:text-[#848e9c] border border-white/[0.06] focus:outline-none focus:border-primary/50"
-                        />
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -322,10 +286,6 @@ export default function CreateAdPage() {
             <button
               onClick={() => {
                 if (selectedMethods.length === 0) { showToast("Select at least one payment method."); return; }
-                for (const m of selectedMethods) {
-                  const d = accountDetails[m];
-                  if (!d?.name || !d?.number) { showToast(`Fill account details for ${m}.`); return; }
-                }
                 setStep("confirm");
               }}
               className="w-full rounded-xl bg-primary py-4 text-sm font-bold text-black transition hover:bg-primary/90"
@@ -345,9 +305,9 @@ export default function CreateAdPage() {
               </div>
               <div className="divide-y divide-white/[0.04]">
                 {[
-                  { label: "Type", value: "Sell USDT → Receive ETB" },
+                  { label: "Type", value: "Buy USDT → Send ETB" },
                   { label: "Price per USDT", value: `${parseFloat(price).toLocaleString()} ETB` },
-                  { label: "USDT to escrow", value: `${parseFloat(amount).toFixed(4)} USDT` },
+                  { label: "USDT to buy", value: `${parseFloat(amount).toFixed(4)} USDT` },
                   { label: "Order limits", value: `${parseFloat(minLimit).toLocaleString()} – ${parseFloat(maxLimit).toLocaleString()} ETB` },
                   { label: "Payment methods", value: selectedMethods.join(", ") },
                 ].map(({ label, value }) => (
@@ -357,12 +317,6 @@ export default function CreateAdPage() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 px-4 py-3">
-              <p className="text-[11px] text-orange-300">
-                <strong>Note:</strong> {parseFloat(amount).toFixed(4)} USDT will be locked in escrow until each order is completed or cancelled.
-              </p>
             </div>
 
             <button

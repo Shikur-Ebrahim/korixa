@@ -129,8 +129,12 @@ export default function P2POrderRoomPage() {
   if (loading) return <div className="min-h-screen bg-[#0b0e11] pt-24 text-center text-[#848e9c]">Loading order...</div>;
   if (!order) return <div className="min-h-screen bg-[#0b0e11] pt-24 text-center text-red-500">Order not found.</div>;
 
-  const isBuyer = user?.uid === order.buyerId;
-  const isAdminOrMerchant = role === "admin" || user?.uid === order.merchantId;
+  const isAdmin = role === "admin";
+  // If order.type === "sell", the ad was a Sell ad, meaning the normal user is buying.
+  // If order.type === "buy", the ad was a Buy ad, meaning the normal user is selling.
+  const isActualBuyer = order.type === "sell" ? user?.uid === order.buyerId : user?.uid === order.merchantId;
+  const isActualSeller = order.type === "sell" ? user?.uid === order.merchantId : user?.uid === order.buyerId;
+  const actualBuyerId = order.type === "sell" ? order.buyerId : order.merchantId;
 
   return (
     <div className="min-h-screen bg-[#0b0e11] text-white">
@@ -169,6 +173,7 @@ export default function P2POrderRoomPage() {
       </header>
 
       <main className="mx-auto max-w-lg p-4 space-y-6">
+
         {/* Status Card */}
         <div className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-6 text-center">
           <h2 className="text-2xl font-black capitalize text-primary">{order.status}</h2>
@@ -266,7 +271,7 @@ export default function P2POrderRoomPage() {
         </div>
 
         {/* Actions */}
-        {order.status === "pending" && isBuyer && (
+        {order.status === "pending" && isActualBuyer && (
           <div className="flex gap-3">
             <button onClick={handleCancel} className="w-1/3 rounded-xl bg-[#2b3139] py-3 text-sm font-bold text-white transition hover:bg-[#3b4149]">
               Cancel
@@ -278,15 +283,15 @@ export default function P2POrderRoomPage() {
         )}
 
         {/* Seller Actions — Release USDT when buyer has paid */}
-        {order.status === "paid" && isAdminOrMerchant && (
+        {order.status === "paid" && (isActualSeller || isAdmin) && (
           <button
             onClick={async () => {
               try {
                 const db = getClientFirestore();
-                // 1. Find buyer's USDT funding wallet
+                // 1. Find actual buyer's USDT funding wallet
                 const buyerWalletQ = query(
                   collection(db, "wallets"),
-                  where("userId", "==", order.buyerId),
+                  where("userId", "==", actualBuyerId),
                   where("coin", "==", "USDT"),
                   where("type", "==", "funding")
                 );
@@ -315,6 +320,20 @@ export default function P2POrderRoomPage() {
             className="w-full rounded-xl bg-green-500 py-4 text-sm font-bold text-white transition hover:bg-green-600"
           >
             ✅ Release {order.amountUSDT} USDT to Buyer
+          </button>
+        )}
+
+        {/* Completed status info */}
+        {order.status === "completed" && (
+          <div className="rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-center text-sm font-semibold text-green-400">
+            Order completed successfully!
+          </div>
+        )}
+
+        {/* Appeal Button */}
+        {order.status === "paid" && (isActualBuyer || isActualSeller || isAdmin) && (
+          <button className="w-full text-xs font-bold text-[#848e9c] hover:text-white transition mt-2">
+            Having issues? Open an appeal
           </button>
         )}
 
