@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FiUsers, FiArrowDownCircle, FiArrowUpCircle, FiShield } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
+import Link from "next/link";
 
 type Stats = {
   totalUsers: number;
@@ -88,7 +89,9 @@ export default function AdminDashboardPage() {
           <>
             <StatCard label="Total Users" value={stats?.totalUsers ?? 0} icon={FiUsers} color="#F7931A" />
             <StatCard label="Total Deposits" value={stats?.totalDeposits ?? 0} icon={FiArrowDownCircle} color="#10b981" />
-            <StatCard label="Withdrawals" value={stats?.totalWithdrawals ?? 0} icon={FiArrowUpCircle} color="#6366f1" />
+            <Link href="/admin/withdrawals" className="block transition hover:opacity-80">
+              <StatCard label="Withdrawals" value={stats?.totalWithdrawals ?? 0} icon={FiArrowUpCircle} color="#6366f1" />
+            </Link>
             <StatCard label="Pending KYC" value={stats?.pendingKyc ?? 0} icon={FiShield} color="#f59e0b" />
           </>
         )}

@@ -7,6 +7,7 @@ import { BalanceHeroCard } from "@/components/home/BalanceHeroCard";
 import { HomeWatchlist } from "@/components/home/HomeWatchlist";
 import { MarketTrackRow } from "@/components/home/MarketTrackRow";
 import { VerificationNotice } from "@/components/deposit/VerificationNotice";
+import { WithdrawDrawer } from "@/components/profile/WithdrawDrawer";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useDepositGate } from "@/hooks/useDepositGate";
 import {
@@ -19,6 +20,7 @@ import { loadBalances, loadFavorites } from "@/lib/trade/storage";
 export function HomeScreen() {
   const { kycStatus } = useAuth();
   const { openDeposit, notice, dismissNotice } = useDepositGate();
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [hideBalance, setHideBalance] = useState(false);
   const [balances, setBalances] = useState<Record<string, number>>({});
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -78,7 +80,7 @@ export function HomeScreen() {
           { label: "Trade", href: "/trade", icon: FiRefreshCw },
           { label: "Card", href: "/card", icon: FiCreditCard },
           { label: "Deposit", icon: FiDownload, action: openDeposit },
-          { label: "Withdraw", href: "/assets", icon: FiUpload },
+          { label: "Withdraw", icon: FiUpload, action: () => setIsWithdrawOpen(true) },
         ].map((action) => {
           const Icon = action.icon;
           const className =
@@ -115,6 +117,8 @@ export function HomeScreen() {
       />
 
       <HomeWatchlist items={watchlist} loading={isLoading} />
+
+      <WithdrawDrawer open={isWithdrawOpen} onClose={() => setIsWithdrawOpen(false)} />
 
       {error && !isLoading && (
         <p className="text-center text-xs text-[#848e9c]">

@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     const withdrawals = snap.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-    }));
+    })).filter((w: any) => w.type !== "internal_transfer");
 
     return NextResponse.json({ withdrawals });
   } catch (e: any) {

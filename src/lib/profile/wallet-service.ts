@@ -107,8 +107,27 @@ export async function getTransactions(uid: string, txType?: TransactionType | Tr
       } as TransactionRecord;
     });
 
+    // Fetch withdrawals
+    const qWithdrawals = query(collection(db, "withdrawals"), where("userId", "==", uid));
+    const snapWithdrawals = await getDocs(qWithdrawals);
+    const withdrawalTxs = snapWithdrawals.docs.map(doc => {
+      const data = doc.data();
+      const type = data.type === "internal_transfer" ? "transfer" : "withdrawal";
+      return {
+        id: doc.id,
+        type,
+        coin: data.coin,
+        amount: data.amount,
+        usdValue: data.amount, // Approximate
+        status: data.status,
+        timestamp: new Date(data.createdAt).getTime(),
+        network: data.network,
+        destination: data.destination,
+      } as TransactionRecord;
+    });
+
     // Merge
-    let all = [...txs, ...p2pTxs];
+    let all = [...txs, ...p2pTxs, ...withdrawalTxs];
     
     if (txType) {
       if (Array.isArray(txType)) {
