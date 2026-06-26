@@ -97,6 +97,7 @@ export default function AdminWithdrawalsPage() {
   }, [fetchWithdrawals]);
 
   const handleAction = async (withdrawalId: string, action: "approve" | "reject") => {
+    if (!window.confirm(`Are you sure you want to ${action} this withdrawal?`)) return;
     setActionLoading(withdrawalId + action);
     setMsg(null);
     try {
@@ -206,7 +207,7 @@ export default function AdminWithdrawalsPage() {
                 : "Recipient";
 
             return (
-              <div key={w.id} className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4 space-y-3">
+              <div key={w.id} className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-3 space-y-3">
                 {/* Top Row */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
@@ -216,7 +217,7 @@ export default function AdminWithdrawalsPage() {
                       <FiArrowUpRight size={14} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">
+                      <p className="text-xs font-bold text-white">
                         {w.amount.toFixed(2)} {w.coin}
                         {isEtb && w.etbRate && (
                           <span className="text-[#848e9c] font-normal ml-1 text-xs">
@@ -288,14 +289,14 @@ export default function AdminWithdrawalsPage() {
                     <button
                       onClick={() => handleAction(w.id, "reject")}
                       disabled={!!actionLoading}
-                      className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-bold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+                      className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-xs font-bold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
                     >
                       {actionLoading === w.id + "reject" ? "..." : "Reject"}
                     </button>
                     <button
                       onClick={() => handleAction(w.id, "approve")}
                       disabled={!!actionLoading}
-                      className="flex-1 rounded-xl bg-green-500 py-2.5 text-sm font-bold text-[#0b0e11] transition hover:bg-green-600 disabled:opacity-50"
+                      className="flex-1 rounded-xl bg-green-500 py-2 text-xs font-bold text-[#0b0e11] transition hover:bg-green-600 disabled:opacity-50"
                     >
                       {actionLoading === w.id + "approve" ? "..." : "Approve"}
                     </button>

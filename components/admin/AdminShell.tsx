@@ -43,18 +43,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
             Korixa <span className="text-primary">Admin</span>
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-[11px] text-[#848e9c] sm:block">
-            {user?.email}
-          </span>
-          <button
-            onClick={() => void logout()}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-2.5 py-1.5 text-[11px] font-medium text-[#848e9c] transition hover:text-white"
-          >
-            <FiLogOut className="text-xs" />
-            Sign out
-          </button>
-        </div>
       </header>
 
       {/* Page content */}
