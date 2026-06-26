@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { doc, onSnapshot, updateDoc, collection, addDoc, query, orderBy } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, collection, addDoc, query, orderBy, getDocs, where, increment } from "firebase/firestore";
 import { useRouter, useParams } from "next/navigation";
 import { FiArrowLeft, FiMessageSquare, FiUploadCloud, FiCheck, FiX, FiClock, FiLoader, FiImage, FiCopy } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
@@ -277,16 +277,44 @@ export default function P2POrderRoomPage() {
           </div>
         )}
 
-        {/* Admin/Merchant Actions */}
+        {/* Seller Actions — Release USDT when buyer has paid */}
         {order.status === "paid" && isAdminOrMerchant && (
           <button
             onClick={async () => {
-              await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), { status: "completed" });
-              showToast("USDT released! Order completed. ✅");
+              try {
+                const db = getClientFirestore();
+                // 1. Find buyer's USDT funding wallet
+                const buyerWalletQ = query(
+                  collection(db, "wallets"),
+                  where("userId", "==", order.buyerId),
+                  where("coin", "==", "USDT"),
+                  where("type", "==", "funding")
+                );
+                const buyerWalletSnap = await getDocs(buyerWalletQ);
+                if (!buyerWalletSnap.empty) {
+                  // Credit buyer
+                  await updateDoc(doc(db, "wallets", buyerWalletSnap.docs[0].id), {
+                    availableBalance: increment(order.amountUSDT),
+                    balance: increment(order.amountUSDT),
+                  });
+                }
+                // 2. Mark order as completed
+                await updateDoc(doc(db, "p2pOrders", orderId), { status: "completed" });
+                // 3. Update merchant's total orders count in the ad
+                if (order.adId) {
+                  await updateDoc(doc(db, "p2pAdvertisements", order.adId), {
+                    merchantTotalOrders: increment(1),
+                  });
+                }
+                showToast("USDT released to buyer! Order completed. ✅");
+              } catch (e) {
+                console.error(e);
+                showToast("Failed to release USDT. Try again.", "error");
+              }
             }}
             className="w-full rounded-xl bg-green-500 py-4 text-sm font-bold text-white transition hover:bg-green-600"
           >
-            Release {order.amountUSDT} USDT
+            ✅ Release {order.amountUSDT} USDT to Buyer
           </button>
         )}
 

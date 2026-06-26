@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { FiCheckCircle, FiArrowLeft, FiClock, FiShield, FiAlertTriangle } from "react-icons/fi";
+import { FiCheckCircle, FiArrowLeft, FiClock, FiShield, FiAlertTriangle, FiPlus, FiList } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { P2PAdvertisement, PaymentMethod } from "@/lib/p2p/types";
@@ -20,7 +20,7 @@ export default function P2PMarketplace() {
   const router = useRouter();
   const { kycStatus, user } = useAuth();
   const isVerified = kycStatus === "verified";
-  const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
+  const [activeTab, setActiveTab] = useState<"buy" | "sell" | "myads">("buy");
   const [ads, setAds] = useState<P2PAdvertisement[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,6 +29,7 @@ export default function P2PMarketplace() {
   const [paymentDropdownOpen, setPaymentDropdownOpen] = useState(false);
 
   useEffect(() => {
+    if (activeTab === "myads") return;
     const adType = activeTab === "buy" ? "sell" : "buy";
     const q = query(
       collection(getClientFirestore(), "p2pAdvertisements"),
@@ -96,6 +97,14 @@ export default function P2PMarketplace() {
           >
             <FiClock size={16} />
           </button>
+          {isVerified && (
+            <button
+              onClick={() => router.push("/p2p/create-ad")}
+              className="flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-bold text-black"
+            >
+              <FiPlus size={13} /> Create Ad
+            </button>
+          )}
         </div>
 
         {/* Buy / Sell Tabs */}
@@ -112,13 +121,23 @@ export default function P2PMarketplace() {
           </button>
           <button
             onClick={() => setActiveTab("sell")}
-            className={`pb-2.5 pt-3 text-sm font-semibold transition-colors ${
+            className={`pb-2.5 pt-3 text-sm font-semibold transition-colors mr-6 ${
               activeTab === "sell"
                 ? "border-b-2 border-red-500 text-red-500"
                 : "text-[#848e9c] hover:text-red-500"
             }`}
           >
             Sell USDT
+          </button>
+          <button
+            onClick={() => setActiveTab("myads")}
+            className={`pb-2.5 pt-3 text-sm font-semibold transition-colors ${
+              activeTab === "myads"
+                ? "border-b-2 border-primary text-primary"
+                : "text-[#848e9c] hover:text-primary"
+            }`}
+          >
+            My Ads
           </button>
         </div>
 
@@ -172,8 +191,13 @@ export default function P2PMarketplace() {
         </div>
       </div>
 
+      {/* My Ads Tab */}
+      {activeTab === "myads" && (
+        <MyAdsSection userId={user?.uid ?? ""} onCreateAd={() => router.push("/p2p/create-ad")} isVerified={isVerified} />
+      )}
+
       {/* Ad List */}
-      <div className="px-4 pt-2 pb-4 space-y-3">
+      {activeTab !== "myads" && (<div className="px-4 pt-2 pb-4 space-y-3">
         {loading ? (
           <div className="py-12 text-center text-sm text-[#848e9c]">Loading offers...</div>
         ) : ads.length === 0 ? (
@@ -265,6 +289,93 @@ export default function P2PMarketplace() {
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+// My Ads section component
+function MyAdsSection({ userId, onCreateAd, isVerified }: { userId: string; onCreateAd: () => void; isVerified: boolean }) {
+  const [myAds, setMyAds] = useState<import("@/lib/p2p/types").P2PAdvertisement[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    const q = query(
+      collection(getClientFirestore(), "p2pAdvertisements"),
+      where("merchantId", "==", userId)
+    );
+    const unsub = onSnapshot(q, snap => {
+      setMyAds(snap.docs.map(d => ({ id: d.id, ...d.data() } as import("@/lib/p2p/types").P2PAdvertisement)));
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [userId]);
+
+  const toggleAdStatus = async (adId: string, currentStatus: string) => {
+    await updateDoc(doc(getClientFirestore(), "p2pAdvertisements", adId), {
+      status: currentStatus === "active" ? "disabled" : "active",
+    });
+  };
+
+  if (!isVerified) {
+    return (
+      <div className="px-4 py-16 text-center">
+        <FiShield size={32} className="mx-auto mb-3 text-orange-400" />
+        <p className="text-sm font-semibold text-white">KYC Required</p>
+        <p className="mt-1 text-xs text-[#848e9c]">Complete verification to create ads.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 pt-3 pb-6 space-y-3">
+      <button
+        onClick={onCreateAd}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-black"
+      >
+        <FiPlus size={16} /> Create New Sell Ad
+      </button>
+      {loading ? (
+        <div className="py-8 text-center text-xs text-[#848e9c]">Loading...</div>
+      ) : myAds.length === 0 ? (
+        <div className="py-12 text-center">
+          <FiList size={28} className="mx-auto mb-3 text-[#848e9c]" />
+          <p className="text-sm text-[#848e9c]">No ads yet. Create your first sell ad!</p>
+        </div>
+      ) : (
+        myAds.map(ad => (
+          <div key={ad.id} className="rounded-xl border border-white/[0.06] bg-[#161a1e] p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${ ad.status === "active" ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400" }`}>
+                {ad.status === "active" ? "● Active" : "● Paused"}
+              </span>
+              <button
+                onClick={() => toggleAdStatus(ad.id, ad.status)}
+                className="text-[10px] font-bold text-[#848e9c] border border-white/[0.08] rounded-lg px-2.5 py-1 hover:text-white transition"
+              >
+                {ad.status === "active" ? "Pause" : "Activate"}
+              </button>
+            </div>
+            <div className="flex justify-between text-xs mt-2">
+              <span className="text-[#848e9c]">Price</span>
+              <span className="font-bold text-white">{ad.price.toLocaleString()} ETB/USDT</span>
+            </div>
+            <div className="flex justify-between text-xs mt-1">
+              <span className="text-[#848e9c]">Available</span>
+              <span className="font-bold text-white">{ad.availableUSDT} USDT</span>
+            </div>
+            <div className="flex justify-between text-xs mt-1">
+              <span className="text-[#848e9c]">Limits</span>
+              <span className="text-white">{ad.minOrderLimit.toLocaleString()} – {ad.maxOrderLimit.toLocaleString()} ETB</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {ad.paymentMethods.map(m => (
+                <span key={m} className="rounded bg-[#2b3139] px-1.5 py-0.5 text-[10px] text-[#848e9c]">{m}</span>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
