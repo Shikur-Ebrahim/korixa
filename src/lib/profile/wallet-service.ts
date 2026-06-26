@@ -14,7 +14,7 @@ export interface WalletAsset {
   change24h: number;
 }
 
-export type TransactionType = "deposit" | "withdrawal" | "transfer" | "trade" | "reward";
+export type TransactionType = "deposit" | "withdrawal" | "transfer" | "trade" | "reward" | "p2p_buy" | "p2p_sell" | "crypto_deposit" | string;
 export type TransactionStatus = "completed" | "pending" | "failed";
 
 export interface TransactionRecord {
@@ -82,13 +82,19 @@ export async function getSpotHoldings(uid: string): Promise<SpotHolding[]> {
   }
 }
 
-export async function getTransactions(uid: string, txType?: TransactionType, limitCount = 50): Promise<TransactionRecord[]> {
+export async function getTransactions(uid: string, txType?: TransactionType | TransactionType[], limitCount = 50): Promise<TransactionRecord[]> {
   try {
     const db = getClientFirestore();
     let q = query(collection(db, "transactions"), where("userId", "==", uid), orderBy("timestamp", "desc"), limit(limitCount));
     
     if (txType) {
-      q = query(collection(db, "transactions"), where("userId", "==", uid), where("type", "==", txType), orderBy("timestamp", "desc"), limit(limitCount));
+      if (Array.isArray(txType)) {
+        if (txType.length > 0) {
+          q = query(collection(db, "transactions"), where("userId", "==", uid), where("type", "in", txType), orderBy("timestamp", "desc"), limit(limitCount));
+        }
+      } else {
+        q = query(collection(db, "transactions"), where("userId", "==", uid), where("type", "==", txType), orderBy("timestamp", "desc"), limit(limitCount));
+      }
     }
     
     const snapshot = await getDocs(q);

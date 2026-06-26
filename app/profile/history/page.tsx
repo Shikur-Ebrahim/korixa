@@ -8,7 +8,6 @@ import { getTransactions, TransactionRecord, TransactionType } from "@/lib/profi
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const TABS = [
-  { id: "all", label: "All" },
   { id: "deposit", label: "Deposits" },
   { id: "withdrawal", label: "Withdrawals" },
   { id: "trade", label: "Trades" },
@@ -16,14 +15,12 @@ const TABS = [
 ];
 
 const getTypeIcon = (type: string) => {
-  switch (type) {
-    case "deposit": return <FiDownload className="text-green-500" />;
-    case "withdrawal": return <FiUpload className="text-red-500" />;
-    case "trade": return <FiActivity className="text-primary" />;
-    case "transfer": return <FiRepeat className="text-blue-500" />;
-    case "reward": return <FiGift className="text-purple-500" />;
-    default: return <FiRepeat className="text-gray-400" />;
-  }
+  if (["deposit", "crypto_deposit", "p2p_buy"].includes(type)) return <FiDownload className="text-green-500" />;
+  if (["withdrawal", "p2p_sell"].includes(type)) return <FiUpload className="text-red-500" />;
+  if (type === "trade") return <FiActivity className="text-primary" />;
+  if (type === "transfer") return <FiRepeat className="text-blue-500" />;
+  if (type === "reward") return <FiGift className="text-purple-500" />;
+  return <FiRepeat className="text-gray-400" />;
 };
 
 const getStatusColor = (status: string) => {
@@ -38,7 +35,7 @@ const getStatusColor = (status: string) => {
 export default function TransactionHistoryPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("deposit");
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTx, setSelectedTx] = useState<TransactionRecord | null>(null);
@@ -47,15 +44,17 @@ export default function TransactionHistoryPage() {
   useEffect(() => {
     if (user?.uid) {
       setLoading(true);
-      const typeFilter = activeTab === "all" ? undefined : activeTab as TransactionType;
+      let typeFilter: TransactionType | TransactionType[] | undefined;
+      if (activeTab === "deposit") typeFilter = ["deposit", "crypto_deposit", "p2p_buy"];
+      else if (activeTab === "withdrawal") typeFilter = ["withdrawal", "p2p_sell"];
+      else if (activeTab === "trade") typeFilter = "trade";
+      else if (activeTab === "transfer") typeFilter = "transfer";
       
       getTransactions(user.uid, typeFilter).then((data) => {
-        if (data.length === 0 && activeTab === "all") {
-          // Mock some initial data for demonstration
+        if (data.length === 0 && activeTab === "deposit") {
+          // Mock some initial data for demonstration if they just signed up
           setTransactions([
             { id: "tx1", type: "deposit", coin: "USDT", amount: 1500, usdValue: 1500, status: "completed", timestamp: Date.now() - 3600000, txId: "0x1a2b3c4d5e6f...", network: "TRC20", fee: 1, confirmations: 12 },
-            { id: "tx2", type: "trade", coin: "BTC", amount: 0.15, usdValue: 9750, status: "completed", timestamp: Date.now() - 86400000, fee: 0.5 },
-            { id: "tx3", type: "withdrawal", coin: "ETH", amount: 1.5, usdValue: 5100, status: "pending", timestamp: Date.now() - 172800000, txId: "0xf9e8d7c6b5a4...", network: "ERC20", fee: 5 },
           ]);
         } else {
           setTransactions(data);
@@ -129,8 +128,8 @@ export default function TransactionHistoryPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`font-bold text-base ${tx.type === "deposit" || tx.type === "reward" ? "text-green-500" : "text-white"}`}>
-                    {tx.type === "deposit" || tx.type === "reward" ? "+" : ""}{tx.amount} {tx.coin}
+                  <p className={`font-bold text-base ${["deposit", "reward", "crypto_deposit", "p2p_buy"].includes(tx.type) ? "text-green-500" : "text-white"}`}>
+                    {["deposit", "reward", "crypto_deposit", "p2p_buy"].includes(tx.type) ? "+" : ""}{tx.amount} {tx.coin}
                   </p>
                   <span className={`inline-block mt-1 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded border ${getStatusColor(tx.status)}`}>
                     {tx.status}
