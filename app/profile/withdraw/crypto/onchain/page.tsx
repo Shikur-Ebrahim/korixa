@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FiArrowLeft, FiInfo, FiCheckSquare } from "react-icons/fi";
+import { FiArrowLeft, FiInfo, FiCheckSquare, FiX } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFirestoreAssetsData } from "@/hooks/useFirestoreAssetsData";
 
@@ -12,6 +12,7 @@ export default function OnchainWithdrawPage() {
   const { fundingWallets } = useFirestoreAssetsData();
   const [address, setAddress] = useState("");
   const [network, setNetwork] = useState("TRC20");
+  const [showNetworkModal, setShowNetworkModal] = useState(false);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -95,35 +96,35 @@ export default function OnchainWithdrawPage() {
         <h1 className="text-xl font-bold">Withdraw On-Chain</h1>
       </div>
 
-      <div className="px-4 py-4 space-y-6">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
         <div className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04]">
-          <p className="text-sm text-[#848e9c] mb-2">Address</p>
+          <p className="text-xs text-[#848e9c] mb-2">Address</p>
           <input
             type="text"
             placeholder="Long press to paste"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            className="w-full bg-transparent text-white font-medium outline-none placeholder-[#3b4351]"
+            className="w-full bg-transparent text-white text-sm font-medium outline-none placeholder-[#3b4351]"
           />
         </div>
 
-        <div className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04]">
-          <p className="text-sm text-[#848e9c] mb-2">Network</p>
-          <select 
-            value={network}
-            onChange={(e) => setNetwork(e.target.value)}
-            className="w-full bg-transparent text-white font-bold outline-none appearance-none"
-          >
-            <option value="TRC20" className="bg-[#161a1e]">Tron (TRC20)</option>
-            <option value="ERC20" className="bg-[#161a1e]">Ethereum (ERC20)</option>
-            <option value="BEP20" className="bg-[#161a1e]">BNB Smart Chain (BEP20)</option>
-          </select>
+        <div 
+          className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04] cursor-pointer"
+          onClick={() => setShowNetworkModal(true)}
+        >
+          <p className="text-xs text-[#848e9c] mb-2">Network</p>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-white">
+              {network === "TRC20" ? "Tron (TRC20)" : network === "ERC20" ? "Ethereum (ERC20)" : "BNB Smart Chain (BEP20)"}
+            </span>
+            <span className="text-[#848e9c]">▼</span>
+          </div>
         </div>
 
         <div className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04]">
-          <div className="flex justify-between text-sm text-[#848e9c] mb-2">
+          <div className="flex justify-between text-xs text-[#848e9c] mb-2">
             <span>Withdrawal Amount</span>
-            <span>Avail: {maxBalance.toFixed(2)} USDT</span>
+            <span>Avail: <span className="text-white font-medium">{maxBalance.toFixed(2)} USDT</span></span>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -131,21 +132,21 @@ export default function OnchainWithdrawPage() {
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-transparent text-2xl font-bold text-white outline-none placeholder-[#3b4351]"
+              className="w-full bg-transparent text-xl font-bold text-white outline-none placeholder-[#3b4351]"
             />
-            <span className="text-lg font-bold text-white">USDT</span>
+            <span className="text-sm font-bold text-white shrink-0">USDT</span>
             <button 
               onClick={() => setAmount(Math.max(0, maxBalance - fee).toString())}
-              className="text-xs font-bold text-primary ml-2 bg-primary/10 px-2 py-1 rounded"
+              className="text-[10px] font-bold text-primary ml-2 bg-primary/10 px-2 py-1 rounded shrink-0"
             >
               MAX
             </button>
           </div>
         </div>
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-400 text-xs">{error}</p>}
 
-        <div className="bg-white/[0.02] p-4 rounded-xl space-y-2 text-sm text-[#848e9c]">
+        <div className="bg-white/[0.02] p-4 rounded-xl space-y-2 text-xs text-[#848e9c]">
           <div className="flex justify-between">
             <span>Network fee</span>
             <span className="text-white">{fee.toFixed(2)} USDT</span>
@@ -159,11 +160,47 @@ export default function OnchainWithdrawPage() {
         <button
           onClick={handleSubmit}
           disabled={loading || !amount || !address}
-          className="w-full bg-primary hover:bg-primary/90 text-[#0b0e11] font-bold text-lg rounded-2xl py-4 mt-6 transition disabled:opacity-50"
+          className="w-full bg-primary hover:bg-primary/90 text-[#0b0e11] font-bold text-sm rounded-2xl py-3.5 mt-4 transition disabled:opacity-50"
         >
           {loading ? "Processing..." : "Withdraw"}
         </button>
       </div>
+
+      {/* Network Selection Modal */}
+      {showNetworkModal && (
+        <div 
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm transition-opacity"
+          onClick={() => setShowNetworkModal(false)}
+        >
+          <div 
+            className="animate-slide-up w-full rounded-t-3xl bg-[#161a1e] p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-white">Select Network</h2>
+              <button onClick={() => setShowNetworkModal(false)} className="p-1 text-[#848e9c] hover:text-white transition">
+                <FiX size={20} />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {[
+                { id: "TRC20", name: "Tron (TRC20)" },
+                { id: "ERC20", name: "Ethereum (ERC20)" },
+                { id: "BEP20", name: "BNB Smart Chain (BEP20)" },
+              ].map((net) => (
+                <button
+                  key={net.id}
+                  onClick={() => { setNetwork(net.id); setShowNetworkModal(false); }}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border ${network === net.id ? "border-primary bg-primary/5" : "border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04]"} transition text-left`}
+                >
+                  <span className={`text-sm font-semibold ${network === net.id ? "text-primary" : "text-white"}`}>{net.name}</span>
+                  {network === net.id && <FiCheckSquare className="text-primary" size={18} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

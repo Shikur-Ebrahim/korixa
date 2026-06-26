@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FiArrowLeft, FiInfo, FiCheckSquare } from "react-icons/fi";
+import { FiArrowLeft, FiInfo, FiCheckSquare, FiX } from "react-icons/fi";
 import { doc, getDoc } from "firebase/firestore";
 import { getClientFirestore } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -14,8 +14,23 @@ export default function FiatWithdrawPage() {
   const { fundingWallets } = useFirestoreAssetsData();
   
   const [usdtAmount, setUsdtAmount] = useState("");
+  const [bank, setBank] = useState("Commercial Bank of Ethiopia (CBE)");
+  const [showBankModal, setShowBankModal] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  
+  const ETHIOPIAN_BANKS = [
+    "Commercial Bank of Ethiopia (CBE)",
+    "Awash Bank",
+    "Dashen Bank",
+    "Bank of Abyssinia",
+    "Wegagen Bank",
+    "Cooperative Bank of Oromia",
+    "Nib International Bank",
+    "United Bank",
+    "Zemen Bank",
+    "Oromia International Bank"
+  ];
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -71,7 +86,7 @@ export default function FiatWithdrawPage() {
           coin: "USDT",
           amount: numAmount,
           destination: {
-            bank: "CBE",
+            bank: bank,
             accountName,
             accountNumber
           },
@@ -99,10 +114,10 @@ export default function FiatWithdrawPage() {
           <FiCheckSquare size={32} />
         </div>
         <h2 className="text-2xl font-bold mb-2">Request Submitted</h2>
-        <p className="text-[#848e9c] mb-8 text-center">Your fiat withdrawal request is pending admin verification. It will be processed shortly to your CBE account.</p>
+        <p className="text-[#848e9c] mb-8 text-center text-sm">Your fiat withdrawal request is pending admin verification. It will be processed shortly to your {bank} account.</p>
         <button 
           onClick={() => router.push("/profile/history")}
-          className="w-full bg-white/[0.08] hover:bg-white/[0.12] rounded-xl py-4 font-bold transition"
+          className="w-full bg-white/[0.08] hover:bg-white/[0.12] rounded-xl py-3.5 text-sm font-bold transition max-w-sm"
         >
           View History
         </button>
@@ -119,17 +134,17 @@ export default function FiatWithdrawPage() {
         <h1 className="text-xl font-bold">Sell for ETB</h1>
       </div>
 
-      <div className="px-4 py-4 space-y-6">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
         {/* Exchange Rate Card */}
-        <div className="bg-primary/10 rounded-xl p-4 flex items-center justify-between text-primary font-bold">
+        <div className="bg-primary/10 rounded-xl p-4 flex items-center justify-between text-primary font-bold text-sm">
           <span>Current Rate</span>
           <span>1 USDT ≈ {etbRate} ETB</span>
         </div>
 
         <div className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04]">
-          <div className="flex justify-between text-sm text-[#848e9c] mb-2">
+          <div className="flex justify-between text-xs text-[#848e9c] mb-2">
             <span>Sell Amount (USDT)</span>
-            <span>Avail: {maxBalance.toFixed(2)} USDT</span>
+            <span>Avail: <span className="text-white font-medium">{maxBalance.toFixed(2)} USDT</span></span>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -137,74 +152,117 @@ export default function FiatWithdrawPage() {
               placeholder="0.00"
               value={usdtAmount}
               onChange={(e) => setUsdtAmount(e.target.value)}
-              className="w-full bg-transparent text-2xl font-bold text-white outline-none placeholder-[#3b4351]"
+              className="w-full bg-transparent text-xl font-bold text-white outline-none placeholder-[#3b4351]"
             />
-            <span className="text-lg font-bold text-white">USDT</span>
+            <span className="text-sm font-bold text-white shrink-0">USDT</span>
             <button 
               onClick={() => setUsdtAmount(maxBalance.toString())}
-              className="text-xs font-bold text-primary ml-2 bg-primary/10 px-2 py-1 rounded"
+              className="text-[10px] font-bold text-primary ml-2 bg-primary/10 px-2 py-1 rounded shrink-0"
             >
               MAX
             </button>
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <div className="h-8 w-8 rounded-full border border-white/[0.08] bg-[#0b0e11] flex items-center justify-center text-[#848e9c]">
+        <div className="flex justify-center my-1">
+          <div className="h-6 w-6 rounded-full border border-white/[0.08] bg-[#0b0e11] flex items-center justify-center text-[#848e9c] text-xs">
             ↓
           </div>
         </div>
 
         <div className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04]">
-          <p className="text-sm text-[#848e9c] mb-2">Receive Amount (ETB)</p>
+          <p className="text-xs text-[#848e9c] mb-2">Receive Amount (ETB)</p>
           <div className="flex items-center gap-2">
             <input
               type="text"
               readOnly
               value={receiveEtb}
-              className="w-full bg-transparent text-2xl font-bold text-white outline-none"
+              className="w-full bg-transparent text-xl font-bold text-white outline-none"
             />
-            <span className="text-lg font-bold text-white">ETB</span>
+            <span className="text-sm font-bold text-white shrink-0">ETB</span>
           </div>
         </div>
 
         {/* Bank Details */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-white pt-4">Bank Details (CBE Only)</h3>
+        <div className="space-y-4 pt-2">
+          <h3 className="text-base font-bold text-white">Bank Details</h3>
+
+          <div 
+            className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04] cursor-pointer"
+            onClick={() => setShowBankModal(true)}
+          >
+            <p className="text-xs text-[#848e9c] mb-2">Bank Name</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-white">{bank}</span>
+              <span className="text-[#848e9c]">▼</span>
+            </div>
+          </div>
           
           <div className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04]">
-            <p className="text-sm text-[#848e9c] mb-2">Account Holder Name</p>
+            <p className="text-xs text-[#848e9c] mb-2">Account Holder Name</p>
             <input
               type="text"
               placeholder="John Doe"
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
-              className="w-full bg-transparent text-white font-medium outline-none placeholder-[#3b4351]"
+              className="w-full bg-transparent text-white text-sm font-medium outline-none placeholder-[#3b4351]"
             />
           </div>
 
           <div className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04]">
-            <p className="text-sm text-[#848e9c] mb-2">Account Number (CBE)</p>
+            <p className="text-xs text-[#848e9c] mb-2">Account Number</p>
             <input
               type="text"
               placeholder="1000..."
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
-              className="w-full bg-transparent text-white font-medium outline-none placeholder-[#3b4351]"
+              className="w-full bg-transparent text-white text-sm font-medium outline-none placeholder-[#3b4351]"
             />
           </div>
         </div>
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-400 text-xs">{error}</p>}
 
         <button
           onClick={handleSubmit}
           disabled={loading || !usdtAmount || !accountName || !accountNumber}
-          className="w-full bg-primary hover:bg-primary/90 text-[#0b0e11] font-bold text-lg rounded-2xl py-4 mt-6 transition disabled:opacity-50"
+          className="w-full bg-primary hover:bg-primary/90 text-[#0b0e11] font-bold text-sm rounded-2xl py-3.5 mt-4 transition disabled:opacity-50"
         >
           {loading ? "Processing..." : "Confirm Request"}
         </button>
       </div>
+
+      {/* Bank Selection Modal */}
+      {showBankModal && (
+        <div 
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm transition-opacity"
+          onClick={() => setShowBankModal(false)}
+        >
+          <div 
+            className="animate-slide-up w-full max-h-[80vh] overflow-y-auto rounded-t-3xl bg-[#161a1e] p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-[#161a1e] pt-1 pb-3">
+              <h2 className="text-base font-bold text-white">Select Bank</h2>
+              <button onClick={() => setShowBankModal(false)} className="p-1 text-[#848e9c] hover:text-white transition">
+                <FiX size={20} />
+              </button>
+            </div>
+            <div className="space-y-2 pb-4">
+              {ETHIOPIAN_BANKS.map((b) => (
+                <button
+                  key={b}
+                  onClick={() => { setBank(b); setShowBankModal(false); }}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border ${bank === b ? "border-primary bg-primary/5" : "border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04]"} transition text-left`}
+                >
+                  <span className={`text-sm font-semibold ${bank === b ? "text-primary" : "text-white"}`}>{b}</span>
+                  {bank === b && <FiCheckSquare className="text-primary" size={18} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

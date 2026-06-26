@@ -64,7 +64,7 @@ export default function InternalTransferPage() {
         <p className="text-[#848e9c] mb-8 text-center">Your funds have been instantly transferred to <span className="text-white font-medium">{recipient}</span>.</p>
         <button
           onClick={() => router.push("/profile/funding")}
-          className="w-full max-w-sm bg-white/[0.08] hover:bg-white/[0.12] rounded-xl py-4 font-bold transition"
+          className="w-full max-w-sm bg-white/[0.08] hover:bg-white/[0.12] rounded-xl py-3.5 text-sm font-bold transition"
         >
           Return to Funding
         </button>
@@ -84,7 +84,7 @@ export default function InternalTransferPage() {
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
         <div className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04]">
-          <div className="flex items-center gap-3 text-sm text-[#848e9c] mb-3">
+          <div className="flex items-center gap-3 text-xs text-[#848e9c] mb-3">
             <FiUser size={16} />
             <span>Payee Account</span>
           </div>
@@ -93,12 +93,12 @@ export default function InternalTransferPage() {
             placeholder="Email / Phone / Korixa UID"
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
-            className="w-full bg-transparent text-white font-medium outline-none placeholder-[#3b4351] text-base"
+            className="w-full bg-transparent text-white text-sm font-medium outline-none placeholder-[#3b4351]"
           />
         </div>
 
         <div className="bg-[#161a1e] rounded-2xl p-4 border border-white/[0.04]">
-          <div className="flex justify-between text-sm text-[#848e9c] mb-3">
+          <div className="flex justify-between text-xs text-[#848e9c] mb-3">
             <span>Withdrawal Amount</span>
             <span>Avail: <span className="text-white font-medium">{maxBalance.toFixed(2)} USDT</span></span>
           </div>
@@ -108,26 +108,26 @@ export default function InternalTransferPage() {
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-transparent text-2xl font-bold text-white outline-none placeholder-[#3b4351]"
+              className="w-full bg-transparent text-xl font-bold text-white outline-none placeholder-[#3b4351]"
             />
-            <span className="text-base font-bold text-white shrink-0">USDT</span>
+            <span className="text-sm font-bold text-white shrink-0">USDT</span>
             <button
               onClick={() => setAmount(maxBalance.toString())}
-              className="text-xs font-bold text-primary ml-2 bg-primary/10 px-3 py-1.5 rounded-lg shrink-0"
+              className="text-[10px] font-bold text-primary ml-2 bg-primary/10 px-2 py-1 rounded shrink-0"
             >
               MAX
             </button>
           </div>
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-400 text-xs">{error}</p>}
 
-        <div className="bg-blue-500/10 p-4 rounded-xl flex gap-3 text-blue-400 text-sm border border-blue-500/20">
+        <div className="bg-blue-500/10 p-4 rounded-xl flex gap-3 text-blue-400 text-xs border border-blue-500/20">
           <FiInfo className="shrink-0 mt-0.5" size={16} />
           <p>Internal transfers are instant and incur 0 fees. The amount will be deducted from your Funding Wallet and credited to the receiver&apos;s Funding Wallet.</p>
         </div>
 
-        <div className="bg-white/[0.02] rounded-xl p-4 flex justify-between text-sm">
+        <div className="bg-white/[0.02] rounded-xl p-4 flex justify-between text-xs">
           <span className="text-[#848e9c]">Network Fee</span>
           <span className="text-green-400 font-bold">0 USDT</span>
         </div>
@@ -135,7 +135,7 @@ export default function InternalTransferPage() {
         <button
           onClick={handleSubmit}
           disabled={loading || !amount || !recipient}
-          className="w-full bg-primary hover:bg-primary/90 text-[#0b0e11] font-bold text-base rounded-2xl py-4 transition disabled:opacity-50"
+          className="w-full bg-primary hover:bg-primary/90 text-[#0b0e11] font-bold text-sm rounded-2xl py-3.5 transition disabled:opacity-50"
         >
           {loading ? "Processing..." : "Confirm Transfer"}
         </button>
