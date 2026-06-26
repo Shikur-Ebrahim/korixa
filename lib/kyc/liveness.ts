@@ -76,8 +76,8 @@ export function isBlinkDetected(ear: number, baselineEar: number): boolean {
 }
 
 export function isHeadTurned(yaw: number): boolean {
-  // Fast acceptance: slightly left or right
-  return yaw < -0.05 || yaw > 0.05;
+  // Moderate turn required (approx 10-15 degrees)
+  return yaw < -0.15 || yaw > 0.15;
 }
 
 export function isFaceCentered(yaw: number): boolean {

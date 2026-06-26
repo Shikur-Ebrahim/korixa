@@ -88,7 +88,7 @@ export async function submitUserKyc(
 ): Promise<UserKycRecord> {
   let evaluation = evaluateKycSubmission(payload);
 
-  if (evaluation.status === "verified" && payload.faceDescriptor && payload.faceDescriptor.length > 0) {
+  if (evaluation.status === "pending" && payload.faceDescriptor && payload.faceDescriptor.length > 0) {
     const snapshot = await getAdminDb().collection(USERS_COLLECTION).get();
     for (const doc of snapshot.docs) {
       if (doc.id === userId) continue;

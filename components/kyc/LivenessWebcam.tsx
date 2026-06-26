@@ -40,6 +40,7 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
   const capturingRef = useRef(false);
   const advancingRef = useRef(false);
   const firstSelfieRef = useRef<string | null>(null);
+  const stepStartTimeRef = useRef(Date.now());
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +140,7 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
           setAssistantLine(nextChallenge.instruction);
           setStatusText(nextChallenge.hint);
           lastSpokenRef.current = Date.now();
+          stepStartTimeRef.current = Date.now();
           void speakInstruction(nextChallenge.instruction);
         }
       } finally {
@@ -223,13 +225,21 @@ export function LivenessWebcam({ onCapture, disabled = false }: LivenessWebcamPr
             void repeatInstruction(activeStep);
           }
         } else if (active.id === "turn-head" && isHeadTurned(yaw)) {
-          markComplete("turn-head");
-          setStatusText("Head turn detected ✓");
-          void advanceStep(activeStep);
+          if (Date.now() - stepStartTimeRef.current > 1500) {
+            markComplete("turn-head");
+            setStatusText("Head turn detected ✓");
+            void advanceStep(activeStep);
+          } else {
+            setStatusText("Hold turn...");
+          }
         } else if (active.id === "smile" && isSmiling(landmarks)) {
-          markComplete("smile");
-          setStatusText("Smile detected ✓");
-          void advanceStep(activeStep);
+          if (Date.now() - stepStartTimeRef.current > 1500) {
+            markComplete("smile");
+            setStatusText("Smile detected ✓");
+            void advanceStep(activeStep);
+          } else {
+            setStatusText("Keep smiling...");
+          }
         } else if (shouldRetry) {
           void repeatInstruction(activeStep);
         } else {

@@ -639,7 +639,7 @@ export default function CardPage() {
                   key={tier.id}
                   tier={tier}
                   onBuy={() => {
-                    if (kycStatus !== "approved") {
+                    if (kycStatus !== "verified") {
                       setShowKycRequiredModal(true);
                     } else {
                       setConfirmTier(tier);

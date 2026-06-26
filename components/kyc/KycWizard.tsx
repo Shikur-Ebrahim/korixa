@@ -50,7 +50,8 @@ function KycWizardContent() {
   const [busy, setBusy] = useState(false);
 
   const stepIndex = STEPS.findIndex((item) => item.id === step);
-  const showWizard = started || kycStatus === "verified" || step === "result";
+  const isUnderReview = kycStatus === "pending" && kyc?.idImageUrl;
+  const showWizard = started || kycStatus === "verified" || step === "result" || isUnderReview;
 
   useEffect(() => {
     if (kyc?.kycStatus === "verified" && !result) {
@@ -233,6 +234,30 @@ function KycWizardContent() {
     );
   }
 
+  if (isUnderReview && step !== "result") {
+    return (
+      <div className="mx-auto max-w-lg text-center pt-10">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20">
+          <div className="h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <h1 className="text-xl md:text-2xl font-bold text-white mb-3">Under Review</h1>
+        <p className="text-xs md:text-sm text-[#848e9c] mb-8 max-w-sm mx-auto leading-relaxed">
+          Your identity verification has been submitted and is currently being processed by our compliance team. This usually takes 5-10 minutes.
+        </p>
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-left">
+          <p className="text-xs font-medium text-blue-400">
+            We will notify you via email and notification once your account is fully verified.
+          </p>
+        </div>
+        <Link
+          href="/dashboard"
+          className="mt-8 inline-block rounded-xl border border-white/[0.08] bg-[#161a1e] px-6 py-3 text-xs font-bold text-white hover:bg-white/[0.04] transition"
+        >
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
