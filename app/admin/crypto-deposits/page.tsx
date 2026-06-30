@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FiCheck, FiX, FiExternalLink, FiImage, FiClock } from "react-icons/fi";
+import { FiCheck, FiX, FiImage, FiClock, FiCheckCircle, FiXCircle, FiUser } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function CryptoDepositsAdmin() {
@@ -10,8 +10,6 @@ export default function CryptoDepositsAdmin() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [processingId, setProcessingId] = useState<string | null>(null);
-
-  // Modal
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const fetchDeposits = async () => {
@@ -19,26 +17,19 @@ export default function CryptoDepositsAdmin() {
     try {
       const token = await getIdToken();
       const res = await fetch(`/api/admin/crypto-deposits?status=${statusFilter}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setDeposits(data);
-      } else {
-        console.error("API Error:", data);
-        setDeposits([]);
-        alert(data.error || "Failed to load deposits");
-      }
+      setDeposits(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
+      setDeposits([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDeposits();
-  }, [statusFilter]);
+  useEffect(() => { fetchDeposits(); }, [statusFilter]);
 
   const handleAction = async (id: string, action: "approve" | "reject", currentAmount: number) => {
     if (!confirm(`Are you sure you want to ${action} this deposit?`)) return;
@@ -46,7 +37,7 @@ export default function CryptoDepositsAdmin() {
     let amount = currentAmount;
     if (action === "approve") {
       const promptAmount = prompt("Confirm amount to credit (USDT):", currentAmount.toString());
-      if (promptAmount === null) return; // Cancelled
+      if (promptAmount === null) return;
       const parsed = Number(promptAmount);
       if (isNaN(parsed) || parsed <= 0) return alert("Invalid amount");
       amount = parsed;
@@ -57,13 +48,9 @@ export default function CryptoDepositsAdmin() {
       const token = await getIdToken();
       const res = await fetch("/api/admin/crypto-deposits/action", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id, action, amount }),
       });
-
       if (res.ok) {
         fetchDeposits();
       } else {
@@ -78,128 +65,158 @@ export default function CryptoDepositsAdmin() {
     }
   };
 
-  return (
-    <>
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Manual Crypto Deposits</h1>
-          
-          <div className="flex bg-[#161a1e] rounded-lg p-1 border border-white/10">
-            {["pending", "approved", "rejected"].map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md capitalize transition ${
-                  statusFilter === s 
-                    ? "bg-[#2b3139] text-white shadow" 
-                    : "text-[#848e9c] hover:text-white"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
+  const statusConfig: Record<string, { label: string; icon: typeof FiClock; color: string; bg: string }> = {
+    pending: { label: "Pending", icon: FiClock, color: "text-yellow-500", bg: "bg-yellow-500/10" },
+    approved: { label: "Approved", icon: FiCheckCircle, color: "text-green-500", bg: "bg-green-500/10" },
+    rejected: { label: "Rejected", icon: FiXCircle, color: "text-red-500", bg: "bg-red-500/10" },
+  };
 
-        <div className="rounded-xl border border-white/10 bg-[#161a1e] overflow-hidden">
-          {loading ? (
-            <div className="p-8 text-center text-[#848e9c]">Loading...</div>
-          ) : deposits.length === 0 ? (
-            <div className="p-12 text-center flex flex-col items-center justify-center">
-              <FiClock size={48} className="text-[#2b3139] mb-4" />
-              <div className="text-white font-medium">No {statusFilter} deposits found</div>
-              <div className="text-sm text-[#848e9c] mt-1">Users submitting screenshots will appear here.</div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-white">
-                <thead className="bg-white/[0.02] text-xs text-[#848e9c]">
-                  <tr>
-                    <th className="p-4 font-medium">Date</th>
-                    <th className="p-4 font-medium">User</th>
-                    <th className="p-4 font-medium">Network</th>
-                    <th className="p-4 font-medium">Amount</th>
-                    <th className="p-4 font-medium">TXID</th>
-                    <th className="p-4 font-medium text-center">Proof</th>
-                    {statusFilter === "pending" && <th className="p-4 font-medium text-right">Action</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {deposits.map((d) => (
-                    <tr key={d.id} className="hover:bg-white/[0.02]">
-                      <td className="p-4 text-[#848e9c] whitespace-nowrap">
-                        {new Date(d.createdAt).toLocaleString()}
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium text-white">{d.userEmail || "Unknown"}</div>
-                        <div className="text-[10px] text-[#848e9c]">{d.userId}</div>
-                      </td>
-                      <td className="p-4">
-                        <span className="rounded bg-white/10 px-2 py-0.5 text-xs">{d.networkName}</span>
-                      </td>
-                      <td className="p-4 font-bold text-green-500">
-                        {d.amount} {d.coin}
-                      </td>
-                      <td className="p-4">
-                        {d.txId ? (
-                          <div className="text-xs text-[#848e9c] max-w-[150px] truncate" title={d.txId}>{d.txId}</div>
-                        ) : (
-                          <span className="text-xs text-[#848e9c] italic">Not provided</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-center">
-                        <button 
-                          onClick={() => setSelectedImage(d.screenshotUrl)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-[#2b3139] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#3b4149] transition"
-                        >
-                          <FiImage /> View
-                        </button>
-                      </td>
-                      {statusFilter === "pending" && (
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              disabled={processingId === d.id}
-                              onClick={() => handleAction(d.id, "approve", d.amount)}
-                              className="flex items-center justify-center h-8 w-8 rounded bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white transition disabled:opacity-50"
-                              title="Approve & Credit"
-                            >
-                              <FiCheck size={16} />
-                            </button>
-                            <button
-                              disabled={processingId === d.id}
-                              onClick={() => handleAction(d.id, "reject", d.amount)}
-                              className="flex items-center justify-center h-8 w-8 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition disabled:opacity-50"
-                              title="Reject"
-                            >
-                              <FiX size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+  return (
+    <div className="mx-auto max-w-lg pb-8">
+      {/* Header */}
+      <div className="mb-5">
+        <h1 className="text-lg font-bold text-white">Crypto Deposits</h1>
+        <p className="text-xs text-[#848e9c] mt-0.5">Manual verification queue</p>
       </div>
 
-      {/* Image Modal */}
-      {selectedImage && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setSelectedImage(null)}>
-          <div className="relative max-h-[90vh] max-w-3xl rounded-xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-            <button 
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/80 transition"
+      {/* Filter tabs */}
+      <div className="flex gap-2 mb-5 bg-[#0b0e11] rounded-xl p-1 border border-white/[0.06]">
+        {["pending", "approved", "rejected"].map(s => {
+          const cfg = statusConfig[s];
+          const Icon = cfg.icon;
+          return (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold capitalize transition ${
+                statusFilter === s ? `${cfg.bg} ${cfg.color}` : "text-[#848e9c] hover:text-white"
+              }`}
             >
-              <FiX size={20} />
+              <Icon size={12} />
+              {cfg.label}
             </button>
-            <img src={selectedImage} alt="Payment Proof" className="max-h-[90vh] object-contain" />
+          );
+        })}
+      </div>
+
+      {/* Cards */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1,2,3].map(i => <div key={i} className="h-40 animate-pulse rounded-2xl bg-white/5" />)}
+        </div>
+      ) : deposits.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-white/10 bg-[#161a1e] p-12 text-center">
+          <FiClock size={36} className="mx-auto text-[#2b3139] mb-3" />
+          <p className="text-sm font-medium text-white">No {statusFilter} deposits</p>
+          <p className="text-xs text-[#848e9c] mt-1">
+            {statusFilter === "pending" ? "Users submitting screenshots will appear here" : `No ${statusFilter} records found`}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {deposits.map(d => {
+            const cfg = statusConfig[d.status] || statusConfig.pending;
+            const Icon = cfg.icon;
+            return (
+              <div key={d.id} className="rounded-2xl border border-white/[0.06] bg-[#161a1e] overflow-hidden">
+                {/* Status bar */}
+                <div className={`h-1 w-full ${d.status === "approved" ? "bg-green-500" : d.status === "rejected" ? "bg-red-500" : "bg-yellow-500"}`} />
+
+                <div className="p-4">
+                  {/* Top: user + status */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10">
+                        <FiUser size={14} className="text-[#848e9c]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-white truncate max-w-[160px]">{d.userEmail || "Unknown user"}</p>
+                        <p className="text-[10px] text-[#848e9c]">{new Date(d.createdAt).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${cfg.bg} ${cfg.color} shrink-0`}>
+                      <Icon size={11} />
+                      {d.status}
+                    </div>
+                  </div>
+
+                  {/* Amount + Network */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex-1 rounded-xl bg-[#0b0e11] p-3">
+                      <p className="text-[10px] text-[#848e9c] mb-0.5">Amount</p>
+                      <p className="text-base font-bold text-green-500">{d.amount} <span className="text-xs font-normal text-[#848e9c]">{d.coin || "USDT"}</span></p>
+                    </div>
+                    <div className="flex-1 rounded-xl bg-[#0b0e11] p-3">
+                      <p className="text-[10px] text-[#848e9c] mb-0.5">Network</p>
+                      <p className="text-sm font-bold text-white">{d.networkName || "—"}</p>
+                    </div>
+                  </div>
+
+                  {/* Screenshot preview */}
+                  {d.screenshotUrl && (
+                    <button
+                      onClick={() => setSelectedImage(d.screenshotUrl)}
+                      className="w-full mb-3 overflow-hidden rounded-xl border border-white/10 bg-[#0b0e11] relative group"
+                    >
+                      <img
+                        src={d.screenshotUrl}
+                        alt="Payment proof"
+                        className="w-full h-32 object-cover group-hover:opacity-90 transition"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition">
+                        <div className="flex items-center gap-1.5 rounded-lg bg-white/20 px-3 py-1.5 text-xs text-white font-medium backdrop-blur-sm">
+                          <FiImage size={14} />
+                          View Full
+                        </div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Actions */}
+                  {d.status === "pending" && (
+                    <div className="flex gap-2">
+                      <button
+                        disabled={processingId === d.id}
+                        onClick={() => handleAction(d.id, "approve", d.amount)}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-500/10 py-2.5 text-xs font-bold text-green-500 hover:bg-green-500 hover:text-white transition disabled:opacity-50"
+                      >
+                        <FiCheck size={14} />
+                        Approve & Credit
+                      </button>
+                      <button
+                        disabled={processingId === d.id}
+                        onClick={() => handleAction(d.id, "reject", d.amount)}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-500/10 py-2.5 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition disabled:opacity-50"
+                      >
+                        <FiX size={14} />
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Full-screen Image Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-h-[90vh] w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-10 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white"
+            >
+              <FiX size={18} />
+            </button>
+            <img src={selectedImage} alt="Payment Proof" className="w-full rounded-2xl object-contain shadow-2xl" />
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

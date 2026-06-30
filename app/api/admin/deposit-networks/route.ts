@@ -75,3 +75,24 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Failed to update network" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const role = await getRoleFromToken(token);
+    if (role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const { id } = await request.json();
+    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+    const db = getAdminDb();
+    await db.collection("depositNetworks").doc(id).delete();
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to delete deposit network", error);
+    return NextResponse.json({ error: "Failed to delete network" }, { status: 500 });
+  }
+}
