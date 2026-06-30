@@ -17,10 +17,10 @@ export async function GET(request: Request) {
     const db = getAdminDb();
     const snapshot = await db.collection("manualCryptoDeposits")
       .where("status", "==", status)
-      .orderBy("createdAt", "desc")
       .get();
       
     const deposits: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    deposits.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     // Fetch user details for each deposit
     for (const dep of deposits) {

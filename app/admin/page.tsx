@@ -97,6 +97,31 @@ export default function AdminDashboardPage() {
         )}
       </div>
 
+      {/* Quick Links */}
+      <div className="grid grid-cols-2 gap-3 mt-4 mb-5">
+        <Link href="/admin/wallet" className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#1e2329] p-4 transition hover:bg-white/5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/20 text-green-500">
+            <FiArrowDownCircle size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white">Wallet</p>
+            <p className="text-[10px] text-[#848e9c]">Admin Wallet</p>
+          </div>
+        </Link>
+        <Link href="/admin/crypto-deposits" className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#1e2329] p-4 transition hover:bg-white/5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/20 text-blue-500">
+            <FiShield size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white">Crypto Deposits</p>
+            <p className="text-[10px] text-[#848e9c]">Manual verification</p>
+          </div>
+        </Link>
+        <Link href="/admin/deposit-networks" className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#1e2329] p-3 transition hover:bg-white/5 text-sm font-medium text-white">
+          Manage Deposit Networks
+        </Link>
+      </div>
+
       {/* Recent users */}
       <div>
         <h2 className="mb-3 text-sm font-semibold text-white">Recent Users</h2>
@@ -121,31 +146,6 @@ export default function AdminDashboardPage() {
                   </span>
                 </div>
               ))}
-        </div>
-
-        {/* Quick Links */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <Link href="/admin/wallet" className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#1e2329] p-4 transition hover:bg-white/5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/20 text-green-500">
-              <FiArrowDownCircle size={20} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white">Wallet</p>
-              <p className="text-[10px] text-[#848e9c]">Admin Wallet</p>
-            </div>
-          </Link>
-          <Link href="/admin/crypto-deposits" className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#1e2329] p-4 transition hover:bg-white/5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/20 text-blue-500">
-              <FiShield size={20} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white">Crypto Deposits</p>
-              <p className="text-[10px] text-[#848e9c]">Manual verification</p>
-            </div>
-          </Link>
-          <Link href="/admin/deposit-networks" className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#1e2329] p-3 transition hover:bg-white/5 text-sm font-medium text-white">
-            Manage Deposit Networks
-          </Link>
         </div>
       </div>
     </div>

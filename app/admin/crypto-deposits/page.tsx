@@ -22,7 +22,13 @@ export default function CryptoDepositsAdmin() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      setDeposits(data);
+      if (Array.isArray(data)) {
+        setDeposits(data);
+      } else {
+        console.error("API Error:", data);
+        setDeposits([]);
+        alert(data.error || "Failed to load deposits");
+      }
     } catch (err) {
       console.error(err);
     } finally {
