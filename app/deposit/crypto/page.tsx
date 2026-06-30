@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { FiArrowLeft, FiCheck, FiChevronDown, FiCopy, FiInfo } from "react-icons/fi";
+import { useEffect, useState, useRef } from "react";
+import { FiArrowLeft, FiCheck, FiChevronDown, FiCopy, FiInfo, FiUpload, FiImage } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { appTheme } from "@/components/layout/app-theme";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -10,62 +10,141 @@ import { useAuth } from "@/components/auth/AuthProvider";
 export default function CryptoDepositPage() {
   const router = useRouter();
   const { getIdToken } = useAuth();
-  const [address, setAddress] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  // Coin selection state
+  
+  const [networks, setNetworks] = useState<any[]>([]);
+  const [loadingNetworks, setLoadingNetworks] = useState(true);
+  
+  // Selection
   const [coinDropdownOpen, setCoinDropdownOpen] = useState(false);
   const [selectedCoin, setSelectedCoin] = useState("USDT");
+  const [networkDropdownOpen, setNetworkDropdownOpen] = useState(false);
+  const [selectedNetwork, setSelectedNetwork] = useState<any | null>(null);
+
+  // Form
+  const [amount, setAmount] = useState("");
+  const [txId, setTxId] = useState("");
+  const [screenshotUrl, setScreenshotUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Generate or fetch TRC20 address
-    getIdToken().then(token => {
-      fetch("/api/deposit/tron/address", {
-        headers: { Authorization: `Bearer ${token}` }
+    fetch("/api/deposit/networks")
+      .then(res => res.json())
+      .then(data => {
+        setNetworks(data);
+        if (data.length > 0) setSelectedNetwork(data[0]);
+        setLoadingNetworks(false);
       })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.address) setAddress(data.address);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error("Failed to load address", err);
-          setLoading(false);
-        });
-    });
-  }, [getIdToken]);
-
-  useEffect(() => {
-    if (!address) return;
-
-    // Poll for balance updates every 10 seconds
-    const interval = setInterval(() => {
-      getIdToken().then(token => {
-        fetch("/api/deposit/tron/check", {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.newDeposit) {
-              setSuccessMsg(`Deposit successful! ${data.amountAdded} USDT added to your wallet.`);
-              setTimeout(() => setSuccessMsg(null), 8000);
-            }
-          })
-          .catch(console.error);
+      .catch(err => {
+        console.error(err);
+        setLoadingNetworks(false);
       });
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [address]);
+  }, []);
 
   const copyAddress = () => {
-    if (!address) return;
-    navigator.clipboard.writeText(address);
+    if (!selectedNetwork) return;
+    navigator.clipboard.writeText(selectedNetwork.address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be less than 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        const token = await getIdToken();
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ file: base64, folder: "korixa/deposits" })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          setScreenshotUrl(data.secure_url);
+        } else {
+          alert("Upload failed: " + data.error);
+        }
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error(err);
+      alert("Upload error");
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amount || !screenshotUrl) return alert("Please enter amount and upload screenshot");
+
+    setSubmitting(true);
+    try {
+      const token = await getIdToken();
+      const res = await fetch("/api/deposit/crypto/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: Number(amount),
+          txId,
+          screenshotUrl,
+          networkId: selectedNetwork.id,
+          coin: selectedCoin,
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMsg("Deposit request submitted successfully. Waiting for admin approval.");
+        setAmount("");
+        setTxId("");
+        setScreenshotUrl("");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        alert(data.error || "Failed to submit deposit");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loadingNetworks) {
+    return (
+      <div className={appTheme.page}>
+        <div className={appTheme.header}>
+          <div className="mx-auto flex h-14 max-w-lg items-center px-4">
+            <button onClick={() => router.back()} className="p-1.5 -ml-1.5 rounded-full hover:bg-white/[0.06]"><FiArrowLeft size={20} className="text-[#848e9c]" /></button>
+            <h1 className="ml-2 font-bold text-white">Deposit Crypto</h1>
+          </div>
+        </div>
+        <div className="flex h-[60vh] items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div></div>
+      </div>
+    );
+  }
 
   return (
     <div className={appTheme.page}>
@@ -77,115 +156,176 @@ export default function CryptoDepositPage() {
           >
             <FiArrowLeft size={20} className="text-[#848e9c]" />
           </button>
-          <h1 className="ml-2 text-sm md:text-base font-bold text-white">Deposit Crypto</h1>
+          <h1 className="ml-2 text-base font-bold text-white">Deposit Crypto</h1>
         </div>
       </div>
 
       <main className={appTheme.main}>
-        {successMsg && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 p-3">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500/20 text-green-500">
-              <FiCheck size={14} />
+        {successMsg ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 text-green-500">
+              <FiCheck size={32} />
             </div>
-            <p className="text-xs font-medium text-green-400">{successMsg}</p>
-          </div>
-        )}
-
-        {/* Coin Selection */}
-        <div className="mb-4">
-          <label className="mb-2 block text-[10px] md:text-xs font-semibold text-[#848e9c]">
-            Select Coin
-          </label>
-          <div className="relative">
-            <button
-              onClick={() => setCoinDropdownOpen(!coinDropdownOpen)}
-              className="flex w-full items-center justify-between rounded-xl border border-white/[0.08] bg-[#161a1e] px-4 py-3 text-left transition hover:bg-white/[0.04]"
-            >
-              <div className="flex items-center gap-2">
-                <img
-                  src="https://assets.coingecko.com/coins/images/325/thumb/Tether.png"
-                  alt="USDT"
-                  className="h-5 w-5 rounded-full"
-                />
-                <span className="text-xs md:text-sm font-bold text-white">USDT</span>
-                <span className="text-[10px] md:text-xs text-[#848e9c]">Tether US</span>
-              </div>
-              <FiChevronDown className={`text-[#848e9c] transition-transform ${coinDropdownOpen ? "rotate-180" : ""}`} />
-            </button>
-            
-            {coinDropdownOpen && (
-              <div className="absolute top-full left-0 z-50 mt-2 w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#161a1e] shadow-2xl">
-                <button
-                  className="flex w-full items-center gap-2 bg-[#0b0e11] px-4 py-3 transition hover:bg-white/[0.04]"
-                  onClick={() => setCoinDropdownOpen(false)}
-                >
-                  <img
-                    src="https://assets.coingecko.com/coins/images/325/thumb/Tether.png"
-                    alt="USDT"
-                    className="h-5 w-5 rounded-full"
-                  />
-                  <div className="text-left">
-                    <div className="text-xs md:text-sm font-bold text-white">USDT</div>
-                    <div className="text-[10px] text-[#848e9c]">Tether US</div>
-                  </div>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Network Selection (Locked) */}
-        <div className="mb-6">
-          <label className="mb-2 block text-[10px] md:text-xs font-semibold text-[#848e9c]">
-            Select Network
-          </label>
-          <div className="flex w-full items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-            <div className="flex flex-col">
-              <span className="text-xs md:text-sm font-bold text-primary">Tron (TRC20)</span>
-              <span className="text-[10px] text-primary/70">Arrival time: ~1 min</span>
-            </div>
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-primary">
-              <FiCheck size={12} />
-            </div>
-          </div>
-        </div>
-
-        {/* Address Display */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.06] bg-[#161a1e] py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <p className="mt-4 text-xs text-[#848e9c]">Generating unique address...</p>
-          </div>
-        ) : address ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5 text-center shadow-lg">
-            <div className="mx-auto mb-5 inline-block rounded-xl bg-white p-3">
-              <QRCodeSVG value={address} size={150} level="M" includeMargin={false} />
-            </div>
-
-            <p className="mb-2 text-[10px] font-medium text-[#848e9c] uppercase tracking-wider">
-              Deposit Address
+            <h2 className="mb-2 text-xl font-bold text-white">Request Submitted</h2>
+            <p className="text-center text-sm text-[#848e9c] px-6">
+              Your deposit request has been received. Our team will review your screenshot and credit your account shortly.
             </p>
-            <div className="mb-4 flex items-center justify-between rounded-lg bg-[#0b0e11] px-3 py-2.5">
-              <span className="truncate text-xs font-medium text-white">{address}</span>
-              <button
-                onClick={copyAddress}
-                className="ml-2 shrink-0 rounded-md p-1.5 text-[#848e9c] transition hover:bg-white/[0.06] hover:text-white"
-              >
-                {copied ? <FiCheck className="text-green-500" /> : <FiCopy />}
-              </button>
-            </div>
-
-            <div className="flex items-start gap-2 rounded-lg bg-yellow-500/10 p-3 text-left">
-              <FiInfo className="mt-0.5 shrink-0 text-yellow-500" size={14} />
-              <p className="text-[10px] text-yellow-500/90 leading-relaxed">
-                Send only USDT to this deposit address. Sending coin or token other than USDT will result in the loss of your deposit.
-              </p>
-            </div>
+            <button
+              onClick={() => router.push("/profile/funding")}
+              className="mt-8 rounded-xl bg-primary px-8 py-3 font-bold text-[#0b0e11] transition hover:bg-primary/90"
+            >
+              View Wallet
+            </button>
           </div>
         ) : (
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-center">
-            <p className="text-xs text-red-400">Failed to generate deposit address. Please try again.</p>
-          </div>
+          <>
+            {/* Step 1: Coin & Network */}
+            <div className="mb-6 space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Coin</label>
+                <div className="relative">
+                  <button
+                    onClick={() => setCoinDropdownOpen(!coinDropdownOpen)}
+                    className="flex w-full items-center justify-between rounded-xl bg-[#1e2329] p-3 transition hover:bg-[#2b3139]"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2b3139]">
+                        <img src="https://assets.coingecko.com/coins/images/325/thumb/Tether.png" alt="USDT" className="h-4 w-4" />
+                      </div>
+                      <span className="text-sm font-bold text-white">USDT <span className="font-normal text-[#848e9c] ml-1">Tether US</span></span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Network</label>
+                <div className="relative">
+                  <button
+                    onClick={() => setNetworkDropdownOpen(!networkDropdownOpen)}
+                    className="flex w-full items-center justify-between rounded-xl bg-[#1e2329] p-3 transition hover:bg-[#2b3139]"
+                  >
+                    {selectedNetwork ? (
+                      <span className="text-sm font-bold text-white">{selectedNetwork.name}</span>
+                    ) : (
+                      <span className="text-sm text-[#848e9c]">Select Network</span>
+                    )}
+                    <FiChevronDown className="text-[#848e9c]" />
+                  </button>
+
+                  {networkDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-2 z-50 overflow-hidden rounded-xl bg-[#1e2329] border border-white/[0.04] shadow-2xl">
+                      {networks.map(n => (
+                        <button
+                          key={n.id}
+                          onClick={() => { setSelectedNetwork(n); setNetworkDropdownOpen(false); }}
+                          className="flex w-full items-center justify-between p-4 hover:bg-[#2b3139] transition border-b border-white/[0.02] last:border-0"
+                        >
+                          <div className="text-left">
+                            <div className="text-sm font-bold text-white">{n.name}</div>
+                            <div className="text-[11px] text-[#848e9c] mt-0.5">Min: {n.minDeposit} USDT</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {selectedNetwork && (
+              <div className="space-y-6">
+                {/* QR Code and Address */}
+                <div className="rounded-2xl border border-white/[0.04] bg-[#161a1e] p-6 text-center shadow-lg">
+                  <div className="mx-auto mb-5 flex aspect-square w-48 items-center justify-center rounded-xl bg-white p-3">
+                    <QRCodeSVG value={selectedNetwork.address} size={168} level="M" />
+                  </div>
+                  <div className="text-[11px] text-[#848e9c] mb-1.5 font-medium">Wallet Address</div>
+                  <div className="flex items-center gap-2 rounded-xl bg-[#0b0e11] p-3 border border-white/[0.04]">
+                    <span className="flex-1 truncate text-left text-sm font-medium text-white select-all">
+                      {selectedNetwork.address}
+                    </span>
+                    <button
+                      onClick={copyAddress}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2b3139] text-[#848e9c] hover:bg-[#3b4149] hover:text-white transition"
+                    >
+                      {copied ? <FiCheck className="text-green-500" /> : <FiCopy />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Deposit Amount (USDT)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter amount sent"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full rounded-xl bg-[#1e2329] p-3.5 text-sm text-white focus:bg-[#2b3139] outline-none transition"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Transaction ID / Hash (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="Paste TXID"
+                      value={txId}
+                      onChange={(e) => setTxId(e.target.value)}
+                      className="w-full rounded-xl bg-[#1e2329] p-3.5 text-sm text-white focus:bg-[#2b3139] outline-none transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Payment Screenshot (Required)</label>
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/10 bg-[#1e2329] p-6 hover:bg-[#2b3139] transition"
+                    >
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        accept="image/*" 
+                        className="hidden" 
+                      />
+                      {uploading ? (
+                        <div className="flex flex-col items-center">
+                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mb-2"></div>
+                          <span className="text-xs text-[#848e9c]">Uploading...</span>
+                        </div>
+                      ) : screenshotUrl ? (
+                        <div className="flex flex-col items-center">
+                          <img src={screenshotUrl} alt="Preview" className="h-20 w-auto rounded object-contain mb-2" />
+                          <span className="text-[10px] text-green-500 font-medium flex items-center gap-1"><FiCheck /> Uploaded Successfully</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center text-[#848e9c]">
+                          <FiUpload size={24} className="mb-2" />
+                          <span className="text-xs font-medium text-white mb-1">Click to upload screenshot</span>
+                          <span className="text-[10px]">JPG, PNG max 5MB</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <button
+                      type="submit"
+                      disabled={submitting || uploading || !screenshotUrl}
+                      className="w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-[#0b0e11] hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      {submitting ? "Submitting..." : "Submit Deposit Request"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
