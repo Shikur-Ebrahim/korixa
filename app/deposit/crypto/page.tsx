@@ -36,7 +36,6 @@ export default function CryptoDepositPage() {
       .then(res => res.json())
       .then(data => {
         setNetworks(data);
-        if (data.length > 0) setSelectedNetwork(data[0]);
         setLoadingNetworks(false);
       })
       .catch(err => {
@@ -266,17 +265,6 @@ export default function CryptoDepositPage() {
                       onChange={(e) => setAmount(e.target.value)}
                       className="w-full rounded-xl bg-[#1e2329] p-3.5 text-sm text-white focus:bg-[#2b3139] outline-none transition"
                       required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Transaction ID / Hash (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="Paste TXID"
-                      value={txId}
-                      onChange={(e) => setTxId(e.target.value)}
-                      className="w-full rounded-xl bg-[#1e2329] p-3.5 text-sm text-white focus:bg-[#2b3139] outline-none transition"
                     />
                   </div>
 
