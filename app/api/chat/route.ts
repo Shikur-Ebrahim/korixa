@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAuthToken } from "@/lib/auth/verify-token";
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
@@ -12,6 +12,12 @@ export async function POST(request: Request) {
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid messages format" }, { status: 400 });
+    }
+
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    if (!GROQ_API_KEY) {
+      console.error("Missing GROQ_API_KEY environment variable");
+      return NextResponse.json({ error: "Server configuration error: Missing API Key" }, { status: 500 });
     }
 
     // Add a system prompt to guide the AI's behavior
@@ -39,7 +45,10 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error("Groq API error:", errorData);
-      return NextResponse.json({ error: "Failed to communicate with AI provider" }, { status: 502 });
+      return NextResponse.json({ 
+        error: "Failed to communicate with AI provider", 
+        details: errorData 
+      }, { status: 502 });
     }
 
     const data = await response.json();
