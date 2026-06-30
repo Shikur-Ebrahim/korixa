@@ -52,7 +52,10 @@ export default function SupportPage() {
 
         {/* Contact Options */}
         <div className="grid grid-cols-2 gap-3 mb-8">
-          <button className="flex flex-col items-center justify-center gap-3 rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5 transition hover:bg-white/[0.04]">
+          <button 
+            onClick={() => router.push(window.location.pathname + "?support=open")}
+            className="flex flex-col items-center justify-center gap-3 rounded-xl md:rounded-2xl border border-white/[0.06] bg-[#161a1e] p-5 transition hover:bg-white/[0.04]"
+          >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
               <FiMessageCircle size={24} />
             </div>

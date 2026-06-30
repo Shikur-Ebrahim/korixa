@@ -34,6 +34,10 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
       setDepositOpen(true);
       changed = true;
     }
+    if (searchParams.get("support") === "open") {
+      setSupportOpen(true);
+      changed = true;
+    }
     if (changed) {
       router.replace(pathname, { scroll: false });
     }
