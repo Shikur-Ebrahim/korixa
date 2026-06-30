@@ -196,110 +196,111 @@ export default function CryptoDepositPage() {
               <label className="mb-2 block text-xs font-semibold text-[#848e9c]">Select Network</label>
               <div className="space-y-2">
                 {networks.map(n => (
-                  <button
-                    key={n.id}
-                    onClick={() => setSelectedNetwork(selectedNetwork?.id === n.id ? null : n)}
-                    className={`flex w-full items-center justify-between rounded-xl border p-4 transition ${
-                      selectedNetwork?.id === n.id
-                        ? "border-primary/60 bg-primary/10"
-                        : "border-white/[0.06] bg-[#1e2329] hover:bg-[#2b3139]"
-                    }`}
-                  >
-                    <div className="text-left">
-                      <div className="text-sm font-bold text-white">{n.name}</div>
-                      <div className="text-[11px] text-[#848e9c] mt-0.5">Min: {n.minDeposit} USDT</div>
-                    </div>
+                  <div key={n.id}>
+                    {/* Network card */}
+                    <button
+                      onClick={() => setSelectedNetwork(selectedNetwork?.id === n.id ? null : n)}
+                      className={`flex w-full items-center justify-between rounded-xl border p-4 transition ${
+                        selectedNetwork?.id === n.id
+                          ? "border-primary/60 bg-primary/10"
+                          : "border-white/[0.06] bg-[#1e2329] hover:bg-[#2b3139]"
+                      }`}
+                    >
+                      <div className="text-left">
+                        <div className="text-sm font-bold text-white">{n.name}</div>
+                        <div className="text-[11px] text-[#848e9c] mt-0.5">Min: {n.minDeposit} USDT</div>
+                      </div>
+                      {selectedNetwork?.id === n.id && (
+                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                          <FiCheck size={12} className="text-[#0b0e11] font-bold" />
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Inline detail — only shown for selected network */}
                     {selectedNetwork?.id === n.id && (
-                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-                        <FiCheck size={12} className="text-[#0b0e11] font-bold" />
+                      <div className="mt-2 space-y-4 rounded-2xl border border-white/[0.04] bg-[#161a1e] p-5">
+                        {/* QR Code and Address */}
+                        <div className="text-center">
+                          <div className="mx-auto mb-4 flex aspect-square w-44 items-center justify-center rounded-xl bg-white p-3">
+                            <QRCodeSVG value={selectedNetwork.address} size={152} level="M" />
+                          </div>
+                          <div className="text-[11px] text-[#848e9c] mb-1.5 font-medium">Wallet Address</div>
+                          <div className="flex items-center gap-2 rounded-xl bg-[#0b0e11] p-3 border border-white/[0.04]">
+                            <span className="flex-1 truncate text-left text-sm font-medium text-white select-all">
+                              {selectedNetwork.address}
+                            </span>
+                            <button
+                              onClick={copyAddress}
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2b3139] text-[#848e9c] hover:bg-[#3b4149] hover:text-white transition"
+                            >
+                              {copied ? <FiCheck className="text-green-500" /> : <FiCopy />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Form */}
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Deposit Amount (USDT)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Enter amount sent"
+                              value={amount}
+                              onChange={(e) => setAmount(e.target.value)}
+                              className="w-full rounded-xl bg-[#0b0e11] p-3.5 text-sm text-white focus:bg-[#2b3139] outline-none transition border border-white/[0.04]"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Payment Screenshot (Required)</label>
+                            <div
+                              onClick={() => fileInputRef.current?.click()}
+                              className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/10 bg-[#0b0e11] p-6 hover:bg-[#2b3139] transition"
+                            >
+                              <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept="image/*"
+                                className="hidden"
+                              />
+                              {uploading ? (
+                                <div className="flex flex-col items-center">
+                                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mb-2"></div>
+                                  <span className="text-xs text-[#848e9c]">Uploading...</span>
+                                </div>
+                              ) : screenshotUrl ? (
+                                <div className="flex flex-col items-center">
+                                  <img src={screenshotUrl} alt="Preview" className="h-20 w-auto rounded object-contain mb-2" />
+                                  <span className="text-[10px] text-green-500 font-medium flex items-center gap-1"><FiCheck /> Uploaded Successfully</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center text-[#848e9c]">
+                                  <FiUpload size={24} className="mb-2" />
+                                  <span className="text-xs font-medium text-white mb-1">Click to upload screenshot</span>
+                                  <span className="text-[10px]">JPG, PNG max 5MB</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={submitting || uploading || !screenshotUrl}
+                            className="w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-[#0b0e11] hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                          >
+                            {submitting ? "Submitting..." : "Submit Deposit Request"}
+                          </button>
+                        </form>
                       </div>
                     )}
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
-
-            {selectedNetwork && (
-              <div className="space-y-6">
-                {/* QR Code and Address */}
-                <div className="rounded-2xl border border-white/[0.04] bg-[#161a1e] p-6 text-center shadow-lg">
-                  <div className="mx-auto mb-5 flex aspect-square w-48 items-center justify-center rounded-xl bg-white p-3">
-                    <QRCodeSVG value={selectedNetwork.address} size={168} level="M" />
-                  </div>
-                  <div className="text-[11px] text-[#848e9c] mb-1.5 font-medium">Wallet Address</div>
-                  <div className="flex items-center gap-2 rounded-xl bg-[#0b0e11] p-3 border border-white/[0.04]">
-                    <span className="flex-1 truncate text-left text-sm font-medium text-white select-all">
-                      {selectedNetwork.address}
-                    </span>
-                    <button
-                      onClick={copyAddress}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2b3139] text-[#848e9c] hover:bg-[#3b4149] hover:text-white transition"
-                    >
-                      {copied ? <FiCheck className="text-green-500" /> : <FiCopy />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Deposit Amount (USDT)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Enter amount sent"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="w-full rounded-xl bg-[#1e2329] p-3.5 text-sm text-white focus:bg-[#2b3139] outline-none transition"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Payment Screenshot (Required)</label>
-                    <div 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/10 bg-[#1e2329] p-6 hover:bg-[#2b3139] transition"
-                    >
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileChange} 
-                        accept="image/*" 
-                        className="hidden" 
-                      />
-                      {uploading ? (
-                        <div className="flex flex-col items-center">
-                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mb-2"></div>
-                          <span className="text-xs text-[#848e9c]">Uploading...</span>
-                        </div>
-                      ) : screenshotUrl ? (
-                        <div className="flex flex-col items-center">
-                          <img src={screenshotUrl} alt="Preview" className="h-20 w-auto rounded object-contain mb-2" />
-                          <span className="text-[10px] text-green-500 font-medium flex items-center gap-1"><FiCheck /> Uploaded Successfully</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center text-[#848e9c]">
-                          <FiUpload size={24} className="mb-2" />
-                          <span className="text-xs font-medium text-white mb-1">Click to upload screenshot</span>
-                          <span className="text-[10px]">JPG, PNG max 5MB</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-4">
-                    <button
-                      type="submit"
-                      disabled={submitting || uploading || !screenshotUrl}
-                      className="w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-[#0b0e11] hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      {submitting ? "Submitting..." : "Submit Deposit Request"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
           </>
         )}
       </main>
