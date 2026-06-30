@@ -62,31 +62,33 @@ export default function CryptoDepositPage() {
 
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        const token = await getIdToken();
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ file: base64, folder: "korixa/deposits" })
-        });
-        
-        const data = await res.json();
-        if (data.success) {
-          setScreenshotUrl(data.secure_url);
-        } else {
-          alert("Upload failed: " + data.error);
-        }
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
+      // Convert to base64 using promise (same pattern as P2P upload)
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const token = await getIdToken();
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ file: base64, folder: "korixa/deposits" }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      // API returns { url, publicId, ... } — NOT secure_url
+      setScreenshotUrl(data.url);
     } catch (err) {
-      console.error(err);
-      alert("Upload error");
+      console.error("Upload failed", err);
+      alert("Failed to upload image. Please try again.");
+    } finally {
       setUploading(false);
     }
   };
