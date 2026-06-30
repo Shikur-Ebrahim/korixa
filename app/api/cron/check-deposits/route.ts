@@ -76,6 +76,12 @@ export async function GET(req: Request) {
 
         // ── 5. Credit user wallet (atomic transaction) ─────────────────────
         const walletRef = db.doc(`users/${userId}/wallet/default`);
+        const legacyWalletQuery = await db.collection("wallets")
+          .where("userId", "==", userId)
+          .where("type", "==", "funding")
+          .where("coin", "==", "USDT")
+          .limit(1)
+          .get();
 
         await db.runTransaction(async (txn) => {
           const walletSnap = await txn.get(walletRef);
@@ -91,6 +97,15 @@ export async function GET(req: Request) {
             { merge: true }
           );
 
+          // Update legacy wallet if it exists
+          if (!legacyWalletQuery.empty) {
+            txn.update(legacyWalletQuery.docs[0].ref, {
+              balance: FieldValue.increment(newAmount),
+              availableBalance: FieldValue.increment(newAmount),
+              usdValue: FieldValue.increment(newAmount),
+            });
+          }
+
           // Mark txIds as processed
           txn.update(addrDoc.ref, {
             processedTxIds: FieldValue.arrayUnion(...newTxIds),
@@ -98,6 +113,21 @@ export async function GET(req: Request) {
             lastDepositAt: new Date().toISOString(),
           });
         });
+
+        // If legacy wallet didn't exist, create it (outside transaction for simplicity)
+        if (legacyWalletQuery.empty) {
+          await db.collection("wallets").add({
+            userId: userId,
+            type: "funding",
+            coin: "USDT",
+            name: "Tether US",
+            balance: newAmount,
+            availableBalance: newAmount,
+            lockedBalance: 0,
+            usdValue: newAmount,
+            change24h: 0,
+          });
+        }
 
         // ── 6. Record each transaction in history (outside atomic txn) ─────
         const batch = db.batch();

@@ -56,6 +56,34 @@ export async function GET(req: Request) {
         { merge: true }
       );
 
+      // Also update legacy wallets collection
+      const legacyWalletQuery = await db.collection("wallets")
+        .where("userId", "==", user.uid)
+        .where("type", "==", "funding")
+        .where("coin", "==", "USDT")
+        .limit(1)
+        .get();
+        
+      if (!legacyWalletQuery.empty) {
+        await legacyWalletQuery.docs[0].ref.update({
+          balance: FieldValue.increment(newDepositAmount),
+          availableBalance: FieldValue.increment(newDepositAmount),
+          usdValue: FieldValue.increment(newDepositAmount),
+        });
+      } else {
+        await db.collection("wallets").add({
+          userId: user.uid,
+          type: "funding",
+          coin: "USDT",
+          name: "Tether US",
+          balance: newDepositAmount,
+          availableBalance: newDepositAmount,
+          lockedBalance: 0,
+          usdValue: newDepositAmount,
+          change24h: 0,
+        });
+      }
+
       // 5. Mark transactions as processed and update cumulative processed balance
       await addressRef.update({
         processedTxIds: FieldValue.arrayUnion(...newTxIds),

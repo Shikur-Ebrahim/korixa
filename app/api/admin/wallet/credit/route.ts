@@ -52,6 +52,34 @@ export async function POST(req: Request) {
       { merge: true }
     );
 
+    // Also update the legacy wallets collection (used by frontend funding page)
+    const legacyWalletQuery = await db.collection("wallets")
+      .where("userId", "==", userId)
+      .where("type", "==", "funding")
+      .where("coin", "==", "USDT")
+      .limit(1)
+      .get();
+      
+    if (!legacyWalletQuery.empty) {
+      await legacyWalletQuery.docs[0].ref.update({
+        balance: FieldValue.increment(amountNum),
+        availableBalance: FieldValue.increment(amountNum),
+        usdValue: FieldValue.increment(amountNum),
+      });
+    } else {
+      await db.collection("wallets").add({
+        userId: userId,
+        type: "funding",
+        coin: "USDT",
+        name: "Tether US",
+        balance: amountNum,
+        availableBalance: amountNum,
+        lockedBalance: 0,
+        usdValue: amountNum,
+        change24h: 0,
+      });
+    }
+
     // Record transaction
     const txRef = txId
       ? db.doc(`deposits/${txId.toLowerCase()}`)

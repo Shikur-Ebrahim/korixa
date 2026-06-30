@@ -290,7 +290,7 @@ export default function P2PMarketplace() {
           if (!isVerified) return alert("KYC verification is required before creating P2P advertisements.");
           router.push("/p2p/create-ad");
         }}
-        className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#0b0e11] shadow-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all"
+        className="fixed bottom-28 right-4 z-[100] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#0b0e11] shadow-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all"
         style={{ boxShadow: "0 8px 32px rgba(247, 147, 26, 0.4)" }}
       >
         <FiPlus size={28} />
