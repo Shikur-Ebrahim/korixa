@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "llama3-8b-8192", // Using a fast, standard model available on Groq
+        model: "llama-3.1-8b-instant", // Updated from decommissioned model
         messages: apiMessages,
         temperature: 0.7,
         max_tokens: 1024,
