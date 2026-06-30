@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { FiX, FiSend, FiMinimize2 } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type Message = {
   role: "user" | "assistant";
@@ -15,6 +16,7 @@ type SupportDrawerProps = {
 };
 
 export function SupportDrawer({ open, onClose }: SupportDrawerProps) {
+  const { getIdToken } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "Hello! I'm your AI assistant. How can I help you today?" }
   ]);
@@ -42,9 +44,14 @@ export function SupportDrawer({ open, onClose }: SupportDrawerProps) {
     setIsLoading(true);
 
     try {
+      const token = await getIdToken();
+      
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
       });
 
