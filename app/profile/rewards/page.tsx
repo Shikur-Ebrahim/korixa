@@ -1,18 +1,37 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiArrowLeft, FiCopy, FiCheck, FiGift, FiUsers, FiShare2 } from "react-icons/fi";
 import { appTheme } from "@/components/layout/app-theme";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function RewardsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const [copied, setCopied] = useState(false);
+  const [stats, setStats] = useState({ totalEarned: 0, totalFriends: 0 });
 
   const referralCode = user?.uid?.substring(0, 8).toUpperCase() || "KORIXA24";
   const referralLink = `https://korixapay.com/register?ref=${referralCode}`;
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const token = await getIdToken();
+        const res = await fetch("/api/profile/rewards", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch rewards", err);
+      }
+    }
+    fetchStats();
+  }, [getIdToken]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);
@@ -50,18 +69,18 @@ export default function RewardsPage() {
           </div>
 
           <div className="flex items-end gap-2">
-            <span className="text-2xl md:text-3xl font-bold text-white">0.00</span>
+            <span className="text-2xl md:text-3xl font-bold text-white">{stats.totalEarned.toFixed(2)}</span>
             <span className="text-xs md:text-sm text-[#848e9c] mb-1">USDT</span>
           </div>
 
           <div className="mt-6 flex items-center justify-between border-t border-white/[0.06] pt-4">
             <div>
               <p className="text-[10px] md:text-xs text-[#848e9c]">Total Friends</p>
-              <p className="text-sm md:text-base font-bold text-white mt-0.5">0</p>
+              <p className="text-sm md:text-base font-bold text-white mt-0.5">{stats.totalFriends}</p>
             </div>
             <div>
-              <p className="text-[10px] md:text-xs text-[#848e9c]">Pending Bonus</p>
-              <p className="text-sm md:text-base font-bold text-white mt-0.5">0.00 ETB</p>
+              <p className="text-[10px] md:text-xs text-[#848e9c]">Bonus Rate</p>
+              <p className="text-sm md:text-base font-bold text-[#F7931A] mt-0.5">15%</p>
             </div>
           </div>
         </div>
@@ -70,8 +89,8 @@ export default function RewardsPage() {
         <div className="mb-6">
           <h2 className="text-xs md:text-sm font-bold text-white mb-3 px-1">Invite Friends</h2>
           <div className={appTheme.card}>
-            <p className="text-[10px] md:text-xs text-[#848e9c] mb-4">
-              Share your referral link with friends. When they sign up and complete KYC, you both earn up to 5 USDT!
+            <p className="text-[10px] md:text-xs text-[#848e9c] mb-4 leading-relaxed">
+              Share your referral link with friends. When they sign up and make their <strong className="text-white">first crypto deposit</strong>, you instantly earn <strong className="text-[#F7931A]">15%</strong> of their deposit amount!
             </p>
             
             <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0b0e11] p-1.5 pl-4">
@@ -108,8 +127,8 @@ export default function RewardsPage() {
                 <FiUsers size={16} />
               </div>
               <div>
-                <h3 className="text-xs md:text-sm font-bold text-white">2. Friends sign up</h3>
-                <p className="text-[10px] md:text-xs text-[#848e9c] mt-1">They register and complete identity verification.</p>
+                <h3 className="text-xs md:text-sm font-bold text-white">2. Friends sign up & deposit</h3>
+                <p className="text-[10px] md:text-xs text-[#848e9c] mt-1">They register and make their first crypto deposit.</p>
               </div>
             </div>
 
@@ -118,8 +137,8 @@ export default function RewardsPage() {
                 <FiGift size={16} />
               </div>
               <div>
-                <h3 className="text-xs md:text-sm font-bold text-white">3. Earn crypto</h3>
-                <p className="text-[10px] md:text-xs text-[#848e9c] mt-1">You both receive a crypto bonus instantly.</p>
+                <h3 className="text-xs md:text-sm font-bold text-white">3. Earn crypto instantly</h3>
+                <p className="text-[10px] md:text-xs text-[#848e9c] mt-1">You instantly receive 15% of their deposit amount.</p>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { signInWithCustomToken } from "firebase/auth";
 import {
@@ -39,6 +39,7 @@ async function parseApiJson(res: Response): Promise<Record<string, unknown>> {
 
 function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading, initialized } = useAuth();
   const urlParams = useOtpFromUrl();
   const autoVerified = useRef(false);
@@ -49,18 +50,29 @@ function SignUpForm() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Capture ref code from URL and persist in localStorage
+  useEffect(() => {
+    const refCode = searchParams.get("ref");
+    if (refCode) {
+      localStorage.setItem("korixa_ref", refCode);
+    }
+  }, [searchParams]);
+
   const verifyOtp = useCallback(
     async (code: string, emailAddress: string) => {
       setLoading(true);
       setError(null);
 
       try {
+        const refCode = localStorage.getItem("korixa_ref") || undefined;
+        
         const res = await fetch("/api/auth/verify-otp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: emailAddress,
             code,
+            refCode,
           }),
         });
 

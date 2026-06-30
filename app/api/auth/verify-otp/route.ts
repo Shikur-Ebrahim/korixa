@@ -10,6 +10,7 @@ const schema = z.object({
   code: z.string().length(6, "Code must be 6 digits"),
   displayName: z.string().optional(),
   isSignIn: z.boolean().optional().default(false),
+  refCode: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -34,7 +35,8 @@ export async function POST(request: Request) {
     const customToken = await createAuthTokenForEmail(
       parsed.data.email,
       parsed.data.displayName,
-      parsed.data.isSignIn
+      parsed.data.isSignIn,
+      parsed.data.refCode
     );
 
     return NextResponse.json({

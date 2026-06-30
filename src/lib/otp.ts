@@ -315,7 +315,8 @@ export async function verifyOTP(
 export async function createAuthTokenForEmail(
   email: string,
   displayName?: string,
-  isSignIn: boolean = false
+  isSignIn: boolean = false,
+  refCode?: string
 ): Promise<string> {
   const normalized = normalizeEmail(email);
   let user;
@@ -337,6 +338,14 @@ export async function createAuthTokenForEmail(
     try {
       const adminDb = getAdminDb();
       const batch = adminDb.batch();
+
+      // Create user document with referral tracking
+      const userRef = adminDb.collection("users").doc(user.uid);
+      batch.set(userRef, {
+        referralCode: user.uid.substring(0, 8).toUpperCase(),
+        referredBy: refCode || null,
+        createdAt: Date.now(),
+      });
 
       const defaultAssets = [
         { coin: "USDT", name: "Tether US" },

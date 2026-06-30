@@ -85,6 +85,15 @@ export async function POST(request: Request) {
         });
       }
 
+      // Check if this is the first deposit BEFORE creating the transaction record
+      const previousDeposits = await db.collection("transactions")
+        .where("userId", "==", depositData.userId)
+        .where("type", "==", "crypto_deposit")
+        .where("status", "==", "completed")
+        .limit(1)
+        .get();
+      const isFirstDeposit = previousDeposits.empty;
+
       // 4. Create transaction record
       await db.collection("transactions").add({
         userId: depositData.userId,
@@ -108,6 +117,88 @@ export async function POST(request: Request) {
         read: false,
         createdAt: new Date().toISOString(),
       });
+
+      // 6. Handle Referral Reward (15% on First Deposit)
+      if (isFirstDeposit) {
+        try {
+          const userDoc = await db.collection("users").doc(depositData.userId).get();
+          if (userDoc.exists && userDoc.data()?.referredBy) {
+            const referredBy = userDoc.data()!.referredBy;
+            
+            // Find the inviter
+            const inviterQuery = await db.collection("users")
+              .where("referralCode", "==", referredBy)
+              .limit(1)
+              .get();
+            
+            if (!inviterQuery.empty) {
+              const inviterUid = inviterQuery.docs[0].id;
+              const rewardAmount = Number((finalAmount * 0.15).toFixed(4)); // 15% bonus
+
+              // Credit inviter's new wallet schema
+              const inviterWalletRef = db.doc(`users/${inviterUid}/wallet/default`);
+              await inviterWalletRef.set({
+                balances: { USDT: FieldValue.increment(rewardAmount) },
+                updatedAt: FieldValue.serverTimestamp(),
+              }, { merge: true });
+
+              // Credit inviter's legacy wallet
+              const inviterLegacyWalletQuery = await db.collection("wallets")
+                .where("userId", "==", inviterUid)
+                .where("type", "==", "funding")
+                .where("coin", "==", "USDT")
+                .limit(1)
+                .get();
+              
+              if (!inviterLegacyWalletQuery.empty) {
+                await inviterLegacyWalletQuery.docs[0].ref.update({
+                  balance: FieldValue.increment(rewardAmount),
+                  availableBalance: FieldValue.increment(rewardAmount),
+                  usdValue: FieldValue.increment(rewardAmount),
+                });
+              } else {
+                await db.collection("wallets").add({
+                  userId: inviterUid,
+                  type: "funding",
+                  coin: "USDT",
+                  name: "Tether US",
+                  balance: rewardAmount,
+                  availableBalance: rewardAmount,
+                  lockedBalance: 0,
+                  usdValue: rewardAmount,
+                  change24h: 0,
+                });
+              }
+
+              // Create referral reward transaction
+              await db.collection("transactions").add({
+                userId: inviterUid,
+                type: "referral_reward",
+                coin: "USDT",
+                amount: rewardAmount,
+                usdValue: rewardAmount,
+                status: "completed",
+                timestamp: Date.now(),
+                referredUser: depositData.userId,
+              });
+
+              // Send notification to inviter
+              await db.collection(`users/${inviterUid}/notifications`).add({
+                type: "referral_reward",
+                title: "Referral Bonus Earned! 🎉",
+                message: `You earned ${rewardAmount} USDT from your friend's first deposit!`,
+                amount: rewardAmount,
+                asset: "USDT",
+                read: false,
+                createdAt: new Date().toISOString(),
+              });
+            }
+          }
+        } catch (rewardError) {
+          console.error("Failed to process referral reward:", rewardError);
+          // Don't fail the deposit if the reward fails
+        }
+      }
 
     } else if (action === "reject") {
       await depositRef.update({
