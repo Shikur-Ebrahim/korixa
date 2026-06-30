@@ -42,6 +42,13 @@ COINGECKO_API_KEY=
 TATUM_NETWORK=testnet
 TATUM_API_KEY_TESTNET=
 TATUM_API_KEY_MAINNET=
+
+TRONGRID_API_KEY=
+
+# Required for the 1-minute deposit auto-sweep cron job
+# Generate any random string: openssl rand -hex 32
+# Then add it to Vercel env AND the Vercel cron will auto-send it as Authorization: Bearer <secret>
+CRON_SECRET=
 ```
 
 ## Resend domain setup (required for all signup emails)

@@ -1,8 +1,17 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/check-deposits",
+      "schedule": "* * * * *"
+    }
+  ],
   "functions": {
     "app/api/binance/**/*.ts": {
       "maxDuration": 30,
       "regions": ["fra1", "sin1", "hnd1"]
+    },
+    "app/api/cron/check-deposits/route.ts": {
+      "maxDuration": 60
     }
   }
 }
