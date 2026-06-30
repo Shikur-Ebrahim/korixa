@@ -13,17 +13,21 @@ export async function GET(req: Request) {
     const addressSnap = await addressRef.get();
 
     if (!addressSnap.exists) {
-      return NextResponse.json({ error: "No address found" }, { status: 404 });
+      return NextResponse.json({ error: "No deposit address found. Please generate one first." }, { status: 404 });
     }
 
-    const data = addressSnap.data();
-    const address = data?.address;
-    const processedTxIds = data?.processedTxIds || [];
+    const data = addressSnap.data()!;
+    const address = data.address;
+    const processedTxIds: string[] = data.processedTxIds || [];
 
-    // Fetch incoming transfers from TronGrid
+    if (!address) {
+      return NextResponse.json({ error: "Address not found in document." }, { status: 404 });
+    }
+
+    // 1. Fetch all incoming USDT transfers from TronGrid
     const transfers = await getIncomingUsdtTransfers(address);
     let newDepositAmount = 0;
-    const newTxIds = [];
+    const newTxIds: string[] = [];
 
     for (const tx of transfers) {
       if (!processedTxIds.includes(tx.txId)) {
@@ -32,29 +36,39 @@ export async function GET(req: Request) {
       }
     }
 
-    if (newDepositAmount > 0) {
-      // Credit user's wallet with the new incoming deposits
-      const walletRef = db.doc(`users/${user.uid}/wallet/default`);
-      await walletRef.set({
-        balances: {
-          USDT: FieldValue.increment(newDepositAmount)
-        },
-        updatedAt: FieldValue.serverTimestamp()
-      }, { merge: true });
+    // 2. Fetch live on-chain balance for admin display
+    const currentOnChainBalance = await getTronUsdtBalance(address);
 
-      // Update processed TXIDs and processed balance
-      const currentBalance = await getTronUsdtBalance(address); // Just for admin display purposes
+    // 3. Always update the admin-visible on-chain balance
+    await addressRef.update({
+      currentBalance: currentOnChainBalance,
+      lastCheckedAt: new Date().toISOString(),
+    });
+
+    if (newDepositAmount > 0) {
+      // 4. Credit user's wallet
+      const walletRef = db.doc(`users/${user.uid}/wallet/default`);
+      await walletRef.set(
+        {
+          balances: { USDT: FieldValue.increment(newDepositAmount) },
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // 5. Mark transactions as processed and update cumulative processed balance
       await addressRef.update({
         processedTxIds: FieldValue.arrayUnion(...newTxIds),
-        processedBalance: FieldValue.increment(newDepositAmount), // Keep track of total ever deposited
-        currentBalance: currentBalance, // Store the actual on-chain balance for the Admin wallet view
-        lastDepositAt: new Date().toISOString()
+        processedBalance: FieldValue.increment(newDepositAmount),
+        lastDepositAt: new Date().toISOString(),
       });
 
-      // Record transactions
+      // 6. Record each new transaction in the user's history
+      const batch = db.batch();
       for (const txId of newTxIds) {
         const txInfo = transfers.find((t: any) => t.txId === txId);
-        await db.collection(`users/${user.uid}/transactions`).add({
+        const txRef = db.collection(`users/${user.uid}/transactions`).doc(txId);
+        batch.set(txRef, {
           type: "deposit",
           asset: "USDT",
           amount: txInfo?.amount || 0,
@@ -65,18 +79,22 @@ export async function GET(req: Request) {
           txId: txId,
         });
       }
+      await batch.commit();
 
       return NextResponse.json({
         newDeposit: true,
         amountAdded: newDepositAmount,
+        onChainBalance: currentOnChainBalance,
+        newTxCount: newTxIds.length,
       });
     }
 
     return NextResponse.json({
       newDeposit: false,
+      onChainBalance: currentOnChainBalance,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error checking TRON balance:", error);
-    return NextResponse.json({ error: "Failed to check balance" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to check balance: " + error.message }, { status: 500 });
   }
 }

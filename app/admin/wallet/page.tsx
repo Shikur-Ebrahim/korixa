@@ -5,7 +5,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import {
   FiDollarSign, FiRefreshCw, FiAlertTriangle,
   FiArrowUpRight, FiCheck, FiX, FiExternalLink,
-  FiShield, FiChevronDown, FiChevronUp, FiLock
+  FiShield, FiChevronDown, FiChevronUp, FiLock, FiPlusCircle
 } from "react-icons/fi";
 
 type WalletAddress = {
@@ -15,7 +15,7 @@ type WalletAddress = {
   lastDepositAt: string;
 };
 
-type ModalState = "none" | "withdraw" | "resetPin";
+type ModalState = "none" | "withdraw" | "resetPin" | "credit";
 
 export default function AdminWalletPage() {
   const { getIdToken } = useAuth();
@@ -38,6 +38,14 @@ export default function AdminWalletPage() {
   const [confirmPin, setConfirmPin] = useState("");
   const [pinMsg, setPinMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [savingPin, setSavingPin] = useState(false);
+
+  // Manual credit form
+  const [creditUserId, setCreditUserId] = useState("");
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditTxId, setCreditTxId] = useState("");
+  const [creditReason, setCreditReason] = useState("");
+  const [crediting, setCrediting] = useState(false);
+  const [creditResult, setCreditResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -110,7 +118,37 @@ export default function AdminWalletPage() {
     finally { setSavingPin(false); }
   };
 
-  const closeModal = () => { setModal("none"); setResult(null); setSelected(null); setPinMsg(null); };
+  const closeModal = () => { setModal("none"); setResult(null); setSelected(null); setPinMsg(null); setCreditResult(null); };
+
+  const handleManualCredit = async () => {
+    if (!creditUserId || !creditAmount) return;
+    setCrediting(true); setCreditResult(null);
+    try {
+      const token = await getIdToken();
+      const res = await fetch("/api/admin/wallet/credit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          userId: creditUserId,
+          amount: parseFloat(creditAmount),
+          txId: creditTxId || undefined,
+          reason: creditReason || "Manual admin credit for missing deposit",
+        }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setCreditResult({ ok: true, msg: `✅ Successfully credited ${creditAmount} USDT to user.` });
+        setCreditUserId(""); setCreditAmount(""); setCreditTxId(""); setCreditReason("");
+        loadData();
+      } else {
+        setCreditResult({ ok: false, msg: d.error || "Failed to credit." });
+      }
+    } catch (e: any) {
+      setCreditResult({ ok: false, msg: "Connection error." });
+    } finally {
+      setCrediting(false);
+    }
+  };
 
   const isGasError = (msg: string) =>
     ["resource", "bandwidth", "energy", "trx", "fee", "balance"].some(w => msg.toLowerCase().includes(w));
@@ -125,6 +163,12 @@ export default function AdminWalletPage() {
           <p className="text-[11px] text-[#848e9c] mt-0.5">Real TRC20 USDT balances</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setCreditResult(null); setCreditUserId(""); setCreditAmount(""); setCreditTxId(""); setCreditReason(""); setModal("credit"); }}
+            className="flex items-center gap-1 rounded-lg bg-green-500/10 border border-green-500/20 px-3 py-2 text-xs text-green-400 transition hover:bg-green-500/20"
+          >
+            <FiPlusCircle size={11} /> Credit
+          </button>
           <button
             onClick={() => { setPinMsg(null); setOldPin(""); setNewPin(""); setConfirmPin(""); setModal("resetPin"); }}
             className="flex items-center gap-1 rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-white transition hover:bg-white/[0.08]"
@@ -419,6 +463,87 @@ export default function AdminWalletPage() {
               <button onClick={handleResetPin} disabled={savingPin || !oldPin || !newPin || !confirmPin}
                 className="flex-1 rounded-xl bg-primary py-3.5 text-xs font-bold text-[#0b0e11] disabled:opacity-40">
                 {savingPin ? "Saving..." : "Update PIN"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── MANUAL CREDIT MODAL ── */}
+      {modal === "credit" && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm" onClick={closeModal}>
+          <div className="w-full max-w-sm rounded-t-3xl border-t border-white/[0.08] bg-[#0b0e11] p-5 shadow-2xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              <FiPlusCircle size={15} className="text-green-400" />
+              <h3 className="text-sm font-bold text-white">Manual USDT Credit</h3>
+            </div>
+            <p className="text-[10px] text-[#848e9c] leading-relaxed">
+              Use this to fix a missing deposit — when a user sent real USDT but their balance was not updated.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] text-[#848e9c] mb-1.5">User ID (Firebase UID)</label>
+                <input
+                  type="text"
+                  value={creditUserId}
+                  onChange={(e) => setCreditUserId(e.target.value)}
+                  placeholder="Paste user's Firebase UID"
+                  className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-3 text-xs text-white outline-none focus:border-primary/50 font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-[#848e9c] mb-1.5">Amount (USDT)</label>
+                <input
+                  type="number"
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(e.target.value)}
+                  placeholder="e.g. 50.00"
+                  className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-3 text-sm text-white outline-none focus:border-primary/50"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-[#848e9c] mb-1.5">TronScan TX ID (optional — prevents double credit)</label>
+                <input
+                  type="text"
+                  value={creditTxId}
+                  onChange={(e) => setCreditTxId(e.target.value)}
+                  placeholder="Transaction hash from TronScan"
+                  className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-3 text-xs text-white outline-none focus:border-primary/50 font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-[#848e9c] mb-1.5">Reason</label>
+                <input
+                  type="text"
+                  value={creditReason}
+                  onChange={(e) => setCreditReason(e.target.value)}
+                  placeholder="e.g. Manual fix for missed deposit"
+                  className="w-full rounded-xl border border-white/[0.08] bg-[#161a1e] px-3 py-3 text-xs text-white outline-none focus:border-primary/50"
+                />
+              </div>
+            </div>
+
+            {creditResult && (
+              <div className={`rounded-xl border p-3 text-xs ${creditResult.ok ? "border-green-500/30 bg-green-500/10 text-green-300" : "border-red-500/30 bg-red-500/10 text-red-300"}`}>
+                {creditResult.msg}
+              </div>
+            )}
+
+            <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-2.5">
+              <p className="text-[10px] text-yellow-300 leading-relaxed">
+                <FiAlertTriangle size={9} className="inline mr-1" />
+                This will instantly add USDT to the user's virtual balance. Make sure you verified the transaction on TronScan before crediting.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={closeModal} className="flex-1 rounded-xl bg-white/[0.04] py-3.5 text-xs font-bold text-white hover:bg-white/[0.08]">Cancel</button>
+              <button
+                onClick={handleManualCredit}
+                disabled={crediting || !creditUserId || !creditAmount}
+                className="flex-1 rounded-xl bg-green-500 py-3.5 text-xs font-bold text-[#0b0e11] hover:bg-green-600 disabled:opacity-40"
+              >
+                {crediting ? "Crediting..." : "Credit USDT"}
               </button>
             </div>
           </div>

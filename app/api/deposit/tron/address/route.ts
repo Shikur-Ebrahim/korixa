@@ -27,10 +27,11 @@ export async function GET(req: Request) {
       processedBalance: 0, // Keeps track of how much we already credited
     });
 
-    // Save to master lookup for sweeping
-    await db.doc(`deposit_address_lookup/${account.address}`).set({
-      uid: user.uid,
+    // Save to master lookup for sweeping - MUST use 'userId' not 'uid' for webhook compatibility
+    await db.doc(`deposit_address_lookup/${account.address.toLowerCase()}`).set({
+      userId: user.uid,
       chain: "TRC20",
+      address: account.address,
       createdAt: new Date().toISOString(),
     });
 
