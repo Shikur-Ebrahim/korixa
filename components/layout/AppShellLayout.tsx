@@ -7,6 +7,7 @@ import { AppMobileHeader } from "@/components/layout/AppMobileHeader";
 import { NotificationsDrawer } from "@/components/layout/NotificationsDrawer";
 import { ProfileDrawer } from "@/components/layout/ProfileDrawer";
 import { DepositDrawer } from "@/components/layout/DepositDrawer";
+import { SupportDrawer } from "@/components/layout/SupportDrawer";
 import { appTheme } from "@/components/layout/app-theme";
 import { useLoginTracker } from "@/lib/profile/useLoginTracker";
 import { useNotifications } from "@/lib/profile/useNotifications";
@@ -19,6 +20,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const { notifications, unreadCount, readIds, markAsRead, markAllAsRead } = useNotifications();
 
   // Auto-open drawers from query params
@@ -44,11 +46,18 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
       <AppMobileHeader
         onProfileClick={() => {
           setNotificationsOpen(false);
+          setSupportOpen(false);
           setProfileOpen(true);
         }}
         onNotificationsClick={() => {
           setProfileOpen(false);
+          setSupportOpen(false);
           setNotificationsOpen(true);
+        }}
+        onSupportClick={() => {
+          setProfileOpen(false);
+          setNotificationsOpen(false);
+          setSupportOpen(true);
         }}
         unreadCount={unreadCount}
       />
@@ -73,6 +82,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
         markAllAsRead={markAllAsRead}
       />
       <DepositDrawer open={depositOpen} onClose={() => setDepositOpen(false)} />
+      <SupportDrawer open={supportOpen} onClose={() => setSupportOpen(false)} />
     </div>
   );
 }
