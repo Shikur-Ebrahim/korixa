@@ -178,57 +178,42 @@ export default function CryptoDepositPage() {
           </div>
         ) : (
           <>
-            {/* Step 1: Coin & Network */}
-            <div className="mb-6 space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Coin</label>
-                <div className="relative">
-                  <button
-                    onClick={() => setCoinDropdownOpen(!coinDropdownOpen)}
-                    className="flex w-full items-center justify-between rounded-xl bg-[#1e2329] p-3 transition hover:bg-[#2b3139]"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2b3139]">
-                        <img src="https://assets.coingecko.com/coins/images/325/thumb/Tether.png" alt="USDT" className="h-4 w-4" />
-                      </div>
-                      <span className="text-sm font-bold text-white">USDT <span className="font-normal text-[#848e9c] ml-1">Tether US</span></span>
-                    </div>
-                  </button>
+            {/* Coin */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Coin</label>
+              <div className="flex items-center gap-2 rounded-xl bg-[#1e2329] p-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2b3139]">
+                  <img src="https://assets.coingecko.com/coins/images/325/thumb/Tether.png" alt="USDT" className="h-4 w-4" />
                 </div>
+                <span className="text-sm font-bold text-white">USDT <span className="font-normal text-[#848e9c] ml-1">Tether US</span></span>
               </div>
+            </div>
 
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#848e9c]">Network</label>
-                <div className="relative">
+            {/* Network list */}
+            <div className="mb-6">
+              <label className="mb-2 block text-xs font-semibold text-[#848e9c]">Select Network</label>
+              <div className="space-y-2">
+                {networks.map(n => (
                   <button
-                    onClick={() => setNetworkDropdownOpen(!networkDropdownOpen)}
-                    className="flex w-full items-center justify-between rounded-xl bg-[#1e2329] p-3 transition hover:bg-[#2b3139]"
+                    key={n.id}
+                    onClick={() => setSelectedNetwork(selectedNetwork?.id === n.id ? null : n)}
+                    className={`flex w-full items-center justify-between rounded-xl border p-4 transition ${
+                      selectedNetwork?.id === n.id
+                        ? "border-primary/60 bg-primary/10"
+                        : "border-white/[0.06] bg-[#1e2329] hover:bg-[#2b3139]"
+                    }`}
                   >
-                    {selectedNetwork ? (
-                      <span className="text-sm font-bold text-white">{selectedNetwork.name}</span>
-                    ) : (
-                      <span className="text-sm text-[#848e9c]">Select Network</span>
-                    )}
-                    <FiChevronDown className="text-[#848e9c]" />
-                  </button>
-
-                  {networkDropdownOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-2 z-50 overflow-hidden rounded-xl bg-[#1e2329] border border-white/[0.04] shadow-2xl">
-                      {networks.map(n => (
-                        <button
-                          key={n.id}
-                          onClick={() => { setSelectedNetwork(n); setNetworkDropdownOpen(false); }}
-                          className="flex w-full items-center justify-between p-4 hover:bg-[#2b3139] transition border-b border-white/[0.02] last:border-0"
-                        >
-                          <div className="text-left">
-                            <div className="text-sm font-bold text-white">{n.name}</div>
-                            <div className="text-[11px] text-[#848e9c] mt-0.5">Min: {n.minDeposit} USDT</div>
-                          </div>
-                        </button>
-                      ))}
+                    <div className="text-left">
+                      <div className="text-sm font-bold text-white">{n.name}</div>
+                      <div className="text-[11px] text-[#848e9c] mt-0.5">Min: {n.minDeposit} USDT</div>
                     </div>
-                  )}
-                </div>
+                    {selectedNetwork?.id === n.id && (
+                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                        <FiCheck size={12} className="text-[#0b0e11] font-bold" />
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
 
