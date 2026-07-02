@@ -3,6 +3,38 @@ import { verifyAuthToken } from "@/lib/auth/verify-token";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
+/**
+ * Recalculates and updates a merchant's totalOrders and completionRate
+ * based on all their resolved (completed + cancelled) orders.
+ */
+async function updateMerchantStats(db: FirebaseFirestore.Firestore, merchantId: string) {
+  if (!merchantId) return;
+
+  try {
+    // Get all orders for this merchant that have a final status
+    const ordersSnap = await db.collection("p2pOrders")
+      .where("merchantId", "==", merchantId)
+      .where("status", "in", ["completed", "cancelled"])
+      .get();
+
+    const totalOrders = ordersSnap.size;
+    const completedOrders = ordersSnap.docs.filter(d => d.data().status === "completed").length;
+    const completionRate = totalOrders > 0
+      ? Math.round((completedOrders / totalOrders) * 100 * 100) / 100 // e.g. 98.73
+      : 100;
+
+    // Update the merchant document
+    await db.collection("merchants").doc(merchantId).update({
+      totalOrders,
+      completionRate,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    // Non-fatal — don't block the order action
+    console.error("Failed to update merchant stats:", err);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     // 1. Verify admin
@@ -93,6 +125,9 @@ export async function POST(req: Request) {
         timestamp: new Date().toISOString(),
       });
 
+      // Update merchant completion rate
+      await updateMerchantStats(db, order.merchantId);
+
       return NextResponse.json({
         success: true,
         message: `Released ${amountUSDT} USDT to buyer ${buyerId}`,
@@ -105,6 +140,9 @@ export async function POST(req: Request) {
         rejectedAt: new Date().toISOString(),
         rejectedBy: adminUser.uid,
       });
+
+      // Update merchant completion rate
+      await updateMerchantStats(db, order.merchantId);
 
       return NextResponse.json({
         success: true,
