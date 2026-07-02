@@ -7,7 +7,7 @@ import {
 } from "firebase/firestore";
 import {
   FiMessageSquare, FiCheck, FiX, FiSend,
-  FiChevronDown, FiChevronUp, FiAlertCircle, FiCopy
+  FiChevronDown, FiChevronUp, FiAlertCircle, FiCopy, FiUploadCloud, FiLoader
 } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import { getAuth } from "firebase/auth";
