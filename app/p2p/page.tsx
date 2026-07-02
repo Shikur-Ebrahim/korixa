@@ -29,11 +29,10 @@ export default function P2PMarketplace() {
   const [paymentDropdownOpen, setPaymentDropdownOpen] = useState(false);
 
   useEffect(() => {
-    const adType = activeTab === "buy" ? "sell" : "buy";
     const q = query(
       collection(getClientFirestore(), "p2pAdvertisements"),
       where("status", "==", "active"),
-      where("type", "==", adType)
+      where("type", "==", activeTab)
     );
 
     const unsub = onSnapshot(q, (snap) => {
