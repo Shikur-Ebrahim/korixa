@@ -282,17 +282,19 @@ export function AdvertisementManagement() {
                 placeholder="e.g. 145.50"
               />
             </div>
-            <div>
-              <label className="mb-1 block text-xs text-[#848e9c]">Available USDT</label>
-              <input
-                required
-                type="number"
-                value={form.availableUSDT || ""}
-                onChange={(e) => setForm({ ...form, availableUSDT: Number(e.target.value) })}
-                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-                placeholder="e.g. 5000"
-              />
-            </div>
+            {isBuyAd && (
+              <div>
+                <label className="mb-1 block text-xs text-[#848e9c]">Available USDT</label>
+                <input
+                  required
+                  type="number"
+                  value={form.availableUSDT || ""}
+                  onChange={(e) => setForm({ ...form, availableUSDT: Number(e.target.value) })}
+                  className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                  placeholder="e.g. 5000"
+                />
+              </div>
+            )}
             <div>
               <label className="mb-1 block text-xs text-[#848e9c]">Min Order (ETB)</label>
               <input

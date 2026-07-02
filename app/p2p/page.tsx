@@ -238,9 +238,13 @@ export default function P2PMarketplace() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[11px] text-[#848e9c]">Available</div>
-                  <div className="text-xs font-medium text-white">{ad.availableUSDT.toLocaleString()} USDT</div>
-                  <div className="text-[11px] text-[#848e9c]">
+                  {activeTab === "buy" && (
+                    <>
+                      <div className="text-[11px] text-[#848e9c]">Available</div>
+                      <div className="text-xs font-medium text-white">{ad.availableUSDT.toLocaleString()} USDT</div>
+                    </>
+                  )}
+                  <div className={`text-[11px] text-[#848e9c] ${activeTab === "sell" ? "mt-4" : ""}`}>
                     {ad.minOrderLimit.toLocaleString()} – {ad.maxOrderLimit.toLocaleString()} ETB
                   </div>
                 </div>

@@ -153,10 +153,12 @@ export default function P2POrderCreationPage() {
                 {ad.price} ETB
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-xs text-[#848e9c]">Available</div>
-              <div className="font-medium">{ad.availableUSDT} USDT</div>
-            </div>
+            {isBuy && (
+              <div className="text-right">
+                <div className="text-xs text-[#848e9c]">Available</div>
+                <div className="font-medium">{ad.availableUSDT} USDT</div>
+              </div>
+            )}
           </div>
           <div className="mt-2 text-xs text-[#848e9c]">
             Limits: {ad.minOrderLimit} - {ad.maxOrderLimit} ETB
@@ -164,42 +166,42 @@ export default function P2POrderCreationPage() {
         </div>
 
         {/* Input Form */}
-        <div className="space-y-4">
-          {/* I want to pay / I will receive */}
-          <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
+        <div className="space-y-4 flex flex-col">
+          {/* Box 1: What user gives */}
+          <div className={`rounded-xl border border-white/[0.06] bg-[#1e2329] p-4 ${!isBuy ? "order-1" : "order-1"}`}>
             <label className="text-xs font-medium text-[#848e9c]">
-              {isBuy ? "I want to pay" : "I will receive"}
+              {isBuy ? "I want to pay" : "I will sell"}
             </label>
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
-                value={amountETB}
-                onChange={handleFiatChange}
-                placeholder={`Min ${ad.minOrderLimit}`}
+                value={isBuy ? amountETB : amountUSDT}
+                onChange={isBuy ? handleFiatChange : handleCryptoChange}
+                placeholder={isBuy ? `Min ${ad.minOrderLimit}` : "0.00"}
                 className="w-full bg-transparent text-2xl font-bold text-white focus:outline-none"
               />
-              <span className="font-bold text-white">ETB</span>
+              <span className="font-bold text-white">{isBuy ? "ETB" : "USDT"}</span>
             </div>
           </div>
 
-          <div className="flex justify-center text-[#848e9c]">
+          <div className="flex justify-center text-[#848e9c] order-2">
             <FiRefreshCw size={16} />
           </div>
 
-          {/* I will receive / I want to get */}
-          <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
+          {/* Box 2: What user gets */}
+          <div className={`rounded-xl border border-white/[0.06] bg-[#1e2329] p-4 order-3`}>
             <label className="text-xs font-medium text-[#848e9c]">
-              {isBuy ? "I will receive" : "I will sell"}
+              I will receive
             </label>
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
-                value={amountUSDT}
-                onChange={handleCryptoChange}
-                placeholder="0.00"
+                value={isBuy ? amountUSDT : amountETB}
+                onChange={isBuy ? handleCryptoChange : handleFiatChange}
+                placeholder={!isBuy ? `Min ${ad.minOrderLimit}` : "0.00"}
                 className="w-full bg-transparent text-2xl font-bold text-white focus:outline-none"
               />
-              <span className="font-bold text-white">USDT</span>
+              <span className="font-bold text-white">{isBuy ? "USDT" : "ETB"}</span>
             </div>
           </div>
         </div>
