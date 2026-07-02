@@ -24,12 +24,20 @@ export default function P2POrderCreationPage() {
   const [amountUSDT, setAmountUSDT] = useState("");
   const [inputMode, setInputMode] = useState<"fiat" | "crypto">("fiat");
 
+  const [selectedMethod, setSelectedMethod] = useState<string>("");
+  const [accountName, setAccountName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+
   useEffect(() => {
     async function fetchAd() {
       try {
         const adSnap = await getDoc(doc(getClientFirestore(), "p2pAdvertisements", adId));
         if (adSnap.exists()) {
-          setAd({ id: adSnap.id, ...adSnap.data() } as P2PAdvertisement);
+          const data = { id: adSnap.id, ...adSnap.data() } as P2PAdvertisement;
+          setAd(data);
+          if (data.paymentMethods?.length > 0) {
+            setSelectedMethod(data.paymentMethods[0]);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -81,6 +89,11 @@ export default function P2POrderCreationPage() {
       return;
     }
 
+    if (!isBuy && (!selectedMethod || !accountName.trim() || !accountNumber.trim())) {
+      alert("Please provide your payment account details so the merchant can send you ETB.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const orderData: Omit<P2POrder, "id"> = {
@@ -92,8 +105,10 @@ export default function P2POrderCreationPage() {
         amountUSDT: usdt,
         amountETB: etb,
         price: ad.price,
-        paymentMethod: ad.paymentMethods[0],
-        paymentAccountDetails: ad.paymentAccountDetails ?? [],
+        paymentMethod: isBuy ? ad.paymentMethods[0] : (selectedMethod as any),
+        paymentAccountDetails: isBuy 
+          ? (ad.paymentAccountDetails ?? [])
+          : [{ method: selectedMethod as any, accountName: accountName.trim(), accountNumber: accountNumber.trim() }],
         status: "pending",
         createdAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 15 * 60000).toISOString(),
@@ -153,7 +168,7 @@ export default function P2POrderCreationPage() {
           {/* I want to pay / I will receive */}
           <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
             <label className="text-xs font-medium text-[#848e9c]">
-              {isBuy ? "I want to pay" : "I will sell"}
+              {isBuy ? "I want to pay" : "I will receive"}
             </label>
             <div className="mt-2 flex items-center gap-2">
               <input
@@ -174,7 +189,7 @@ export default function P2POrderCreationPage() {
           {/* I will receive / I want to get */}
           <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
             <label className="text-xs font-medium text-[#848e9c]">
-              {isBuy ? "I will receive" : "I will get"}
+              {isBuy ? "I will receive" : "I will sell"}
             </label>
             <div className="mt-2 flex items-center gap-2">
               <input
@@ -188,6 +203,52 @@ export default function P2POrderCreationPage() {
             </div>
           </div>
         </div>
+
+        {/* Payment Details for Sell Orders */}
+        {!isBuy && (
+          <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4 space-y-4">
+            <h3 className="text-sm font-bold text-white">Your Payment Details</h3>
+            <p className="text-[11px] text-[#848e9c]">
+              Select where you want the merchant to send the ETB.
+            </p>
+            
+            <div>
+              <label className="mb-1 block text-xs text-[#848e9c]">Select Method</label>
+              <select
+                value={selectedMethod}
+                onChange={(e) => setSelectedMethod(e.target.value)}
+                className="w-full rounded-lg border border-white/[0.06] bg-[#0b0e11] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+              >
+                {ad.paymentMethods.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs text-[#848e9c]">Account Holder Name</label>
+                <input
+                  type="text"
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  placeholder="Full name on account"
+                  className="w-full rounded-lg border border-white/[0.06] bg-[#0b0e11] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-[#848e9c]">Account Number / Phone</label>
+                <input
+                  type="text"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  placeholder="Account number"
+                  className="w-full rounded-lg border border-white/[0.06] bg-[#0b0e11] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         <button
           onClick={handlePlaceOrder}
