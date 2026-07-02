@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, query, onSnapshot, doc, setDoc, deleteDoc } from "firebase/firestore";
-import { FiPlus, FiTrash2, FiCheck, FiX } from "react-icons/fi";
+import { collection, query, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { FiPlus, FiTrash2, FiCheck, FiX, FiEdit2 } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import type { P2PMerchant, PaymentMethod } from "@/lib/p2p/types";
 
@@ -28,6 +28,7 @@ export function MerchantManagement() {
   const [merchants, setMerchants] = useState<P2PMerchant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<P2PMerchant>>(blankForm());
 
   useEffect(() => {
@@ -38,28 +39,58 @@ export function MerchantManagement() {
     return () => unsub();
   }, []);
 
+  const openAdd = () => {
+    setEditingId(null);
+    setForm(blankForm());
+    setShowAdd(true);
+  };
+
+  const openEdit = (m: P2PMerchant) => {
+    setEditingId(m.id);
+    setForm({ ...m });
+    setShowAdd(true);
+  };
+
+  const handleCancel = () => {
+    setShowAdd(false);
+    setEditingId(null);
+    setForm(blankForm());
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name?.trim()) return;
 
     try {
-      // Auto-generate a unique merchant ID — no UID required
-      const merchantId = `merchant_${Date.now()}`;
-      const merchantData: P2PMerchant = {
-        id: merchantId,
-        name: form.name.trim(),
-        isVerified: form.isVerified ?? true,
-        completionRate: Number(form.completionRate) || 100,
-        totalOrders: Number(form.totalOrders) || 0,
-        availableUSDT: Number(form.availableUSDT) || 0,
-        supportedPaymentMethods: form.supportedPaymentMethods ?? [],
-        status: form.status ?? "active",
-        createdAt: new Date().toISOString(),
-      };
-
-      await setDoc(doc(getClientFirestore(), "merchants", merchantId), merchantData);
-      setShowAdd(false);
-      setForm(blankForm());
+      if (editingId) {
+        // Update existing merchant
+        await updateDoc(doc(getClientFirestore(), "merchants", editingId), {
+          name: form.name.trim(),
+          isVerified: form.isVerified ?? true,
+          completionRate: Number(form.completionRate) || 100,
+          totalOrders: Number(form.totalOrders) || 0,
+          availableUSDT: Number(form.availableUSDT) || 0,
+          supportedPaymentMethods: form.supportedPaymentMethods ?? [],
+          status: form.status ?? "active",
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        // Create new merchant
+        const merchantId = `merchant_${Date.now()}`;
+        const merchantData: P2PMerchant = {
+          id: merchantId,
+          name: form.name.trim(),
+          isVerified: form.isVerified ?? true,
+          completionRate: Number(form.completionRate) || 100,
+          totalOrders: Number(form.totalOrders) || 0,
+          availableUSDT: Number(form.availableUSDT) || 0,
+          supportedPaymentMethods: form.supportedPaymentMethods ?? [],
+          status: form.status ?? "active",
+          createdAt: new Date().toISOString(),
+        };
+        await setDoc(doc(getClientFirestore(), "merchants", merchantId), merchantData);
+      }
+      handleCancel();
     } catch (err) {
       console.error(err);
       alert("Failed to save merchant");
@@ -90,7 +121,7 @@ export function MerchantManagement() {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-white">Merchants</h3>
         <button
-          onClick={() => setShowAdd(!showAdd)}
+          onClick={showAdd ? handleCancel : openAdd}
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-[#0b0e11] transition hover:bg-primary/90"
         >
           {showAdd ? <FiX /> : <FiPlus />}
@@ -100,6 +131,12 @@ export function MerchantManagement() {
 
       {showAdd && (
         <form onSubmit={handleSave} className="rounded-xl border border-white/[0.06] bg-[#0b0e11] p-4 space-y-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-bold text-primary">
+              {editingId ? "✏️ Editing Merchant" : "➕ New Merchant"}
+            </span>
+          </div>
+
           <div>
             <label className="mb-1 block text-xs text-[#848e9c]">Merchant Display Name</label>
             <input
@@ -144,6 +181,17 @@ export function MerchantManagement() {
                 placeholder="e.g. 1240"
               />
             </div>
+            <div>
+              <label className="mb-1 block text-xs text-[#848e9c]">Status</label>
+              <select
+                value={form.status ?? "active"}
+                onChange={(e) => setForm({ ...form, status: e.target.value as "active" | "inactive" })}
+                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
           </div>
 
           <div>
@@ -173,7 +221,7 @@ export function MerchantManagement() {
             type="submit"
             className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
           >
-            Save Merchant
+            {editingId ? "Save Changes" : "Save Merchant"}
           </button>
         </form>
       )}
@@ -190,11 +238,16 @@ export function MerchantManagement() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold text-white">{m.name}</span>
                   {m.isVerified && <FiCheck className="text-xs text-primary" />}
+                  {m.status === "inactive" && (
+                    <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold text-red-400">INACTIVE</span>
+                  )}
                 </div>
                 <div className="mt-0.5 flex flex-wrap gap-2 text-[10px] text-[#848e9c]">
                   <span>{m.availableUSDT} USDT</span>
                   <span>•</span>
                   <span>{m.completionRate}% completion</span>
+                  <span>•</span>
+                  <span>{m.totalOrders} orders</span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {m.supportedPaymentMethods.map((pm) => (
@@ -204,12 +257,22 @@ export function MerchantManagement() {
                   ))}
                 </div>
               </div>
-              <button
-                onClick={() => handleDelete(m.id)}
-                className="rounded-lg p-2 text-red-500 transition hover:bg-red-500/10"
-              >
-                <FiTrash2 className="text-sm" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => openEdit(m)}
+                  className="rounded-lg p-2 text-[#848e9c] transition hover:bg-white/[0.06] hover:text-white"
+                  title="Edit merchant"
+                >
+                  <FiEdit2 size={14} />
+                </button>
+                <button
+                  onClick={() => handleDelete(m.id)}
+                  className="rounded-lg p-2 text-red-500 transition hover:bg-red-500/10"
+                  title="Delete merchant"
+                >
+                  <FiTrash2 size={14} />
+                </button>
+              </div>
             </div>
           ))
         )}

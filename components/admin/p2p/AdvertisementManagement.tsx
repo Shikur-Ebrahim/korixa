@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, getDocs } from "firebase/firestore";
-import { FiPlus, FiTrash2, FiX } from "react-icons/fi";
+import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs } from "firebase/firestore";
+import { FiPlus, FiTrash2, FiX, FiEdit2 } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import type { P2PAdvertisement, P2PMerchant, PaymentMethod, PaymentAccountDetail } from "@/lib/p2p/types";
 
@@ -41,6 +41,7 @@ export function AdvertisementManagement() {
   const [merchants, setMerchants] = useState<P2PMerchant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<P2PAdvertisement>>(blankForm());
 
   useEffect(() => {
@@ -54,6 +55,24 @@ export function AdvertisementManagement() {
     });
     return () => unsub();
   }, []);
+
+  const openAdd = () => {
+    setEditingId(null);
+    setForm(blankForm());
+    setShowAdd(true);
+  };
+
+  const openEdit = (ad: P2PAdvertisement) => {
+    setEditingId(ad.id);
+    setForm({ ...ad });
+    setShowAdd(true);
+  };
+
+  const handleCancel = () => {
+    setShowAdd(false);
+    setEditingId(null);
+    setForm(blankForm());
+  };
 
   const togglePaymentMethod = (method: PaymentMethod) => {
     setForm((prev) => {
@@ -93,30 +112,50 @@ export function AdvertisementManagement() {
     if (!merchant) return;
 
     try {
-      const adId = `ad_${Date.now()}`;
-      const adData: P2PAdvertisement = {
-        id: adId,
-        merchantId: merchant.id,
-        merchantName: merchant.name,
-        merchantVerified: merchant.isVerified,
-        merchantCompletionRate: merchant.completionRate,
-        merchantTotalOrders: merchant.totalOrders,
-        type: form.type as "buy" | "sell",
-        currency: "ETB",
-        price: Number(form.price),
-        availableUSDT: Number(form.availableUSDT),
-        minOrderLimit: Number(form.minOrderLimit),
-        maxOrderLimit: Number(form.maxOrderLimit),
-        paymentMethods: form.paymentMethods ?? [],
-        paymentAccountDetails: form.paymentAccountDetails ?? [],
-        timeLimit: 15,
-        status: "active",
-        createdAt: new Date().toISOString(),
-      };
-
-      await setDoc(doc(getClientFirestore(), "p2pAdvertisements", adId), adData);
-      setShowAdd(false);
-      setForm(blankForm());
+      if (editingId) {
+        // Update existing ad
+        await updateDoc(doc(getClientFirestore(), "p2pAdvertisements", editingId), {
+          merchantId: merchant.id,
+          merchantName: merchant.name,
+          merchantVerified: merchant.isVerified,
+          merchantCompletionRate: merchant.completionRate,
+          merchantTotalOrders: merchant.totalOrders,
+          type: form.type as "buy" | "sell",
+          currency: "ETB",
+          price: Number(form.price),
+          availableUSDT: Number(form.availableUSDT),
+          minOrderLimit: Number(form.minOrderLimit),
+          maxOrderLimit: Number(form.maxOrderLimit),
+          paymentMethods: form.paymentMethods ?? [],
+          paymentAccountDetails: form.paymentAccountDetails ?? [],
+          status: form.status ?? "active",
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        // Create new ad
+        const adId = `ad_${Date.now()}`;
+        const adData: P2PAdvertisement = {
+          id: adId,
+          merchantId: merchant.id,
+          merchantName: merchant.name,
+          merchantVerified: merchant.isVerified,
+          merchantCompletionRate: merchant.completionRate,
+          merchantTotalOrders: merchant.totalOrders,
+          type: form.type as "buy" | "sell",
+          currency: "ETB",
+          price: Number(form.price),
+          availableUSDT: Number(form.availableUSDT),
+          minOrderLimit: Number(form.minOrderLimit),
+          maxOrderLimit: Number(form.maxOrderLimit),
+          paymentMethods: form.paymentMethods ?? [],
+          paymentAccountDetails: form.paymentAccountDetails ?? [],
+          timeLimit: 15,
+          status: "active",
+          createdAt: new Date().toISOString(),
+        };
+        await setDoc(doc(getClientFirestore(), "p2pAdvertisements", adId), adData);
+      }
+      handleCancel();
     } catch (err) {
       console.error(err);
       alert("Failed to save ad");
@@ -130,7 +169,7 @@ export function AdvertisementManagement() {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-white">Advertisements</h3>
         <button
-          onClick={() => setShowAdd(!showAdd)}
+          onClick={showAdd ? handleCancel : openAdd}
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-[#0b0e11] transition hover:bg-primary/90"
         >
           {showAdd ? <FiX /> : <FiPlus />}
@@ -140,6 +179,12 @@ export function AdvertisementManagement() {
 
       {showAdd && (
         <form onSubmit={handleSave} className="space-y-5 rounded-xl border border-white/[0.06] bg-[#0b0e11] p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-primary">
+              {editingId ? "✏️ Editing Advertisement" : "➕ New Advertisement"}
+            </span>
+          </div>
+
           {/* Merchant */}
           <div>
             <label className="mb-1 block text-xs text-[#848e9c]">Select Merchant</label>
@@ -152,21 +197,20 @@ export function AdvertisementManagement() {
                 setForm((prev) => ({
                   ...prev,
                   merchantId: mId,
-                  ...(merchant ? {
+                  ...(merchant && !editingId ? {
                     availableUSDT: merchant.availableUSDT,
                     paymentMethods: merchant.supportedPaymentMethods || [],
                     paymentAccountDetails: (merchant.supportedPaymentMethods || []).map(method => ({
                       method, accountName: "", accountNumber: ""
                     }))
-                  } : {})
+                  } : {}),
+                  ...(merchant && editingId ? { merchantId: mId } : {}),
                 }));
               }}
               className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
             >
               <option value="">-- Choose Merchant --</option>
-              {merchants
-                .filter(m => !ads.some(ad => ad.merchantId === m.id && ad.type === form.type))
-                .map((m) => (
+              {merchants.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
@@ -178,13 +222,7 @@ export function AdvertisementManagement() {
               <label className="mb-1 block text-xs text-[#848e9c]">Type</label>
               <select
                 value={form.type}
-                onChange={(e) => {
-                  const newType = e.target.value as "buy" | "sell";
-                  setForm(prev => {
-                    const isInvalid = prev.merchantId && ads.some(ad => ad.merchantId === prev.merchantId && ad.type === newType);
-                    return { ...prev, type: newType, merchantId: isInvalid ? "" : prev.merchantId };
-                  });
-                }}
+                onChange={(e) => setForm({ ...form, type: e.target.value as "buy" | "sell" })}
                 className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
               >
                 <option value="buy">User buys USDT</option>
@@ -212,7 +250,18 @@ export function AdvertisementManagement() {
                 className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-xs text-[#848e9c]">Status</label>
+              <select
+                value={form.status ?? "active"}
+                onChange={(e) => setForm({ ...form, status: e.target.value as "active" | "inactive" })}
+                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
               <div>
                 <label className="mb-1 block text-xs text-[#848e9c]">Min ETB</label>
                 <input
@@ -259,7 +308,6 @@ export function AdvertisementManagement() {
               })}
             </div>
 
-            {/* Account detail fields for each selected method */}
             {(form.paymentAccountDetails ?? []).map((detail) => (
               <div key={detail.method} className="mb-3 rounded-lg border border-white/[0.06] bg-[#1e2329] p-3 space-y-2">
                 <div className="text-xs font-semibold text-primary">{detail.method}</div>
@@ -295,7 +343,7 @@ export function AdvertisementManagement() {
             type="submit"
             className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
           >
-            Create Advertisement
+            {editingId ? "Save Changes" : "Create Advertisement"}
           </button>
         </form>
       )}
@@ -316,6 +364,9 @@ export function AdvertisementManagement() {
                       {ad.type === "buy" ? "USER BUYS" : "USER SELLS"}
                     </span>
                     <span className="font-semibold text-white">{ad.price} ETB</span>
+                    {ad.status === "inactive" && (
+                      <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold text-red-400">INACTIVE</span>
+                    )}
                   </div>
                   <div className="mt-1 text-[10px] text-[#848e9c]">
                     {ad.merchantName} • {ad.availableUSDT} USDT • {ad.minOrderLimit}–{ad.maxOrderLimit} ETB
@@ -326,16 +377,26 @@ export function AdvertisementManagement() {
                     ))}
                   </div>
                 </div>
-                <button
-                  onClick={async () => {
-                    if (confirm("Delete this ad?")) {
-                      await deleteDoc(doc(getClientFirestore(), "p2pAdvertisements", ad.id));
-                    }
-                  }}
-                  className="rounded-lg p-2 text-red-500 transition hover:bg-red-500/10"
-                >
-                  <FiTrash2 size={14} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => openEdit(ad)}
+                    className="rounded-lg p-2 text-[#848e9c] transition hover:bg-white/[0.06] hover:text-white"
+                    title="Edit advertisement"
+                  >
+                    <FiEdit2 size={14} />
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (confirm("Delete this ad?")) {
+                        await deleteDoc(doc(getClientFirestore(), "p2pAdvertisements", ad.id));
+                      }
+                    }}
+                    className="rounded-lg p-2 text-red-500 transition hover:bg-red-500/10"
+                    title="Delete advertisement"
+                  >
+                    <FiTrash2 size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           ))
