@@ -192,11 +192,17 @@ export default function P2POrderRoomPage() {
           </div>
         </div>
 
-        {/* Payment Instructions — show real account details */}
+        {/* Payment Instructions */}
         <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4 space-y-3">
-          <h3 className="text-sm font-bold">Payment Details</h3>
+          <h3 className="text-sm font-bold">
+            {order.type === "buy" ? "Payment Details" : "Your Payment Details (Merchant will pay here)"}
+          </h3>
           <p className="text-xs text-[#848e9c]">
-            Transfer exactly <span className="font-bold text-white">{order.amountETB.toLocaleString()} ETB</span> to one of the accounts below. Then upload your receipt and click "I Have Paid".
+            {order.type === "buy" ? (
+              <>Transfer exactly <span className="font-bold text-white">{order.amountETB.toLocaleString()} ETB</span> to one of the accounts below. Then upload your receipt and click "I Have Paid".</>
+            ) : (
+              <>Wait for the merchant to transfer exactly <span className="font-bold text-white">{order.amountETB.toLocaleString()} ETB</span> to your account below.</>
+            )}
           </p>
           {order.paymentAccountDetails && order.paymentAccountDetails.length > 0 ? (
             order.paymentAccountDetails.map((detail) => (
@@ -213,18 +219,20 @@ export default function P2POrderRoomPage() {
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-mono font-bold text-white">{detail.accountNumber}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(detail.accountNumber);
-                          setCopied(detail.method);
-                          setTimeout(() => setCopied(null), 2000);
-                        }}
-                        className="flex items-center justify-center rounded-md bg-[#1e2329] p-1.5 text-[#848e9c] transition hover:bg-primary/20 hover:text-primary"
-                        title="Copy"
-                      >
-                        {copied === detail.method ? <FiCheck size={11} className="text-green-400" /> : <FiCopy size={11} />}
-                      </button>
+                      {order.type === "buy" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(detail.accountNumber);
+                            setCopied(detail.method);
+                            setTimeout(() => setCopied(null), 2000);
+                          }}
+                          className="flex items-center justify-center rounded-md bg-[#1e2329] p-1.5 text-[#848e9c] transition hover:bg-primary/20 hover:text-primary"
+                          title="Copy"
+                        >
+                          {copied === detail.method ? <FiCheck size={11} className="text-green-400" /> : <FiCopy size={11} />}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -239,15 +247,19 @@ export default function P2POrderRoomPage() {
 
         {/* Proof of Payment */}
         <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
-          <h3 className="text-sm font-bold mb-3">Payment Proof</h3>
+          <h3 className="text-sm font-bold mb-3">
+            {order.type === "buy" ? "Upload Payment Proof" : "Merchant's Payment Proof"}
+          </h3>
           {order.paymentProofUrl ? (
             <div className="space-y-3">
-              <img src={order.paymentProofUrl} alt="Proof" className="w-full rounded-lg" />
+              <a href={order.paymentProofUrl} target="_blank" rel="noreferrer">
+                <img src={order.paymentProofUrl} alt="Proof" className="w-full rounded-lg max-h-[300px] object-cover" />
+              </a>
               <div className="text-center text-xs text-green-500 font-medium flex items-center justify-center gap-1">
                 <FiCheck /> Proof Uploaded
               </div>
             </div>
-          ) : (
+          ) : order.type === "buy" ? (
             <div>
               <label className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed py-8 transition ${uploading ? "border-primary/40 text-primary cursor-not-allowed" : "border-white/[0.1] text-[#848e9c] hover:border-primary hover:text-primary"}`}>
                 {uploading ? (
@@ -264,18 +276,55 @@ export default function P2POrderRoomPage() {
                 <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handleUploadProof} />
               </label>
             </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-white/[0.06] py-6 text-center text-xs text-[#848e9c]">
+              Waiting for merchant to upload proof of payment...
+            </div>
           )}
         </div>
 
         {/* Actions */}
-        {order.status === "pending" && isBuyer && (
-          <div className="flex gap-3">
-            <button onClick={handleCancel} className="w-1/3 rounded-xl bg-[#2b3139] py-3 text-sm font-bold text-white transition hover:bg-[#3b4149]">
-              Cancel
-            </button>
-            <button onClick={handleMarkPaid} className="w-2/3 rounded-xl bg-primary py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90">
-              I Have Paid
-            </button>
+        {order.type === "buy" ? (
+          // BUY ORDER ACTIONS
+          order.status === "pending" && (
+            <div className="flex gap-3">
+              <button onClick={handleCancel} className="w-1/3 rounded-xl bg-[#2b3139] py-3 text-sm font-bold text-white transition hover:bg-[#3b4149]">
+                Cancel
+              </button>
+              <button onClick={handleMarkPaid} className="w-2/3 rounded-xl bg-primary py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90">
+                I Have Paid
+              </button>
+            </div>
+          )
+        ) : (
+          // SELL ORDER ACTIONS
+          <div className="flex flex-col gap-3">
+            {order.status === "pending" && (
+              <button disabled className="w-full rounded-xl bg-[#2b3139] py-3 text-sm font-bold text-[#848e9c] opacity-70">
+                Waiting for Merchant to Pay...
+              </button>
+            )}
+            {order.status === "paid" && (
+              <button
+                onClick={async () => {
+                  if (!confirm("Are you sure you have received the ETB in your bank account? Releasing crypto cannot be undone!")) return;
+                  try {
+                    await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), { 
+                      status: "completed",
+                      releasedAt: new Date().toISOString(),
+                      releasedBy: user?.uid 
+                    });
+                    showToast("Crypto released successfully! ✅");
+                  } catch (err) {
+                    console.error(err);
+                    showToast("Failed to release crypto.", "error");
+                  }
+                }}
+                className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
+              >
+                Confirm Payment & Release Crypto
+              </button>
+            )}
           </div>
         )}
 

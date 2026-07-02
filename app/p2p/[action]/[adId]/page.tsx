@@ -212,17 +212,24 @@ export default function P2POrderCreationPage() {
               Select where you want the merchant to send the ETB.
             </p>
             
-            <div>
+            <div className="space-y-2">
               <label className="mb-1 block text-xs text-[#848e9c]">Select Method</label>
-              <select
-                value={selectedMethod}
-                onChange={(e) => setSelectedMethod(e.target.value)}
-                className="w-full rounded-lg border border-white/[0.06] bg-[#0b0e11] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-              >
+              <div className="grid grid-cols-2 gap-2">
                 {ad.paymentMethods.map(m => (
-                  <option key={m} value={m}>{m}</option>
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setSelectedMethod(m)}
+                    className={`rounded-xl border p-3 text-left transition ${
+                      selectedMethod === m
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-white/[0.06] bg-[#0b0e11] text-[#848e9c] hover:bg-[#161a1e]"
+                    }`}
+                  >
+                    <div className="text-sm font-bold">{m}</div>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
