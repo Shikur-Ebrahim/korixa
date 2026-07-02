@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   collection, query, orderBy, onSnapshot,
-  addDoc
+  addDoc, updateDoc, doc
 } from "firebase/firestore";
 import {
   FiMessageSquare, FiCheck, FiX, FiSend,
