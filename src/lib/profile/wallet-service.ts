@@ -1,5 +1,5 @@
 import { getClientFirestore } from "@/lib/firebase";
-import { collection, getDocs, query, where, orderBy, limit, onSnapshot, Unsubscribe, writeBatch, doc } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit, onSnapshot, Unsubscribe, writeBatch, doc, or } from "firebase/firestore";
 
 export type AssetType = "BTC" | "ETH" | "USDT" | "SOL" | "BNB" | string;
 
@@ -91,22 +91,30 @@ export async function getTransactions(uid: string, txType?: TransactionType | Tr
     const snapshot = await getDocs(q);
     let txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TransactionRecord));
     
-    // Fetch p2p orders
-    const qP2P = query(collection(db, "p2pOrders"), where("buyerId", "==", uid));
+    // Fetch p2p orders where user is buyer OR merchant
+    const qP2P = query(collection(db, "p2pOrders"), or(where("buyerId", "==", uid), where("merchantId", "==", uid)));
     const snapP2P = await getDocs(qP2P);
     const p2pTxs = snapP2P.docs.map(doc => {
       const data = doc.data();
+      const isMerchant = data.merchantId === uid;
+      
+      let txTypeStr = "p2p_buy";
+      if (data.type === "buy" && data.buyerId === uid) txTypeStr = "p2p_buy";
+      else if (data.type === "sell" && data.buyerId === uid) txTypeStr = "p2p_sell";
+      else if (data.type === "buy" && isMerchant) txTypeStr = "p2p_sell";
+      else if (data.type === "sell" && isMerchant) txTypeStr = "p2p_buy";
+
       return {
         id: doc.id,
-        type: data.type === "buy" ? "p2p_buy" : "p2p_sell",
+        type: txTypeStr as TransactionType,
         coin: "USDT",
-        amount: data.amountUSDT,
-        usdValue: data.amountUSDT,
-        status: data.status === "completed" ? "completed" : (data.status === "cancelled" ? "failed" : "pending"),
+        amount: data.amountUSDT || 0,
+        usdValue: data.amountUSDT || 0,
+        status: data.status,
         timestamp: new Date(data.createdAt).getTime(),
       } as TransactionRecord;
     });
-
+    
     // Fetch withdrawals
     const qWithdrawals = query(collection(db, "withdrawals"), where("userId", "==", uid));
     const snapWithdrawals = await getDocs(qWithdrawals);
@@ -236,17 +244,25 @@ export function subscribeTransactions(uid: string, txType: TransactionType | Tra
     console.error("Failed to subscribe to transactions", error);
   });
 
-  const unsubP2P = onSnapshot(query(collection(db, "p2pOrders"), where("buyerId", "==", uid)), (snapshot) => {
+  const unsubP2P = onSnapshot(query(collection(db, "p2pOrders"), or(where("buyerId", "==", uid), where("merchantId", "==", uid))), (snapshot) => {
     p2pMap.clear();
     snapshot.docs.forEach(doc => {
       const data = doc.data();
+      const isMerchant = data.merchantId === uid;
+      
+      let txTypeStr = "p2p_buy";
+      if (data.type === "buy" && data.buyerId === uid) txTypeStr = "p2p_buy";
+      else if (data.type === "sell" && data.buyerId === uid) txTypeStr = "p2p_sell";
+      else if (data.type === "buy" && isMerchant) txTypeStr = "p2p_sell";
+      else if (data.type === "sell" && isMerchant) txTypeStr = "p2p_buy";
+
       p2pMap.set(doc.id, {
         id: doc.id,
-        type: data.type === "buy" ? "p2p_buy" : "p2p_sell",
+        type: txTypeStr as TransactionType,
         coin: "USDT",
-        amount: data.amountUSDT,
-        usdValue: data.amountUSDT,
-        status: data.status === "completed" ? "completed" : (data.status === "cancelled" ? "failed" : "pending"),
+        amount: data.amountUSDT || 0,
+        usdValue: data.amountUSDT || 0,
+        status: data.status,
         timestamp: new Date(data.createdAt).getTime(),
       } as TransactionRecord);
     });

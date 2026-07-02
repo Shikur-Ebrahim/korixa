@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, or } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { FiArrowLeft, FiClock, FiCheckCircle, FiXCircle } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
@@ -19,7 +19,7 @@ export default function P2POrderHistory() {
     if (!user) return;
     const q = query(
       collection(getClientFirestore(), "p2pOrders"),
-      where("buyerId", "==", user.uid)
+      or(where("buyerId", "==", user.uid), where("merchantId", "==", user.uid))
     );
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as P2POrder));
@@ -111,6 +111,9 @@ export default function P2POrderHistory() {
                       {isBuy ? "Buy" : "Sell"}
                     </span>
                     <span className="text-sm font-bold text-white">USDT</span>
+                    {order.merchantId === user?.uid && (
+                      <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary">My Ad</span>
+                    )}
                   </div>
                   <div className={`flex items-center gap-1.5 text-xs font-semibold ${statusColor} capitalize`}>
                     {order.status}

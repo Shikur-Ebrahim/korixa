@@ -132,7 +132,11 @@ export default function P2POrderRoomPage() {
   if (!order) return <div className="min-h-screen bg-[#0b0e11] pt-24 text-center text-red-500">Order not found.</div>;
 
   const isBuyer = user?.uid === order.buyerId;
-  const isAdminOrMerchant = role === "admin" || user?.uid === order.merchantId;
+  const isMerchant = user?.uid === order.merchantId;
+  const isAdminOrMerchant = role === "admin" || isMerchant;
+
+  const isPayingETB = (isBuyer && order.type === "buy") || (isMerchant && order.type === "sell");
+  const isReleasingCrypto = (isBuyer && order.type === "sell") || (isMerchant && order.type === "buy");
 
   return (
     <div className="min-h-screen bg-[#0b0e11] text-white">
@@ -195,13 +199,13 @@ export default function P2POrderRoomPage() {
         {/* Payment Instructions */}
         <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4 space-y-3">
           <h3 className="text-sm font-bold">
-            {order.type === "buy" ? "Payment Details" : "Your Payment Details (Merchant will pay here)"}
+            {isPayingETB ? "Payment Details" : "Your Payment Details (Buyer will pay here)"}
           </h3>
           <p className="text-xs text-[#848e9c]">
-            {order.type === "buy" ? (
+            {isPayingETB ? (
               <>Transfer exactly <span className="font-bold text-white">{order.amountETB.toLocaleString()} ETB</span> to one of the accounts below. Then upload your receipt and click "I Have Paid".</>
             ) : (
-              <>Wait for the merchant to transfer exactly <span className="font-bold text-white">{order.amountETB.toLocaleString()} ETB</span> to your account below.</>
+              <>Wait for the other party to transfer exactly <span className="font-bold text-white">{order.amountETB.toLocaleString()} ETB</span> to your account below.</>
             )}
           </p>
           {order.paymentAccountDetails && order.paymentAccountDetails.length > 0 ? (
@@ -219,7 +223,7 @@ export default function P2POrderRoomPage() {
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-mono font-bold text-white">{detail.accountNumber}</span>
-                      {order.type === "buy" && (
+                      {isPayingETB && (
                         <button
                           type="button"
                           onClick={() => {
@@ -248,7 +252,7 @@ export default function P2POrderRoomPage() {
         {/* Proof of Payment */}
         <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-4">
           <h3 className="text-sm font-bold mb-3">
-            {order.type === "buy" ? "Upload Payment Proof" : "Merchant's Payment Proof"}
+            {isPayingETB ? "Upload Payment Proof" : "Other Party's Payment Proof"}
           </h3>
           {order.paymentProofUrl ? (
             <div className="space-y-3">
@@ -259,7 +263,7 @@ export default function P2POrderRoomPage() {
                 <FiCheck /> Proof Uploaded
               </div>
             </div>
-          ) : order.type === "buy" ? (
+          ) : isPayingETB ? (
             <div>
               <label className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed py-8 transition ${uploading ? "border-primary/40 text-primary cursor-not-allowed" : "border-white/[0.1] text-[#848e9c] hover:border-primary hover:text-primary"}`}>
                 {uploading ? (
@@ -278,14 +282,14 @@ export default function P2POrderRoomPage() {
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-white/[0.06] py-6 text-center text-xs text-[#848e9c]">
-              Waiting for merchant to upload proof of payment...
+              Waiting for the other party to upload proof of payment...
             </div>
           )}
         </div>
 
         {/* Actions */}
-        {order.type === "buy" ? (
-          // BUY ORDER ACTIONS
+        {isPayingETB ? (
+          // ACTIONS FOR THE PERSON PAYING ETB
           order.status === "pending" && (
             <div className="flex gap-3">
               <button onClick={handleCancel} className="w-1/3 rounded-xl bg-[#2b3139] py-3 text-sm font-bold text-white transition hover:bg-[#3b4149]">
@@ -297,11 +301,11 @@ export default function P2POrderRoomPage() {
             </div>
           )
         ) : (
-          // SELL ORDER ACTIONS
+          // ACTIONS FOR THE PERSON RELEASING CRYPTO
           <div className="flex flex-col gap-3">
             {order.status === "pending" && (
               <button disabled className="w-full rounded-xl bg-[#2b3139] py-3 text-sm font-bold text-[#848e9c] opacity-70">
-                Waiting for Merchant to Pay...
+                Waiting for Payment...
               </button>
             )}
             {order.status === "paid" && (
@@ -345,16 +349,16 @@ export default function P2POrderRoomPage() {
           </button>
         )}
 
-        {/* Admin/Merchant Actions */}
-        {order.status === "paid" && isAdminOrMerchant && (
+        {/* Admin actions (Fallback release if things break) */}
+        {order.status === "paid" && role === "admin" && (
           <button
             onClick={async () => {
               await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), { status: "completed" });
-              showToast("USDT released! Order completed. ✅");
+              showToast("USDT released manually by Admin! ✅");
             }}
-            className="w-full rounded-xl bg-green-500 py-4 text-sm font-bold text-white transition hover:bg-green-600"
+            className="w-full rounded-xl bg-green-500 py-4 text-sm font-bold text-white transition hover:bg-green-600 mt-3"
           >
-            Release {order.amountUSDT} USDT
+            Admin Release {order.amountUSDT} USDT
           </button>
         )}
 
