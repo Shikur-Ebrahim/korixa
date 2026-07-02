@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs } from "firebase/firestore";
-import { FiPlus, FiTrash2, FiX, FiEdit2 } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiX, FiEdit2, FiInfo } from "react-icons/fi";
 import { getClientFirestore } from "@/lib/firebase";
 import type { P2PAdvertisement, P2PMerchant, PaymentMethod, PaymentAccountDetail } from "@/lib/p2p/types";
 
@@ -33,6 +33,7 @@ function blankForm(): Partial<P2PAdvertisement> {
     paymentMethods: [],
     paymentAccountDetails: [],
     status: "active",
+    timeLimit: 15,
   };
 }
 
@@ -74,6 +75,8 @@ export function AdvertisementManagement() {
     setForm(blankForm());
   };
 
+  const isBuyAd = form.type === "buy"; // User BUYS from merchant → merchant needs payment account details
+
   const togglePaymentMethod = (method: PaymentMethod) => {
     setForm((prev) => {
       const methods = prev.paymentMethods ?? [];
@@ -108,52 +111,49 @@ export function AdvertisementManagement() {
     if (!form.merchantId) { alert("Please select a merchant"); return; }
     if (!form.paymentMethods?.length) { alert("Please select at least one payment method"); return; }
 
+    // For buy ads, all account details must be filled in
+    if (isBuyAd) {
+      const incomplete = (form.paymentAccountDetails ?? []).some(
+        (d) => !d.accountName.trim() || !d.accountNumber.trim()
+      );
+      if (incomplete) { alert("Please fill in all payment account details"); return; }
+    }
+
     const merchant = merchants.find((m) => m.id === form.merchantId);
     if (!merchant) return;
 
+    const adPayload = {
+      merchantId: merchant.id,
+      merchantName: merchant.name,
+      merchantVerified: merchant.isVerified,
+      merchantCompletionRate: merchant.completionRate,
+      merchantTotalOrders: merchant.totalOrders,
+      type: form.type as "buy" | "sell",
+      currency: "ETB",
+      price: Number(form.price),
+      availableUSDT: Number(form.availableUSDT),
+      minOrderLimit: Number(form.minOrderLimit),
+      maxOrderLimit: Number(form.maxOrderLimit),
+      paymentMethods: form.paymentMethods ?? [],
+      // For sell ads (user sells USDT to merchant), no payment account details needed
+      paymentAccountDetails: isBuyAd ? (form.paymentAccountDetails ?? []) : [],
+      timeLimit: Number(form.timeLimit) || 15,
+      status: (form.status ?? "active") as "active" | "disabled" | "paused",
+    };
+
     try {
       if (editingId) {
-        // Update existing ad
         await updateDoc(doc(getClientFirestore(), "p2pAdvertisements", editingId), {
-          merchantId: merchant.id,
-          merchantName: merchant.name,
-          merchantVerified: merchant.isVerified,
-          merchantCompletionRate: merchant.completionRate,
-          merchantTotalOrders: merchant.totalOrders,
-          type: form.type as "buy" | "sell",
-          currency: "ETB",
-          price: Number(form.price),
-          availableUSDT: Number(form.availableUSDT),
-          minOrderLimit: Number(form.minOrderLimit),
-          maxOrderLimit: Number(form.maxOrderLimit),
-          paymentMethods: form.paymentMethods ?? [],
-          paymentAccountDetails: form.paymentAccountDetails ?? [],
-          status: form.status ?? "active",
+          ...adPayload,
           updatedAt: new Date().toISOString(),
         });
       } else {
-        // Create new ad
         const adId = `ad_${Date.now()}`;
-        const adData: P2PAdvertisement = {
+        await setDoc(doc(getClientFirestore(), "p2pAdvertisements", adId), {
+          ...adPayload,
           id: adId,
-          merchantId: merchant.id,
-          merchantName: merchant.name,
-          merchantVerified: merchant.isVerified,
-          merchantCompletionRate: merchant.completionRate,
-          merchantTotalOrders: merchant.totalOrders,
-          type: form.type as "buy" | "sell",
-          currency: "ETB",
-          price: Number(form.price),
-          availableUSDT: Number(form.availableUSDT),
-          minOrderLimit: Number(form.minOrderLimit),
-          maxOrderLimit: Number(form.maxOrderLimit),
-          paymentMethods: form.paymentMethods ?? [],
-          paymentAccountDetails: form.paymentAccountDetails ?? [],
-          timeLimit: 15,
-          status: "active",
           createdAt: new Date().toISOString(),
-        };
-        await setDoc(doc(getClientFirestore(), "p2pAdvertisements", adId), adData);
+        });
       }
       handleCancel();
     } catch (err) {
@@ -185,6 +185,57 @@ export function AdvertisementManagement() {
             </span>
           </div>
 
+          {/* Ad Type Selection — prominent */}
+          <div>
+            <label className="mb-2 block text-xs font-semibold text-[#848e9c]">Ad Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setForm(prev => ({
+                  ...prev,
+                  type: "buy",
+                  paymentAccountDetails: (prev.paymentMethods ?? []).map(m => ({
+                    method: m,
+                    accountName: (prev.paymentAccountDetails ?? []).find(d => d.method === m)?.accountName ?? "",
+                    accountNumber: (prev.paymentAccountDetails ?? []).find(d => d.method === m)?.accountNumber ?? "",
+                  }))
+                }))}
+                className={`rounded-xl border p-3 text-left transition ${
+                  form.type === "buy"
+                    ? "border-green-500 bg-green-500/10"
+                    : "border-white/[0.06] bg-[#1e2329] hover:bg-[#2b3139]"
+                }`}
+              >
+                <div className={`text-sm font-bold ${form.type === "buy" ? "text-green-400" : "text-white"}`}>Buy Ad</div>
+                <div className="mt-1 text-[10px] text-[#848e9c]">User buys USDT from merchant</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm(prev => ({ ...prev, type: "sell", paymentAccountDetails: [] }))}
+                className={`rounded-xl border p-3 text-left transition ${
+                  form.type === "sell"
+                    ? "border-red-500 bg-red-500/10"
+                    : "border-white/[0.06] bg-[#1e2329] hover:bg-[#2b3139]"
+                }`}
+              >
+                <div className={`text-sm font-bold ${form.type === "sell" ? "text-red-400" : "text-white"}`}>Sell Ad</div>
+                <div className="mt-1 text-[10px] text-[#848e9c]">User sells USDT to merchant</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Info Banner depending on type */}
+          <div className={`flex items-start gap-2 rounded-lg p-3 text-[10px] ${
+            isBuyAd ? "bg-green-500/10 border border-green-500/20" : "bg-red-500/10 border border-red-500/20"
+          }`}>
+            <FiInfo size={12} className={`mt-0.5 shrink-0 ${isBuyAd ? "text-green-400" : "text-red-400"}`} />
+            <span className={isBuyAd ? "text-green-300" : "text-red-300"}>
+              {isBuyAd
+                ? "You are creating a BUY ad. Users will pay ETB to buy USDT. Enter your payment account details so users know where to send money."
+                : "You are creating a SELL ad. Users will send USDT and receive ETB. Select the payment methods you accept — no account details needed here."}
+            </span>
+          </div>
+
           {/* Merchant */}
           <div>
             <label className="mb-1 block text-xs text-[#848e9c]">Select Merchant</label>
@@ -200,11 +251,12 @@ export function AdvertisementManagement() {
                   ...(merchant && !editingId ? {
                     availableUSDT: merchant.availableUSDT,
                     paymentMethods: merchant.supportedPaymentMethods || [],
-                    paymentAccountDetails: (merchant.supportedPaymentMethods || []).map(method => ({
-                      method, accountName: "", accountNumber: ""
-                    }))
+                    paymentAccountDetails: isBuyAd
+                      ? (merchant.supportedPaymentMethods || []).map(method => ({
+                          method, accountName: "", accountNumber: ""
+                        }))
+                      : [],
                   } : {}),
-                  ...(merchant && editingId ? { merchantId: mId } : {}),
                 }));
               }}
               className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
@@ -216,19 +268,8 @@ export function AdvertisementManagement() {
             </select>
           </div>
 
-          {/* Type + Price */}
+          {/* Price + USDT + Limits */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-xs text-[#848e9c]">Type</label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value as "buy" | "sell" })}
-                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-              >
-                <option value="buy">User buys USDT</option>
-                <option value="sell">User sells USDT</option>
-              </select>
-            </div>
             <div>
               <label className="mb-1 block text-xs text-[#848e9c]">Price (ETB per USDT)</label>
               <input
@@ -238,6 +279,7 @@ export function AdvertisementManagement() {
                 value={form.price || ""}
                 onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
                 className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                placeholder="e.g. 145.50"
               />
             </div>
             <div>
@@ -248,7 +290,42 @@ export function AdvertisementManagement() {
                 value={form.availableUSDT || ""}
                 onChange={(e) => setForm({ ...form, availableUSDT: Number(e.target.value) })}
                 className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                placeholder="e.g. 5000"
               />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-[#848e9c]">Min Order (ETB)</label>
+              <input
+                required
+                type="number"
+                value={form.minOrderLimit || ""}
+                onChange={(e) => setForm({ ...form, minOrderLimit: Number(e.target.value) })}
+                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                placeholder="e.g. 500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-[#848e9c]">Max Order (ETB)</label>
+              <input
+                required
+                type="number"
+                value={form.maxOrderLimit || ""}
+                onChange={(e) => setForm({ ...form, maxOrderLimit: Number(e.target.value) })}
+                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                placeholder="e.g. 50000"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-[#848e9c]">Time Limit (minutes)</label>
+              <select
+                value={form.timeLimit ?? 15}
+                onChange={(e) => setForm({ ...form, timeLimit: Number(e.target.value) })}
+                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+              >
+                <option value={15}>15 minutes</option>
+                <option value={30}>30 minutes</option>
+                <option value={60}>60 minutes</option>
+              </select>
             </div>
             <div>
               <label className="mb-1 block text-xs text-[#848e9c]">Status</label>
@@ -262,33 +339,13 @@ export function AdvertisementManagement() {
                 <option value="disabled">Disabled</option>
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
-              <div>
-                <label className="mb-1 block text-xs text-[#848e9c]">Min ETB</label>
-                <input
-                  required
-                  type="number"
-                  value={form.minOrderLimit || ""}
-                  onChange={(e) => setForm({ ...form, minOrderLimit: Number(e.target.value) })}
-                  className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-[#848e9c]">Max ETB</label>
-                <input
-                  required
-                  type="number"
-                  value={form.maxOrderLimit || ""}
-                  onChange={(e) => setForm({ ...form, maxOrderLimit: Number(e.target.value) })}
-                  className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-                />
-              </div>
-            </div>
           </div>
 
           {/* Payment Methods */}
           <div>
-            <label className="mb-2 block text-xs text-[#848e9c]">Payment Methods & Account Details</label>
+            <label className="mb-2 block text-xs text-[#848e9c]">
+              {isBuyAd ? "Payment Methods & Account Details" : "Payment Methods You Accept"}
+            </label>
             <div className="flex flex-wrap gap-2 mb-4">
               {ALL_PAYMENT_METHODS.map((method) => {
                 const active = form.paymentMethods?.includes(method);
@@ -309,14 +366,15 @@ export function AdvertisementManagement() {
               })}
             </div>
 
-            {(form.paymentAccountDetails ?? []).map((detail) => (
+            {/* Account detail fields — only for BUY ads */}
+            {isBuyAd && (form.paymentAccountDetails ?? []).map((detail) => (
               <div key={detail.method} className="mb-3 rounded-lg border border-white/[0.06] bg-[#1e2329] p-3 space-y-2">
                 <div className="text-xs font-semibold text-primary">{detail.method}</div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-[10px] text-[#848e9c]">Account Holder Name</label>
                     <input
-                      required
+                      required={isBuyAd}
                       type="text"
                       value={detail.accountName}
                       onChange={(e) => updateAccountDetail(detail.method, "accountName", e.target.value)}
@@ -327,7 +385,7 @@ export function AdvertisementManagement() {
                   <div>
                     <label className="mb-1 block text-[10px] text-[#848e9c]">{accountLabel[detail.method]}</label>
                     <input
-                      required
+                      required={isBuyAd}
                       type="text"
                       value={detail.accountNumber}
                       onChange={(e) => updateAccountDetail(detail.method, "accountNumber", e.target.value)}
@@ -338,13 +396,28 @@ export function AdvertisementManagement() {
                 </div>
               </div>
             ))}
+
+            {/* Sell ad explanation */}
+            {!isBuyAd && (form.paymentMethods ?? []).length > 0 && (
+              <div className="rounded-lg bg-[#1e2329] border border-white/[0.06] p-3 text-[10px] text-[#848e9c]">
+                ✅ Users will select one of these methods to receive their ETB payment when they sell USDT.
+              </div>
+            )}
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
+            className={`w-full rounded-xl py-3 text-sm font-bold transition ${
+              isBuyAd
+                ? "bg-green-500 hover:bg-green-600 text-white"
+                : "bg-red-500 hover:bg-red-600 text-white"
+            }`}
           >
-            {editingId ? "Save Changes" : "Create Advertisement"}
+            {editingId
+              ? "Save Changes"
+              : isBuyAd
+                ? "✅ Create Buy Ad (Users can Buy USDT)"
+                : "✅ Create Sell Ad (Users can Sell USDT)"}
           </button>
         </form>
       )}
@@ -361,12 +434,16 @@ export function AdvertisementManagement() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${ad.type === "buy" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-                      {ad.type === "buy" ? "USER BUYS" : "USER SELLS"}
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                      ad.type === "buy" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                    }`}>
+                      {ad.type === "buy" ? "BUY AD (Users Buy)" : "SELL AD (Users Sell)"}
                     </span>
-                    <span className="font-semibold text-white">{ad.price} ETB</span>
+                    <span className="font-semibold text-white text-sm">{ad.price} ETB</span>
                     {(ad.status === "disabled" || ad.status === "paused") && (
-                      <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold text-red-400">{ad.status.toUpperCase()}</span>
+                      <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold text-red-400">
+                        {ad.status.toUpperCase()}
+                      </span>
                     )}
                   </div>
                   <div className="mt-1 text-[10px] text-[#848e9c]">
@@ -377,6 +454,11 @@ export function AdvertisementManagement() {
                       <span key={m} className="rounded bg-[#1e2329] px-1.5 py-0.5 text-[9px] text-[#848e9c]">{m}</span>
                     ))}
                   </div>
+                  {ad.type === "buy" && ad.paymentAccountDetails?.length > 0 && (
+                    <div className="mt-1 text-[9px] text-primary">
+                      ✓ {ad.paymentAccountDetails.length} account detail(s) configured
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <button
