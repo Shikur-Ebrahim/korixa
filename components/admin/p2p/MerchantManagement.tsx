@@ -185,11 +185,11 @@ export function MerchantManagement() {
               <label className="mb-1 block text-xs text-[#848e9c]">Status</label>
               <select
                 value={form.status ?? "active"}
-                onChange={(e) => setForm({ ...form, status: e.target.value as "active" | "inactive" })}
+                onChange={(e) => setForm({ ...form, status: e.target.value as "active" | "suspended" })}
                 className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
               >
                 <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
               </select>
             </div>
           </div>
@@ -238,7 +238,7 @@ export function MerchantManagement() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold text-white">{m.name}</span>
                   {m.isVerified && <FiCheck className="text-xs text-primary" />}
-                  {m.status === "inactive" && (
+                  {m.status === "suspended" && (
                     <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold text-red-400">INACTIVE</span>
                   )}
                 </div>

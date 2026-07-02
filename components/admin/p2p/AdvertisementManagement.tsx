@@ -254,11 +254,12 @@ export function AdvertisementManagement() {
               <label className="mb-1 block text-xs text-[#848e9c]">Status</label>
               <select
                 value={form.status ?? "active"}
-                onChange={(e) => setForm({ ...form, status: e.target.value as "active" | "inactive" })}
+                onChange={(e) => setForm({ ...form, status: e.target.value as "active" | "disabled" | "paused" })}
                 className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
               >
                 <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="paused">Paused</option>
+                <option value="disabled">Disabled</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:col-span-2">
@@ -364,8 +365,8 @@ export function AdvertisementManagement() {
                       {ad.type === "buy" ? "USER BUYS" : "USER SELLS"}
                     </span>
                     <span className="font-semibold text-white">{ad.price} ETB</span>
-                    {ad.status === "inactive" && (
-                      <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold text-red-400">INACTIVE</span>
+                    {(ad.status === "disabled" || ad.status === "paused") && (
+                      <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold text-red-400">{ad.status.toUpperCase()}</span>
                     )}
                   </div>
                   <div className="mt-1 text-[10px] text-[#848e9c]">
