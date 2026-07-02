@@ -14,11 +14,13 @@ const ALL_PAYMENT_METHODS: PaymentMethod[] = [
   "Bank of Abyssinia",
 ];
 
-const blankForm = (): Partial<P2PMerchant> => ({
+const blankForm = (): Partial<P2PMerchant> & { seedTotalOrders?: number; seedCompletionRate?: number } => ({
   name: "",
   isVerified: true,
   completionRate: 100,
   totalOrders: 0,
+  seedTotalOrders: 0,
+  seedCompletionRate: 100,
   availableUSDT: 0,
   supportedPaymentMethods: [],
   status: "active",
@@ -29,7 +31,7 @@ export function MerchantManagement() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Partial<P2PMerchant>>(blankForm());
+  const [form, setForm] = useState<Partial<P2PMerchant> & { seedTotalOrders?: number; seedCompletionRate?: number }>(blankForm());
 
   useEffect(() => {
     const unsub = onSnapshot(collection(getClientFirestore(), "merchants"), (snap) => {
@@ -63,32 +65,39 @@ export function MerchantManagement() {
 
     try {
       if (editingId) {
-        // Update existing merchant
+        // On edit: only update name, USDT, status, paymentMethods
+        // totalOrders & completionRate are auto-managed by real orders
         await updateDoc(doc(getClientFirestore(), "merchants", editingId), {
           name: form.name.trim(),
           isVerified: form.isVerified ?? true,
-          completionRate: Number(form.completionRate) || 100,
-          totalOrders: Number(form.totalOrders) || 0,
           availableUSDT: Number(form.availableUSDT) || 0,
           supportedPaymentMethods: form.supportedPaymentMethods ?? [],
           status: form.status ?? "active",
           updatedAt: new Date().toISOString(),
         });
       } else {
-        // Create new merchant
+        // Create new merchant — set seed values as the starting point
+        const seedTotalOrders = Number((form as any).seedTotalOrders) || 0;
+        const seedCompletionRate = Number((form as any).seedCompletionRate) || 100;
+        // Calculate how many of the seed orders were "completed"
+        const seedCompletedOrders = Math.round((seedCompletionRate / 100) * seedTotalOrders);
+
         const merchantId = `merchant_${Date.now()}`;
-        const merchantData: P2PMerchant = {
+        await setDoc(doc(getClientFirestore(), "merchants", merchantId), {
           id: merchantId,
           name: form.name.trim(),
           isVerified: form.isVerified ?? true,
-          completionRate: Number(form.completionRate) || 100,
-          totalOrders: Number(form.totalOrders) || 0,
+          // Display values = seed values initially
+          totalOrders: seedTotalOrders,
+          completionRate: seedCompletionRate,
+          // Store seeds so real-order updates can add on top
+          seedTotalOrders,
+          seedCompletedOrders,
           availableUSDT: Number(form.availableUSDT) || 0,
           supportedPaymentMethods: form.supportedPaymentMethods ?? [],
           status: form.status ?? "active",
           createdAt: new Date().toISOString(),
-        };
-        await setDoc(doc(getClientFirestore(), "merchants", merchantId), merchantData);
+        });
       }
       handleCancel();
     } catch (err) {
@@ -161,27 +170,6 @@ export function MerchantManagement() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-[#848e9c]">Completion Rate (%)</label>
-              <input
-                type="number"
-                max={100}
-                value={form.completionRate ?? ""}
-                onChange={(e) => setForm({ ...form, completionRate: Number(e.target.value) })}
-                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-                placeholder="100"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-[#848e9c]">Total Orders (shown to users)</label>
-              <input
-                type="number"
-                value={form.totalOrders ?? ""}
-                onChange={(e) => setForm({ ...form, totalOrders: Number(e.target.value) })}
-                className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
-                placeholder="e.g. 1240"
-              />
-            </div>
-            <div>
               <label className="mb-1 block text-xs text-[#848e9c]">Status</label>
               <select
                 value={form.status ?? "active"}
@@ -193,6 +181,54 @@ export function MerchantManagement() {
               </select>
             </div>
           </div>
+
+          {/* Seed stats — only shown during creation */}
+          {!editingId && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-3">
+              <p className="text-[10px] font-bold text-primary">📊 Initial Display Stats (set once at creation)</p>
+              <p className="text-[10px] text-[#848e9c]">After creation, these numbers will auto-update with real orders.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs text-[#848e9c]">Starting Total Orders</label>
+                  <input
+                    type="number"
+                    value={(form as any).seedTotalOrders ?? ""}
+                    onChange={(e) => setForm({ ...form, seedTotalOrders: Number(e.target.value) } as any)}
+                    className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                    placeholder="e.g. 1240"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-[#848e9c]">Starting Completion Rate (%)</label>
+                  <input
+                    type="number"
+                    max={100}
+                    value={(form as any).seedCompletionRate ?? ""}
+                    onChange={(e) => setForm({ ...form, seedCompletionRate: Number(e.target.value) } as any)}
+                    className="w-full rounded-lg border border-white/[0.06] bg-[#1e2329] px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                    placeholder="e.g. 99.82"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* When editing, show live stats as read-only */}
+          {editingId && (
+            <div className="rounded-lg border border-white/[0.06] bg-[#0b0e11] p-3">
+              <p className="text-[10px] font-bold text-[#848e9c] mb-2">📊 Live Stats (auto-updated by real orders)</p>
+              <div className="flex gap-4 text-xs">
+                <div>
+                  <span className="text-[#848e9c]">Total Orders: </span>
+                  <span className="font-bold text-white">{(form as any).totalOrders ?? 0}</span>
+                </div>
+                <div>
+                  <span className="text-[#848e9c]">Completion Rate: </span>
+                  <span className="font-bold text-white">{(form as any).completionRate ?? 100}%</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="mb-2 block text-xs text-[#848e9c]">Supported Payment Methods</label>

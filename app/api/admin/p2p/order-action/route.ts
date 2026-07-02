@@ -11,21 +11,32 @@ async function updateMerchantStats(db: FirebaseFirestore.Firestore, merchantId: 
   if (!merchantId) return;
 
   try {
+    // Fetch the merchant to get seed values
+    const merchantDoc = await db.collection("merchants").doc(merchantId).get();
+    if (!merchantDoc.exists) return;
+    const merchantData = merchantDoc.data()!;
+    const seedTotalOrders = merchantData.seedTotalOrders || 0;
+    const seedCompletedOrders = merchantData.seedCompletedOrders || 0;
+
     // Get all orders for this merchant that have a final status
     const ordersSnap = await db.collection("p2pOrders")
       .where("merchantId", "==", merchantId)
       .where("status", "in", ["completed", "cancelled"])
       .get();
 
-    const totalOrders = ordersSnap.size;
-    const completedOrders = ordersSnap.docs.filter(d => d.data().status === "completed").length;
-    const completionRate = totalOrders > 0
-      ? Math.round((completedOrders / totalOrders) * 100 * 100) / 100 // e.g. 98.73
+    const realTotalOrders = ordersSnap.size;
+    const realCompletedOrders = ordersSnap.docs.filter(d => d.data().status === "completed").length;
+
+    const finalTotalOrders = realTotalOrders + seedTotalOrders;
+    const finalCompletedOrders = realCompletedOrders + seedCompletedOrders;
+
+    const completionRate = finalTotalOrders > 0
+      ? Math.round((finalCompletedOrders / finalTotalOrders) * 100 * 100) / 100 // e.g. 98.73
       : 100;
 
     // Update the merchant document
     await db.collection("merchants").doc(merchantId).update({
-      totalOrders,
+      totalOrders: finalTotalOrders,
       completionRate,
       updatedAt: new Date().toISOString(),
     });
