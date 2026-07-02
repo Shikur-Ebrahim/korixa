@@ -9,11 +9,11 @@ export async function GET() {
       .get();
       
     const networks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    // Sort by newest added first (createdAt descending)
+    // Sort by oldest added first (createdAt ascending)
     networks.sort((a: any, b: any) => {
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
+      return dateA - dateB;
     });
     
     return NextResponse.json(networks);
