@@ -6,6 +6,29 @@ import { FiArrowLeft, FiInfo, FiCheckSquare, FiX } from "react-icons/fi";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFirestoreAssetsData } from "@/hooks/useFirestoreAssetsData";
 
+const NETWORK_OPTIONS = [
+  { id: "TRC20", name: "TRON (TRC20)", fee: 1, suspended: false },
+  { id: "APTOS", name: "APTOS", fee: 0, suspended: false },
+  { id: "BEP20", name: "BSC (BEP20)", fee: 0.2, suspended: false },
+  { id: "TON", name: "TON", fee: 0.15, suspended: false },
+  { id: "ERC20", name: "Ethereum (ERC20)", fee: 0.8, suspended: false },
+  { id: "PLASMA", name: "Plasma (USDT0)", fee: 0, suspended: false },
+  { id: "POLYGON", name: "Polygon PoS", fee: 0.1, suspended: false },
+  { id: "SOL", name: "SOL", fee: 0.5, suspended: false },
+  { id: "ARBITRUM", name: "Arbitrum One(USDT0)", fee: 0.1, suspended: false },
+  { id: "MANTLE", name: "Mantle Network(USDT0)", fee: 0, suspended: false },
+  { id: "AVAXC", name: "AVAXC", fee: 0.1, suspended: false },
+  { id: "HYPEREVM", name: "HYPEREVM (USDT0)", fee: 0, suspended: false },
+  { id: "CELO", name: "CELO", fee: 0.5, suspended: false },
+  { id: "KAIA", name: "KAIA", fee: 0.1, suspended: false },
+  { id: "BERA", name: "BERA (USDT0)", fee: 0, suspended: false },
+  { id: "OP", name: "OP Mainnet", fee: 1, suspended: false },
+  { id: "KAVAEVM", name: "KAVAEVM", fee: 0.3, suspended: false },
+  { id: "MONAD", name: "MONAD(USDT0)", fee: 1, suspended: false },
+  { id: "CORN", name: "CORN (USDT0)", fee: 0, suspended: true },
+  { id: "ZKSYNC", name: "zkSync Lite", fee: 0.3, suspended: true },
+];
+
 export default function OnchainWithdrawPage() {
   const router = useRouter();
   const { getIdToken } = useAuth();
@@ -20,7 +43,9 @@ export default function OnchainWithdrawPage() {
 
   const usdtWallet = fundingWallets.find(w => w.coin === "USDT");
   const maxBalance = usdtWallet?.balance ?? 0;
-  const fee = 1.00; // Fixed fee for on-chain withdrawal
+  
+  const selectedNetObj = NETWORK_OPTIONS.find(n => n.id === network) || NETWORK_OPTIONS[0];
+  const fee = selectedNetObj.fee;
 
   const handleSubmit = async () => {
     if (!address || !amount) {
@@ -115,7 +140,7 @@ export default function OnchainWithdrawPage() {
           <p className="text-xs text-[#848e9c] mb-2">Network</p>
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold text-white">
-              {network === "TRC20" ? "Tron (TRC20)" : network === "ERC20" ? "Ethereum (ERC20)" : "BNB Smart Chain (BEP20)"}
+              {selectedNetObj.name}
             </span>
             <span className="text-[#848e9c]">▼</span>
           </div>
@@ -182,19 +207,22 @@ export default function OnchainWithdrawPage() {
                 <FiX size={20} />
               </button>
             </div>
-            <div className="space-y-2">
-              {[
-                { id: "TRC20", name: "Tron (TRC20)" },
-                { id: "ERC20", name: "Ethereum (ERC20)" },
-                { id: "BEP20", name: "BNB Smart Chain (BEP20)" },
-              ].map((net) => (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {NETWORK_OPTIONS.map((net) => (
                 <button
                   key={net.id}
+                  disabled={net.suspended}
                   onClick={() => { setNetwork(net.id); setShowNetworkModal(false); }}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border ${network === net.id ? "border-primary bg-primary/5" : "border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04]"} transition text-left`}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border ${network === net.id ? "border-primary bg-primary/5" : "border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04]"} transition text-left ${net.suspended ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <span className={`text-sm font-semibold ${network === net.id ? "text-primary" : "text-white"}`}>{net.name}</span>
-                  {network === net.id && <FiCheckSquare className="text-primary" size={18} />}
+                  <div>
+                    <div className={`text-sm font-semibold flex items-center gap-2 ${network === net.id ? "text-primary" : "text-white"}`}>
+                      {net.name}
+                      {net.suspended && <span className="text-[10px] font-bold text-[#848e9c] bg-white/10 px-2 py-0.5 rounded-full">Suspended</span>}
+                    </div>
+                    <div className="text-xs text-[#848e9c] mt-1">Fee: {net.fee} USDT (≈{net.fee} USD)</div>
+                  </div>
+                  {network === net.id && <FiCheckSquare className="text-primary shrink-0" size={18} />}
                 </button>
               ))}
             </div>
