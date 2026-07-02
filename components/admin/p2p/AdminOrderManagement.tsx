@@ -121,6 +121,8 @@ function OrderCard({ order }: { order: P2POrder }) {
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [hasUnread, setHasUnread] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
 
   // Listen for new messages to show the unread dot
   useEffect(() => {
@@ -182,6 +184,46 @@ function OrderCard({ order }: { order: P2POrder }) {
   const releaseUSDT = () => callOrderAction("release");
   const rejectOrder = () => callOrderAction("reject");
 
+  const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const token = await getAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ file: base64, folder: `korixa/p2p/${order.id}` }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      await updateDoc(doc(getClientFirestore(), "p2pOrders", order.id), { paymentProofUrl: data.url });
+    } catch (err) {
+      console.error("Upload failed", err);
+      alert("Failed to upload image.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleMarkPaid = async () => {
+    setLoading(true);
+    try {
+      await updateDoc(doc(getClientFirestore(), "p2pOrders", order.id), { status: "paid" });
+      setActionMsg({ ok: true, text: "Marked as paid. The user will verify and release USDT." });
+    } catch (err) {
+      setActionMsg({ ok: false, text: "Failed to mark as paid." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="rounded-xl border border-white/[0.06] bg-[#0b0e11] overflow-hidden">
       {/* Header row */}
@@ -216,6 +258,49 @@ function OrderCard({ order }: { order: P2POrder }) {
       {/* Expanded detail */}
       {expanded && (
         <div className="border-t border-white/[0.06] px-3 pb-3 space-y-3 pt-3">
+          
+          {/* If SELL order, admin needs to pay the user */}
+          {order.type === "sell" && (
+            <div className="rounded-xl border border-white/[0.06] bg-[#1e2329] p-3 space-y-3">
+              <h3 className="text-xs font-bold text-white">User's Payment Details</h3>
+              <p className="text-[10px] text-[#848e9c]">
+                You are buying USDT from the user. Transfer exactly <span className="font-bold text-white">{order.amountETB.toLocaleString()} ETB</span> to their account.
+              </p>
+              {order.paymentAccountDetails && order.paymentAccountDetails.length > 0 ? (
+                order.paymentAccountDetails.map((detail) => (
+                  <div key={detail.method} className="rounded-lg border border-white/[0.06] bg-[#0b0e11] p-2">
+                    <div className="mb-1 text-[10px] font-bold text-primary">{detail.method}</div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-[#848e9c]">Account Name</span>
+                        <span className="text-[10px] font-semibold text-white">{detail.accountName}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-[#848e9c]">Account Number</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono font-bold text-white">{detail.accountNumber}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(detail.accountNumber);
+                              setCopied(detail.method);
+                              setTimeout(() => setCopied(null), 2000);
+                            }}
+                            className="flex items-center justify-center rounded bg-[#1e2329] p-1 text-[#848e9c] transition hover:bg-primary/20 hover:text-primary"
+                          >
+                            {copied === detail.method ? <FiCheck size={10} className="text-green-400" /> : <FiCopy size={10} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-[10px] text-red-400">User did not provide payment details. Ask them in chat.</div>
+              )}
+            </div>
+          )}
+
           {/* Payment proof */}
           {order.paymentProofUrl ? (
             <div>
@@ -228,6 +313,20 @@ function OrderCard({ order }: { order: P2POrder }) {
                 />
               </a>
             </div>
+          ) : order.type === "sell" && order.status === "pending" ? (
+            <div>
+              <label className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed py-4 transition ${uploading ? "border-primary/40 text-primary" : "border-white/[0.1] text-[#848e9c] hover:border-primary hover:text-primary"}`}>
+                {uploading ? (
+                  <span className="text-[10px] font-medium">Uploading...</span>
+                ) : (
+                  <>
+                    <FiUploadCloud size={16} className="mb-1" />
+                    <span className="text-[10px] font-medium">Upload receipt</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handleUploadProof} />
+              </label>
+            </div>
           ) : (
             <div className="rounded-lg border border-dashed border-white/[0.06] py-3 text-center text-[11px] text-[#848e9c]">
               No payment proof uploaded yet
@@ -236,24 +335,31 @@ function OrderCard({ order }: { order: P2POrder }) {
 
           {/* Action result message -> replaced by modal below */}
 
-          {/* Action buttons — only show if order is still paid */}
-          {order.status === "paid" && !actionMsg?.ok && (
-            <div className="flex gap-2">
-              <button
-                onClick={rejectOrder}
-                disabled={loading}
-                className="flex-1 rounded-lg border border-red-500/30 py-2.5 text-xs font-bold text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
-              >
-                <FiX className="inline mr-1" />Reject
-              </button>
-              <button
-                onClick={releaseUSDT}
-                disabled={loading}
-                className="flex-1 rounded-lg bg-primary py-2.5 text-xs font-bold text-[#0b0e11] transition hover:bg-primary/90 disabled:opacity-50"
-              >
-                <FiCheck className="inline mr-1" />Release USDT
-              </button>
-            </div>
+          {/* Action buttons */}
+          {order.type === "buy" ? (
+            // For BUY orders: Admin is selling USDT to user. User pays ETB. Admin releases USDT.
+            order.status === "paid" && !actionMsg?.ok && (
+              <div className="flex gap-2">
+                <button onClick={rejectOrder} disabled={loading} className="flex-1 rounded-lg border border-red-500/30 py-2.5 text-xs font-bold text-red-400 transition hover:bg-red-500/10 disabled:opacity-50">
+                  <FiX className="inline mr-1" />Reject
+                </button>
+                <button onClick={releaseUSDT} disabled={loading} className="flex-1 rounded-lg bg-primary py-2.5 text-xs font-bold text-[#0b0e11] transition hover:bg-primary/90 disabled:opacity-50">
+                  <FiCheck className="inline mr-1" />Release USDT
+                </button>
+              </div>
+            )
+          ) : (
+            // For SELL orders: Admin is buying USDT from user. Admin pays ETB, Admin clicks Mark Paid.
+            order.status === "pending" && !actionMsg?.ok && (
+              <div className="flex gap-2">
+                <button onClick={rejectOrder} disabled={loading} className="flex-1 rounded-lg border border-red-500/30 py-2.5 text-xs font-bold text-red-400 transition hover:bg-red-500/10 disabled:opacity-50">
+                  <FiX className="inline mr-1" />Cancel
+                </button>
+                <button onClick={handleMarkPaid} disabled={loading} className="flex-1 rounded-lg bg-primary py-2.5 text-xs font-bold text-[#0b0e11] transition hover:bg-primary/90 disabled:opacity-50">
+                  <FiCheck className="inline mr-1" />Mark as Paid
+                </button>
+              </div>
+            )
           )}
 
           {/* Chat toggle with unread dot */}

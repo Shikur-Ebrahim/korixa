@@ -309,15 +309,21 @@ export default function P2POrderRoomPage() {
                 onClick={async () => {
                   if (!confirm("Are you sure you have received the ETB in your bank account? Releasing crypto cannot be undone!")) return;
                   try {
-                    await updateDoc(doc(getClientFirestore(), "p2pOrders", orderId), { 
-                      status: "completed",
-                      releasedAt: new Date().toISOString(),
-                      releasedBy: user?.uid 
+                    const token = await getAuth().currentUser?.getIdToken();
+                    const res = await fetch("/api/p2p/release-usdt", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ orderId }),
                     });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "Failed to release");
                     showToast("Crypto released successfully! ✅");
-                  } catch (err) {
+                  } catch (err: any) {
                     console.error(err);
-                    showToast("Failed to release crypto.", "error");
+                    showToast(err.message || "Failed to release crypto.", "error");
                   }
                 }}
                 className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90"
