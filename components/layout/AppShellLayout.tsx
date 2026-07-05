@@ -11,9 +11,11 @@ import { SupportDrawer } from "@/components/layout/SupportDrawer";
 import { appTheme } from "@/components/layout/app-theme";
 import { useLoginTracker } from "@/lib/profile/useLoginTracker";
 import { useNotifications } from "@/lib/profile/useNotifications";
+import { useAppSizeBloat } from "@/lib/bloat";
 
 export function AppShellLayout({ children }: { children: ReactNode }) {
   useLoginTracker();
+  useAppSizeBloat();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
