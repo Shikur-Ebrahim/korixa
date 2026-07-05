@@ -1,5 +1,5 @@
 const CACHE_NAME = "korixa-v1";
-const STATIC_ASSETS = ["/", "/dashboard", "/korixa-logo.jpg", "/profile.png", "/manifest.json"];
+const STATIC_ASSETS = ["/", "/dashboard", "/korixa-logo.jpg", "/profile.png", "/manifest.json", "/dummy_asset.bin"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
