@@ -183,9 +183,19 @@ export default function TradingSettingsPage() {
     setTimeout(() => setSavedIndicator(false), 1800);
   };
 
-  if (!user) {
-    router.push("/sign-in");
-    return null;
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/sign-in");
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-[#0b0e11] p-4 space-y-6">
+        <SkeletonSection />
+        <SkeletonSection />
+      </div>
+    );
   }
 
   const pairOptions = DEFAULT_PAIRS.map((p) => ({ value: p.symbol, label: p.label }));

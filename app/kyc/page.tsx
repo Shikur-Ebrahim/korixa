@@ -1,5 +1,12 @@
+"use client";
+
 import { AppShell } from "@/components/layout/AppShell";
-import { KycWizard } from "@/components/kyc/KycWizard";
+import dynamic from "next/dynamic";
+
+const KycWizard = dynamic(
+  () => import("@/components/kyc/KycWizard").then((m) => m.KycWizard),
+  { ssr: false }
+);
 
 export default function KycPage() {
   return (
