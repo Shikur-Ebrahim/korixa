@@ -1,8 +1,7 @@
 {
   "functions": {
     "app/api/binance/**/*.ts": {
-      "maxDuration": 30,
-      "regions": ["fra1", "sin1", "hnd1"]
+      "maxDuration": 30
     }
   }
 }
