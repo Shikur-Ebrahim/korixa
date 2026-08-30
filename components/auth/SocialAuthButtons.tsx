@@ -3,7 +3,7 @@
 import { signInWithPopup } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { FaFacebook, FaGoogle } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
 import { getClientAuth } from "@/lib/firebase";
 import { getSocialAuthProvider } from "@/lib/social-auth";
 
@@ -88,16 +88,6 @@ export function SocialAuthButtons() {
       >
         <FaGoogle className="text-base" />
         {loading === "google" ? "Connecting..." : "Google"}
-      </button>
-
-      <button
-        type="button"
-        onClick={() => handleSocialAuth("facebook")}
-        disabled={!!loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-[#0F2A52] px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-[#0F2A52]/80 disabled:opacity-60"
-      >
-        <FaFacebook className="text-base text-blue-400" />
-        {loading === "facebook" ? "Connecting..." : "Facebook"}
       </button>
     </div>
   );
