@@ -1,4 +1,5 @@
 "use client";
+// @ts-ignore – AppBottomNav is used for persistent navigation
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -6,6 +7,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { subscribeFundingWallets } from "@/lib/profile/wallet-service";
 import type { WalletAsset } from "@/lib/profile/wallet-service";
 import { getClientFirestore } from "@/lib/firebase";
+import { AppBottomNav } from "@/components/layout/AppBottomNav";
 import {
   doc,
   getDoc,
@@ -878,6 +880,9 @@ export default function CardPage() {
           </div>
         </div>
       )}
+
+      {/* Persistent bottom navigation */}
+      <AppBottomNav />
     </div>
   );
 }
