@@ -9,6 +9,7 @@ import { GrowthSection } from "@/components/landing/GrowthSection";
 import { WhyKorixa } from "@/components/landing/WhyKorixa";
 import { CallToAction } from "@/components/landing/CallToAction";
 import { Footer } from "@/components/landing/Footer";
+import { PublicAiSupport } from "@/components/landing/PublicAiSupport";
 
 export default function Home() {
   return (
@@ -26,6 +27,7 @@ export default function Home() {
         <CallToAction />
       </main>
       <Footer />
+      <PublicAiSupport />
     </div>
   );
 }

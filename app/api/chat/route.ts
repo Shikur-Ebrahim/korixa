@@ -54,7 +54,11 @@ async function getBestAvailableModel(apiKey: string): Promise<string> {
 
 export async function POST(request: Request) {
   try {
-    await verifyAuthToken(request);
+    try {
+      await verifyAuthToken(request);
+    } catch {
+      // Allow unauthenticated users from the landing page
+    }
 
     const { messages } = await request.json();
 
