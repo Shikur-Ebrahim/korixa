@@ -39,6 +39,7 @@ function KycWizardContent() {
   const router = useRouter();
   const [step, setStep] = useState<WizardStep>("upload-id");
   const [documentType, setDocumentType] = useState<IdDocumentType>("national_id");
+  const [isDocDropdownOpen, setIsDocDropdownOpen] = useState(false);
   const [idFrontPreview, setIdFrontPreview] = useState<string | null>(null);
   const [idBackPreview, setIdBackPreview] = useState<string | null>(null);
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
@@ -320,20 +321,43 @@ function KycWizardContent() {
           <div className="space-y-4">
             <h2 className="text-base font-semibold text-white sm:text-lg">Step 1 — Upload ID document</h2>
 
-            <label className="block">
+            <div className="relative">
               <span className="mb-1.5 block text-xs font-medium text-[#848e9c]">Document type</span>
-              <select
-                value={documentType}
-                onChange={(e) => setDocumentType(e.target.value as IdDocumentType)}
-                className={appTheme.input}
+              
+              <div 
+                className={`${appTheme.input} flex items-center justify-between cursor-pointer`}
+                onClick={() => setIsDocDropdownOpen(!isDocDropdownOpen)}
               >
-                {DOCUMENT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <span>{DOCUMENT_OPTIONS.find(d => d.value === documentType)?.label}</span>
+                <svg className={`h-4 w-4 text-[#848e9c] transition-transform ${isDocDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+
+              {isDocDropdownOpen && (
+                <div className="absolute left-0 right-0 top-[100%] z-10 mt-1 rounded-xl border border-white/[0.08] bg-[#161a1e] py-1 shadow-xl shadow-black/50 overflow-hidden">
+                  {DOCUMENT_OPTIONS.map((option) => (
+                    <div
+                      key={option.value}
+                      className={`cursor-pointer px-4 py-3 text-sm transition hover:bg-primary/10 ${
+                        documentType === option.value ? "bg-primary/5 text-primary font-medium" : "text-white"
+                      }`}
+                      onClick={() => {
+                        setDocumentType(option.value as IdDocumentType);
+                        setIsDocDropdownOpen(false);
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        {option.label}
+                        {documentType === option.value && (
+                          <div className="h-2 w-2 rounded-full bg-primary" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium text-[#848e9c]">Full Legal Name</span>
@@ -360,10 +384,7 @@ function KycWizardContent() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <p className="text-xs font-medium text-[#848e9c]">Front side</p>
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-[#0b0e11] px-4 py-8 transition hover:border-primary/40 hover:bg-primary/5">
-                  <FiUpload className="mb-2 text-xl text-primary" />
-                  <span className="text-sm font-medium text-white">Upload front</span>
-                  <span className="mt-1 text-xs text-[#848e9c]">JPG or PNG</span>
+                <label className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-white/[0.08] bg-[#0b0e11] h-32 transition hover:border-primary/40 hover:bg-primary/5">
                   <input
                     type="file"
                     accept="image/*"
@@ -374,22 +395,31 @@ function KycWizardContent() {
                       if (file) void handleIdFile("front", file);
                     }}
                   />
+                  {idFrontPreview ? (
+                    <div className="absolute inset-0">
+                      <img
+                        src={idFrontPreview}
+                        alt="ID front preview"
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <FiUpload className="mb-1 text-xl text-white" />
+                        <span className="text-xs font-medium text-white">Change image</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <FiUpload className="mb-2 text-xl text-primary" />
+                      <span className="text-sm font-medium text-white">Upload front</span>
+                      <span className="mt-1 text-[10px] text-[#848e9c]">JPG or PNG</span>
+                    </>
+                  )}
                 </label>
-                {idFrontPreview && (
-                  <img
-                    src={idFrontPreview}
-                    alt="ID front preview"
-                    className="max-h-48 w-full rounded-xl border border-white/[0.06] object-contain"
-                  />
-                )}
               </div>
 
               <div className="space-y-2">
                 <p className="text-xs font-medium text-[#848e9c]">Back side</p>
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-[#0b0e11] px-4 py-8 transition hover:border-primary/40 hover:bg-primary/5">
-                  <FiUpload className="mb-2 text-xl text-primary" />
-                  <span className="text-sm font-medium text-white">Upload back</span>
-                  <span className="mt-1 text-xs text-[#848e9c]">JPG or PNG</span>
+                <label className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-white/[0.08] bg-[#0b0e11] h-32 transition hover:border-primary/40 hover:bg-primary/5">
                   <input
                     type="file"
                     accept="image/*"
@@ -400,14 +430,26 @@ function KycWizardContent() {
                       if (file) void handleIdFile("back", file);
                     }}
                   />
+                  {idBackPreview ? (
+                    <div className="absolute inset-0">
+                      <img
+                        src={idBackPreview}
+                        alt="ID back preview"
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <FiUpload className="mb-1 text-xl text-white" />
+                        <span className="text-xs font-medium text-white">Change image</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <FiUpload className="mb-2 text-xl text-primary" />
+                      <span className="text-sm font-medium text-white">Upload back</span>
+                      <span className="mt-1 text-[10px] text-[#848e9c]">JPG or PNG</span>
+                    </>
+                  )}
                 </label>
-                {idBackPreview && (
-                  <img
-                    src={idBackPreview}
-                    alt="ID back preview"
-                    className="max-h-48 w-full rounded-xl border border-white/[0.06] object-contain"
-                  />
-                )}
               </div>
             </div>
 
