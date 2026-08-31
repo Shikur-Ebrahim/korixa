@@ -6,10 +6,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "KorixaPay — International Crypto Payment Platform",
   description:
-    "KorixaPay is a global crypto payment platform supporting deposits and withdrawals in Bitcoin, USDT, Ethereum and more. Trade P2P across multiple countries, convert crypto to local currency (ETB, USD, EUR), and manage your digital assets securely from anywhere in the world.",
+    "Get an internationally accepted virtual card for seamless global payments. Instantly exchange and trade currencies from anywhere in the world.",
   keywords: [
     "crypto payment",
     "international payment",
+    "virtual card",
+    "global payments",
     "USDT deposit",
     "Bitcoin withdrawal",
     "P2P trading",
@@ -25,9 +27,9 @@ export const metadata: Metadata = {
     canonical: "https://korixapay.com",
   },
   openGraph: {
-    title: "KorixaPay — International Crypto Payment Platform",
+    title: "KorixaPay — Global Payments & Crypto Exchange",
     description:
-      "Global crypto payment platform — deposit, withdraw, and trade Bitcoin, USDT, Ethereum and more across multiple countries. P2P trading with local currency support.",
+      "Get an internationally accepted virtual card for seamless global payments. Instantly exchange and trade currencies from anywhere in the world.",
     url: "https://korixapay.com",
     siteName: "KorixaPay",
     locale: "en_US",
@@ -35,9 +37,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "KorixaPay — International Crypto Payment Platform",
+    title: "KorixaPay — Global Payments & Crypto Exchange",
     description:
-      "Global crypto payment platform — deposit, withdraw, and trade Bitcoin, USDT, Ethereum and more across multiple countries.",
+      "Get an internationally accepted virtual card for seamless global payments. Instantly exchange and trade currencies from anywhere in the world.",
   },
   icons: {
     icon: "/korixa-logo.jpg",
