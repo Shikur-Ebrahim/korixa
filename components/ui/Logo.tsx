@@ -24,7 +24,7 @@ export function Logo({ size = "md", showName = true, className = "", adminTapCou
   const tapCount = useRef(0);
   const tapTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const handleTap = (e: React.PointerEvent) => {
+  const handleTap = (e: React.MouseEvent) => {
     if (adminTapCount === 0) return;
 
     tapCount.current += 1;
@@ -33,7 +33,7 @@ export function Logo({ size = "md", showName = true, className = "", adminTapCou
     
     tapTimer.current = setTimeout(() => {
       tapCount.current = 0;
-    }, 4000); // 4 seconds to allow 15 taps
+    }, 5000); // 5 seconds to easily allow 15 taps
 
     if (tapCount.current >= adminTapCount) {
       e.preventDefault();
@@ -44,17 +44,22 @@ export function Logo({ size = "md", showName = true, className = "", adminTapCou
   };
 
   return (
-    <Link href="/" className={`flex items-center gap-2.5 ${className}`} onPointerDown={handleTap}>
+    <Link 
+      href="/" 
+      className={`flex items-center gap-2.5 select-none ${className}`} 
+      onClick={handleTap}
+      style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+    >
       <Image
         src="/app logo.jpg"
         alt="Korixa logo"
         width={image}
         height={image}
-        className="rounded-lg object-cover"
+        className="rounded-lg object-cover pointer-events-none"
         priority
       />
       {showName && (
-        <span className={`font-semibold tracking-tight text-foreground ${text}`}>
+        <span className={`font-semibold tracking-tight text-foreground pointer-events-none ${text}`}>
           Korixa
         </span>
       )}
