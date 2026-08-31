@@ -70,10 +70,29 @@ export async function POST(request: Request) {
 
     const model = await getBestAvailableModel(GROQ_API_KEY);
 
+    // Fetch the support Telegram username from admin settings
+    let telegramUsername = "@korixapay";
+    try {
+      const settingsRes = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL || "https://korixapay.com"}/api/settings`,
+        { signal: AbortSignal.timeout(3000) }
+      );
+      if (settingsRes.ok) {
+        const settings = await settingsRes.json() as { telegramUsername?: string };
+        if (settings.telegramUsername) telegramUsername = settings.telegramUsername;
+      }
+    } catch {
+      // Use default if fetch fails
+    }
+
     const systemPrompt = {
       role: "system",
-      content:
-        "You are a helpful, professional AI support assistant for Korixa, a modern crypto exchange platform. Be concise, polite, and helpful. Format responses using markdown when appropriate.",
+      content: `You are a helpful, professional AI support assistant for Korixa, a modern crypto exchange and global payment platform. Be concise, polite, and helpful. Format responses using markdown when appropriate.
+
+When a user asks to speak with a human, needs urgent help, or asks for human/live support or contact info, always tell them:
+"For direct human support, please contact the Korixapay team on Telegram: **${telegramUsername}** — tap to open: https://t.me/${telegramUsername.replace("@", "")}"
+
+Always include the Telegram link when recommending human assistance.`,
     };
 
     const apiMessages = [systemPrompt, ...messages];
