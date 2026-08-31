@@ -22,12 +22,11 @@ export function Hero() {
         </div>
 
         <h1 className="mb-3 max-w-md text-2xl font-bold leading-tight tracking-tight sm:max-w-xl sm:text-3xl md:text-4xl">
-          Trade Smarter With Korixa
+          Global Payments & Crypto Exchange
         </h1>
 
         <p className="mb-8 max-w-sm text-sm leading-relaxed text-muted sm:max-w-md sm:text-base">
-          Buy, sell and track digital assets with a secure and modern trading
-          experience.
+          Get an internationally accepted virtual card for seamless global payments. Instantly exchange and trade currencies from anywhere in the world.
         </p>
 
         <div className="flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">

@@ -426,13 +426,16 @@ export default function ContactPage() {
                     transition={{ delay: 0.55 }}
                     className="mt-6"
                   >
-                    <Button
-                      variant="outline"
-                      className="text-sm"
+                    <a
+                      href={`https://t.me/${telegramUsername.replace("@", "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-xl bg-blue-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-600 active:scale-95"
                       onClick={() => setShowSuccess(false)}
                     >
-                      Send Another Message
-                    </Button>
+                      <FaTelegramPlane className="mr-2 text-lg" />
+                      Contact on Telegram
+                    </a>
                   </motion.div>
                 </motion.div>
               )}
