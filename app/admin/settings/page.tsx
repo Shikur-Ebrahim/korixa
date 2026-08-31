@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { FiShield, FiTerminal, FiLock, FiDollarSign, FiArrowRight } from "react-icons/fi";
+import { FiShield, FiTerminal, FiLock, FiDollarSign, FiArrowRight, FiMessageCircle } from "react-icons/fi";
 
 export default function AdminSettingsPage() {
   const { user, logout, getIdToken } = useAuth();
@@ -24,6 +24,10 @@ export default function AdminSettingsPage() {
   const [isUpdatingEtbRate, setIsUpdatingEtbRate] = useState(false);
   const [etbMsg, setEtbMsg] = useState("");
 
+  const [telegramUsername, setTelegramUsername] = useState("@korixapay");
+  const [isUpdatingTelegram, setIsUpdatingTelegram] = useState(false);
+  const [telegramMsg, setTelegramMsg] = useState("");
+
   useEffect(() => {
     async function fetchRate() {
       try {
@@ -33,6 +37,7 @@ export default function AdminSettingsPage() {
         });
         const data = await res.json();
         if (data.etbRate) setEtbRate(data.etbRate.toString());
+        if (data.telegramUsername) setTelegramUsername(data.telegramUsername);
       } catch (e) {
         console.error(e);
       }
@@ -63,6 +68,32 @@ export default function AdminSettingsPage() {
       setEtbMsg("Error updating rate.");
     } finally {
       setIsUpdatingEtbRate(false);
+    }
+  };
+
+  const handleUpdateTelegram = async () => {
+    setIsUpdatingTelegram(true);
+    setTelegramMsg("");
+    try {
+      const token = await getIdToken();
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ telegramUsername }),
+      });
+      if (res.ok) {
+        setTelegramMsg("Telegram username updated successfully!");
+        setTimeout(() => setTelegramMsg(""), 3000);
+      } else {
+        setTelegramMsg("Failed to update Telegram username.");
+      }
+    } catch (e) {
+      setTelegramMsg("Error updating Telegram username.");
+    } finally {
+      setIsUpdatingTelegram(false);
     }
   };
 
@@ -241,6 +272,40 @@ export default function AdminSettingsPage() {
           {etbMsg && (
             <p className={`text-xs ${etbMsg.includes("success") ? "text-green-400" : "text-red-400"}`}>
               {etbMsg}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Telegram Support Username */}
+      <div className="rounded-2xl border border-white/[0.06] bg-[#161a1e] p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <FiMessageCircle className="text-primary" />
+          <p className="text-sm font-semibold text-white">Telegram Support Username</p>
+        </div>
+        <p className="text-xs text-[#848e9c]">
+          Set the default Telegram username shown on the Contact page.
+        </p>
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={telegramUsername}
+              onChange={(e) => setTelegramUsername(e.target.value)}
+              className="w-full rounded-xl border border-white/[0.08] bg-[#0b0e11] px-4 py-3 text-sm font-bold text-white outline-none focus:border-primary/50"
+              placeholder="@korixapay"
+            />
+            <button
+              onClick={handleUpdateTelegram}
+              disabled={isUpdatingTelegram || !telegramUsername}
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-[#0b0e11] transition hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
+            >
+              {isUpdatingTelegram ? "Saving..." : "Save"}
+            </button>
+          </div>
+          {telegramMsg && (
+            <p className={`text-xs ${telegramMsg.includes("success") ? "text-green-400" : "text-red-400"}`}>
+              {telegramMsg}
             </p>
           )}
         </div>

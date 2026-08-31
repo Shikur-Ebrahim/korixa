@@ -34,8 +34,8 @@ export function Hero() {
           <Button href="/sign-up" variant="primary" fullWidth className="sm:w-auto sm:px-6">
             Get Started
           </Button>
-          <Button href="#markets" variant="outline" fullWidth className="sm:w-auto sm:px-6">
-            Explore Markets
+          <Button href="/contact" variant="outline" fullWidth className="sm:w-auto sm:px-6">
+            Contact Support
           </Button>
         </div>
       </div>

@@ -14,6 +14,16 @@ export function Header() {
         <Logo size="sm" />
 
         <nav className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/contact"
+            className="flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-500 transition hover:bg-blue-500/20 sm:px-4 sm:py-2 sm:text-sm"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
+            </span>
+            Contact Support
+          </Link>
           {!loading && initialized && user ? (
             <>
               <Link
