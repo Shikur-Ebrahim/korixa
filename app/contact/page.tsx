@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaTelegramPlane } from "react-icons/fa";
 import { FiCheckCircle } from "react-icons/fi";
-import { getClientFirestore } from "@/src/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/Button";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -68,12 +66,15 @@ export default function ContactPage() {
     setLoading(true);
     
     try {
-      const db = getClientFirestore();
-      await addDoc(collection(db, "contacts"), {
-        ...formData,
-        createdAt: serverTimestamp(),
-        status: "new"
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
+
+      if (!res.ok) {
+        throw new Error("Failed to send message");
+      }
       
       setShowSuccess(true);
       setFormData({
@@ -85,7 +86,7 @@ export default function ContactPage() {
       
       setTimeout(() => {
         setShowSuccess(false);
-      }, 5000);
+      }, 6000);
     } catch (error) {
       console.error("Error submitting contact form:", error);
       alert("Failed to send message. Please try again.");
@@ -247,8 +248,8 @@ export default function ContactPage() {
                     <FiCheckCircle className="text-3xl md:text-4xl" />
                   </motion.div>
                   <h3 className="mb-2 text-lg md:text-xl font-bold">Message Sent Successfully!</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    Thank you for reaching out. Our support team will get back to you shortly.
+                  <p className="text-xs md:text-sm text-muted-foreground font-medium">
+                    The Korixapay team will reply to you soon.
                   </p>
                   <Button
                     variant="outline"
