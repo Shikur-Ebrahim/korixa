@@ -50,7 +50,7 @@ export function SupportDrawer({ open, onClose }: SupportDrawerProps) {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
       });
@@ -59,12 +59,49 @@ export function SupportDrawer({ open, onClose }: SupportDrawerProps) {
         throw new Error("Failed to get response");
       }
 
-      const data = await response.json();
-      setMessages([...newMessages, { role: "assistant", content: data.reply }]);
+      setIsLoading(false); // Stop loading spinner, start streaming text
+      
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
+      
+      if (!reader) return;
+
+      // Add a placeholder message for the AI
+      setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+      let aiText = "";
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        
+        for (const line of lines) {
+          if (line.startsWith("data: ") && line !== "data: [DONE]") {
+            try {
+              const data = JSON.parse(line.slice(6));
+              const delta = data.choices?.[0]?.delta?.content;
+              if (delta) {
+                aiText += delta;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1].content = aiText;
+                  return updated;
+                });
+                scrollToBottom();
+              }
+            } catch (e) {
+              // Ignore incomplete JSON chunks
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages([...newMessages, { role: "assistant", content: "Sorry, I'm having trouble connecting right now. Please try again later." }]);
-    } finally {
+      setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I'm having trouble connecting right now. Please try again later." }]);
       setIsLoading(false);
     }
   };

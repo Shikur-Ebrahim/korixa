@@ -112,6 +112,7 @@ Always use the exact Markdown link format above when recommending human assistan
         messages: apiMessages,
         temperature: 0.7,
         max_tokens: 1024,
+        stream: true,
       }),
     });
 
@@ -119,7 +120,6 @@ Always use the exact Markdown link format above when recommending human assistan
       const errorData = await response.json().catch(() => ({}));
       console.error("Groq API error:", errorData);
 
-      // If the selected model is no longer available, clear cache and retry with next model
       if (response.status === 400 || response.status === 404) {
         cachedModel = null;
         cacheExpiry = 0;
@@ -131,11 +131,13 @@ Always use the exact Markdown link format above when recommending human assistan
       );
     }
 
-    const data = await response.json();
-    const reply =
-      data.choices?.[0]?.message?.content || "Sorry, I couldn't process your request.";
-
-    return NextResponse.json({ reply, model });
+    return new Response(response.body, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
   } catch (error: any) {
     console.error("Chat API error:", error);
     if (error?.status === 401) {
