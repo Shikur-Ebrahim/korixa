@@ -13,15 +13,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
 
-    let db;
-    try {
-      db = require("@/src/lib/firebase-admin").getAdminDb();
-    } catch (e) {
-      db = require("@/lib/firebase-admin").getAdminDb();
-    }
+    const db = getAdminDb();
 
-    // Using admin db bypasses firestore security rules
-    await db.collection("contacts").add({
+    await db.collection("messages").add({
       fullName,
       country,
       phoneNumber,

@@ -14,14 +14,14 @@ export async function GET(request: Request) {
     if (role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const db = getAdminDb();
-    
-    const contactsSnap = await db
-      .collection("contacts")
+
+    const snap = await db
+      .collection("messages")
       .orderBy("createdAt", "desc")
-      .limit(50)
+      .limit(100)
       .get();
 
-    const contacts = contactsSnap.docs.map((doc: any) => {
+    const contacts = snap.docs.map((doc: any) => {
       const d = doc.data();
       return {
         id: doc.id,
