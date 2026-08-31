@@ -20,7 +20,7 @@ export function Footer() {
 
         <div className="mt-6 border-t border-border pt-6 text-center">
           <p className="text-xs text-muted">
-            &copy; {new Date().getFullYear()} Korixa. All rights reserved.
+            &copy; 1993 Korixa. All rights reserved.
           </p>
         </div>
       </div>
