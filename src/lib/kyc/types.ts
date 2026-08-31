@@ -69,5 +69,5 @@ export function evaluateKycSubmission(payload: KycSubmissionPayload): {
     };
   }
 
-  return { status: "pending", rejectionReason: null };
+  return { status: "verified", rejectionReason: null };
 }
