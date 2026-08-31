@@ -37,18 +37,18 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen bg-[#0A1628]">
       <AuthLayout
-        title="Admin Portal"
-        subtitle="Restricted access. Sign in to continue."
+        title="Korixapay Support Team"
+        subtitle="Are you part of the support team? Please login to assist users."
       >
         <form className="space-y-4" onSubmit={handleLogin}>
           <AuthError message={error} />
           
           <AuthInput
-            label="Admin Email"
+            label="Support Email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@korixapay.com"
+            placeholder="support@korixapay.com"
             required
             autoComplete="email"
           />
@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
           />
 
           <AuthButton type="submit" loading={loading}>
-            Sign In
+            Login to Support Portal
           </AuthButton>
         </form>
       </AuthLayout>
