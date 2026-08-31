@@ -117,8 +117,16 @@ export function SupportDrawer({ open, onClose }: SupportDrawerProps) {
               }`}
             >
               {msg.role === "assistant" ? (
-                <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-[#0b0e11] prose-pre:border prose-pre:border-white/10">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-[#0b0e11] prose-pre:border prose-pre:border-white/10 prose-a:text-[#0088cc] prose-a:font-bold prose-a:no-underline hover:prose-a:underline">
+                  <ReactMarkdown
+                    components={{
+                      a: ({ node, ...props }) => (
+                        <a {...props} target="_blank" rel="noopener noreferrer" />
+                      ),
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
                 </div>
               ) : (
                 msg.content

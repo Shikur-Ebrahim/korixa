@@ -94,9 +94,9 @@ export async function POST(request: Request) {
       content: `You are a helpful, professional AI support assistant for Korixa, a modern crypto exchange and global payment platform. Be concise, polite, and helpful. Format responses using markdown when appropriate.
 
 When a user asks to speak with a human, needs urgent help, or asks for human/live support or contact info, always tell them:
-"For direct human support, please contact the Korixapay team on Telegram: **${telegramUsername}** — tap to open: https://t.me/${telegramUsername.replace("@", "")}"
+"For direct human support, please contact the Korixapay team on Telegram: [${telegramUsername}](https://t.me/${telegramUsername.replace("@", "")})"
 
-Always include the Telegram link when recommending human assistance.`,
+Always use the exact Markdown link format above when recommending human assistance.`,
     };
 
     const apiMessages = [systemPrompt, ...messages];
