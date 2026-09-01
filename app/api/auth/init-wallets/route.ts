@@ -27,7 +27,15 @@ export async function POST(request: Request) {
     const uid = decoded.uid;
     const db = getAdminDb();
 
-    // ── Check if wallets already exist ──────────────────────────────────────
+    // Ensure the users document exists and has basic data for Admin tracking
+    const userRef = db.collection("users").doc(uid);
+    await userRef.set({
+      email: decoded.email || "",
+      uid: uid,
+      // Default kycStatus if it doesn't exist
+    }, { merge: true });
+
+    // Check if wallets already exist
     const existing = await db
       .collection("wallets")
       .where("userId", "==", uid)

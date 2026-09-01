@@ -339,9 +339,12 @@ export async function createAuthTokenForEmail(
       const adminDb = getAdminDb();
       const batch = adminDb.batch();
 
-      // Create user document with referral tracking
+      // Create user document with referral tracking and basic profile info
       const userRef = adminDb.collection("users").doc(user.uid);
       batch.set(userRef, {
+        email: normalized,
+        uid: user.uid,
+        kycStatus: "pending",
         referralCode: user.uid.substring(0, 8).toUpperCase(),
         referredBy: refCode || null,
         createdAt: Date.now(),
