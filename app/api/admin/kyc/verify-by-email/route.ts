@@ -21,25 +21,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email and full name are required." }, { status: 400 });
     }
 
+    let uid: string;
+    let userDocRef;
+
     const db = getAdminDb();
     // Find user by email
     const snap = await db.collection("users").where("email", "==", email.trim().toLowerCase()).limit(1).get();
 
     if (snap.empty) {
-      return NextResponse.json({ error: `No user found with email: ${email}` }, { status: 404 });
+      // Fallback: check Firebase Auth directly
+      const { getAdminAuth } = await import("@/lib/firebase-admin-auth");
+      try {
+        const authUser = await getAdminAuth().getUserByEmail(email.trim().toLowerCase());
+        uid = authUser.uid;
+        userDocRef = db.collection("users").doc(uid);
+      } catch (authErr: any) {
+        if (authErr.code === "auth/user-not-found") {
+           return NextResponse.json({ error: `No user found with email: ${email}` }, { status: 404 });
+        }
+        throw authErr;
+      }
+    } else {
+      uid = snap.docs[0].id;
+      userDocRef = snap.docs[0].ref;
     }
 
-    const userDoc = snap.docs[0];
-    await userDoc.ref.update({
+    await userDocRef.set({
+      email: email.trim().toLowerCase(),
+      uid: uid,
       kycStatus: "verified",
       fullName: fullName.trim(),
       rejectionReason: null,
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    }, { merge: true });
 
     return NextResponse.json({
       ok: true,
-      uid: userDoc.id,
+      uid,
       email,
       kycStatus: "verified",
       message: `User ${email} has been verified successfully.`,
